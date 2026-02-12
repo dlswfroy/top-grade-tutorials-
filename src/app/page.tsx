@@ -1,4 +1,5 @@
 'use client';
+import { useMemo } from 'react';
 import {
   Card,
   CardContent,
@@ -9,22 +10,39 @@ import { Users, UserCheck, UserX, Loader2 } from 'lucide-react';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection } from 'firebase/firestore';
 import { DashboardChart } from './dashboard-chart';
-import type { Student } from '@/lib/data';
+import type { Student, Payment } from '@/lib/data';
+import { format } from 'date-fns';
+import { bn } from 'date-fns/locale';
 
 export default function DashboardPage() {
   const firestore = useFirestore();
+  
   const studentsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return collection(firestore, 'students');
   }, [firestore]);
   const { data: students, isLoading: isLoadingStudents } = useCollection<Student>(studentsQuery);
+
+  const paymentsQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return collection(firestore, 'payments');
+  }, [firestore]);
+  const { data: payments, isLoading: isLoadingPayments } = useCollection<Payment>(paymentsQuery);
   
-  // Note: Payments and attendance are not yet fully implemented with Firestore.
-  // These are mock values for now.
   const totalStudents = students?.length ?? 0;
+  // Mock values for attendance as it is not implemented
   const presentStudents = Math.floor(totalStudents * 0.9);
   const absentStudents = totalStudents - presentStudents;
-  const monthlyIncome = 125000; // Mocked for now
+
+  const monthlyIncome = useMemo(() => {
+    if (!payments) return 0;
+    const currentMonthName = format(new Date(), 'MMMM', { locale: bn });
+    
+    return payments
+        .filter(p => p.paymentMonth === currentMonthName)
+        .reduce((sum, p) => sum + p.amount, 0);
+  }, [payments]);
+
 
   return (
     <div className="space-y-8">
@@ -73,9 +91,11 @@ export default function DashboardPage() {
             <span className="text-2xl font-bold">৳</span>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {new Intl.NumberFormat('bn-BD').format(monthlyIncome)}
-            </div>
+            {isLoadingPayments ? <Loader2 className="h-6 w-6 animate-spin" /> :
+              <div className="text-2xl font-bold">
+                {new Intl.NumberFormat('bn-BD').format(monthlyIncome)}
+              </div>
+            }
             <p className="text-xs text-muted-foreground">
               চলতি মাসের মোট আদায়
             </p>
