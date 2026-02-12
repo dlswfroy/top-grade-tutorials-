@@ -26,7 +26,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { classNames, type Student, type Attendance } from '@/lib/data';
-import { Loader2, Save, ChevronsRight } from 'lucide-react';
+import { Loader2, Save, ChevronsRight, Info } from 'lucide-react';
 import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
 import { collection, query, where, doc, writeBatch } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
@@ -35,6 +35,7 @@ import { bn } from 'date-fns/locale';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 
 type AttendanceStatus = 'present' | 'absent';
@@ -66,6 +67,10 @@ export default function AttendancePage() {
     return query(collection(firestore, 'attendance'), where('classGrade', '==', selectedClass), where('date', '==', formattedDate));
   }, [firestore, selectedClass, formattedDate]);
   const { data: existingAttendance, isLoading: isLoadingAttendance } = useCollection<Attendance>(attendanceQuery);
+  
+  const isAttendanceAlreadySaved = useMemo(() => {
+      return !isLoadingAttendance && existingAttendance && existingAttendance.length > 0;
+  }, [existingAttendance, isLoadingAttendance]);
 
   // Pre-fill attendance state with existing data
   useMemo(() => {
@@ -75,6 +80,9 @@ export default function AttendancePage() {
         return acc;
       }, {} as Record<string, AttendanceStatus>);
       setAttendance(newAttendance);
+    } else {
+        // Reset if no existing attendance
+        setAttendance({});
     }
   }, [existingAttendance]);
   
@@ -104,7 +112,7 @@ export default function AttendancePage() {
                 status: status,
                 recordedByTeacherId: user.uid,
             };
-            batch.set(attendanceRef, attendanceData);
+            batch.set(attendanceRef, attendanceData, { merge: true });
         });
         
         await batch.commit();
@@ -173,6 +181,15 @@ export default function AttendancePage() {
                 </div>
             ) : students && students.length > 0 ? (
                 <>
+                {isAttendanceAlreadySaved && (
+                    <Alert className="mb-4">
+                        <Info className="h-4 w-4" />
+                        <AlertTitle>হাজিরা সম্পন্ন</AlertTitle>
+                        <AlertDescription>
+                            এই শ্রেণি এবং তারিখের জন্য হাজিরা ইতিমধ্যে নেওয়া হয়েছে।
+                        </AlertDescription>
+                    </Alert>
+                )}
                 <Table>
                     <TableHeader>
                         <TableRow>
@@ -191,6 +208,7 @@ export default function AttendancePage() {
                                         value={attendance[student.id] || ''} 
                                         onValueChange={(value) => handleAttendanceChange(student.id, value as AttendanceStatus)}
                                         className="justify-center"
+                                        disabled={isAttendanceAlreadySaved}
                                     >
                                         <div className="flex items-center space-x-2">
                                             <RadioGroupItem value="present" id={`present-${student.id}`} />
@@ -207,9 +225,9 @@ export default function AttendancePage() {
                     </TableBody>
                 </Table>
                 <div className="mt-6 flex justify-end">
-                    <Button onClick={handleSaveAttendance} disabled={isSaving}>
+                    <Button onClick={handleSaveAttendance} disabled={isSaving || isAttendanceAlreadySaved}>
                         {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                        হাজিরা সেভ করুন
+                        {isAttendanceAlreadySaved ? 'হাজিরা সেভ করা হয়েছে' : 'হাজিরা সেভ করুন'}
                     </Button>
                 </div>
                 </>

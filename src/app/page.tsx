@@ -11,7 +11,7 @@ import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where } from 'firebase/firestore';
 import { DashboardChart } from './dashboard-chart';
 import type { Student, Payment, Attendance } from '@/lib/data';
-import { format } from 'date-fns';
+import { format, parseISO, isThisMonth } from 'date-fns';
 import { bn } from 'date-fns/locale';
 
 export default function DashboardPage() {
@@ -47,10 +47,8 @@ export default function DashboardPage() {
 
   const monthlyIncome = useMemo(() => {
     if (!payments) return 0;
-    const currentMonth = format(new Date(), 'yyyy-MM');
-    
     return payments
-        .filter(p => p.paymentMonth.startsWith(currentMonth))
+        .filter(p => isThisMonth(parseISO(p.paymentDate)))
         .reduce((sum, p) => sum + p.amount, 0);
   }, [payments]);
 
