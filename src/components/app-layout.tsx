@@ -24,10 +24,10 @@ import {
   MoreVertical,
   LogOut,
   Loader2,
+  CalendarCheck,
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import Image from 'next/image';
@@ -38,11 +38,10 @@ const menuItems = [
   { href: '/students', label: 'শিক্ষার্থী', icon: Users },
   { href: '/teachers', label: 'শিক্ষক', icon: Briefcase },
   { href: '/accounting', label: 'হিসাব', icon: Calculator },
+  { href: '/attendance', label: 'হাজিরা', icon: CalendarCheck },
   { href: '/questions', label: 'প্রশ্ন তৈরি', icon: BrainCircuit },
   { href: '/settings', label: 'সেটিংস', icon: Settings },
 ];
-
-const adminAvatar = PlaceHolderImages.find(p => p.id === 'admin-avatar');
 
 type InstitutionSettings = {
     institutionName?: string;
@@ -111,8 +110,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         <SidebarFooter>
           <div className="flex items-center gap-3 p-2">
             <Avatar>
-              <AvatarImage src={adminAvatar?.imageUrl} data-ai-hint={adminAvatar?.imageHint} />
-              <AvatarFallback>{isUserLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : (user ? user.uid.charAt(0).toUpperCase() : 'A')}</AvatarFallback>
+              <AvatarImage src={user?.photoURL || undefined} />
+              <AvatarFallback>{isUserLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : (user ? 'A' : 'G')}</AvatarFallback>
             </Avatar>
             <div className="flex-1 overflow-hidden">
                 <p className="text-sm font-medium truncate">{isUserLoading ? 'Loading...' : (user ? 'Anonymous User' : 'Not Signed In')}</p>

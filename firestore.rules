@@ -34,5 +34,13 @@ service cloud.firestore {
     match /roles_teacher/{teacherUid} {
        allow read, write: if isSignedIn();
     }
+
+    match /expenses/{expenseId} {
+      allow read, write: if isSignedIn();
+    }
+
+    match /attendance/{attendanceId} {
+      allow read, write: if isSignedIn();
+    }
   }
 }

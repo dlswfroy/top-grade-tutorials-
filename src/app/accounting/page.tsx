@@ -1,11 +1,12 @@
 'use client';
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
+  CardFooter,
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,13 +18,13 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
-import { classNames, type Student, type Teacher, type Payment } from '@/lib/data';
-import { Search, Printer, Loader2, DollarSign, Save } from 'lucide-react';
+import { classNames, type Student, type Teacher, type Payment, type Expense } from '@/lib/data';
+import { Search, Printer, Loader2, DollarSign, Save, PlusCircle, TrendingDown, ChevronsRight } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
-import { collection, where, query, getDocs, doc, addDoc } from 'firebase/firestore';
+import { useFirestore, useCollection, useDoc, useMemoFirebase, useUser } from '@/firebase';
+import { collection, where, query, getDocs, doc, addDoc, setDoc, writeBatch } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
-import { format } from 'date-fns';
+import { format, isToday, isThisMonth, isThisYear, parseISO } from 'date-fns';
 import { bn } from 'date-fns/locale';
 import {
   Dialog,
@@ -41,6 +42,10 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { cn } from '@/lib/utils';
 
 const months = ['জানুয়ারি', 'ফেব্রুয়ারি', 'মার্চ', 'এপ্রিল', 'মে', 'জুন', 'জুলাই', 'আগস্ট', 'সেপ্টেম্বর', 'অক্টোবর', 'নভেম্বর', 'ডিসেম্বর'];
 
@@ -48,6 +53,101 @@ type InstitutionSettings = {
     institutionName?: string;
     logoUrl?: string;
 };
+
+// Fee Collection Component
+function FeeCollection() {
+    const firestore = useFirestore();
+    const { toast } = useToast();
+    
+    const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
+    const [isSearching, setIsSearching] = useState(false);
+    const [searchRoll, setSearchRoll] = useState('');
+    const [searchClass, setSearchClass] = useState('');
+  
+    const handleSearch = async () => {
+      if (!firestore || !searchClass || !searchRoll) {
+        toast({ variant: 'destructive', title: 'ত্রুটি', description: 'শ্রেণি এবং রোল নম্বর দিন।' });
+        return;
+      }
+      setIsSearching(true);
+      setSelectedStudent(null);
+      try {
+        const studentsRef = collection(firestore, 'students');
+        const q = query(studentsRef, where('classGrade', '==', searchClass), where('rollNumber', '==', searchRoll));
+        const querySnapshot = await getDocs(q);
+        
+        if (querySnapshot.empty) {
+          toast({ variant: 'destructive', title: 'পাওয়া যায়নি', description: 'এই রোল নম্বরের কোনো শিক্ষার্থী এই শ্রেণিতে নেই।' });
+        } else {
+          const studentDoc = querySnapshot.docs[0];
+          const studentData = { id: studentDoc.id, ...studentDoc.data() } as Student;
+          setSelectedStudent(studentData);
+        }
+      } catch (error) {
+        console.error("Error searching for student:", error);
+        toast({ variant: 'destructive', title: 'ত্রুটি', description: 'শিক্ষার্থী খুঁজতে গিয়ে সমস্যা হয়েছে।' });
+      } finally {
+        setIsSearching(false);
+      }
+    };
+  
+    return (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="lg:col-span-1">
+            <Card>
+                <CardHeader>
+                <CardTitle>শিক্ষার্থী খুঁজুন</CardTitle>
+                <CardDescription>বেতন আদায়ের জন্য শিক্ষার্থী খুঁজুন।</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                <div className="space-y-2">
+                    <Label htmlFor="search-class">শ্রেণি</Label>
+                    <Select value={searchClass} onValueChange={setSearchClass}>
+                    <SelectTrigger id="search-class">
+                        <SelectValue placeholder="শ্রেণি নির্বাচন করুন" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {classNames.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                    </SelectContent>
+                    </Select>
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="search-roll">রোল</Label>
+                    <Input
+                    id="search-roll"
+                    placeholder="রোল নম্বর লিখুন"
+                    value={searchRoll}
+                    onChange={(e) => setSearchRoll(e.target.value)}
+                    />
+                </div>
+                <Button onClick={handleSearch} className="w-full" disabled={isSearching}>
+                    {isSearching ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Search className="mr-2 h-4 w-4" />}
+                    খুঁজুন
+                </Button>
+                </CardContent>
+            </Card>
+            </div>
+    
+            <div className="lg:col-span-2">
+            {selectedStudent ? (
+                <PaymentRecord student={selectedStudent} />
+            ) : (
+                <div className="flex flex-col items-center justify-center text-center p-12 border-2 border-dashed rounded-lg h-full">
+                {isSearching ? (
+                    <div className="text-center">
+                        <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-2" />
+                        <p>শিক্ষার্থী খোঁজা হচ্ছে...</p>
+                    </div>
+                ) : (
+                    <p className="text-muted-foreground">শিক্ষার্থীর পেমেন্ট রেকর্ড দেখার জন্য শ্রেণি ও রোল দিয়ে খুঁজুন।</p>
+                )}
+                </div>
+            )}
+            </div>
+        </div>
+    );
+}
+
 
 function PaymentRecord({ student }: { student: Student }) {
     const firestore = useFirestore();
@@ -78,8 +178,13 @@ function PaymentRecord({ student }: { student: Student }) {
 
     const paymentsByMonth = useMemo(() => {
         if (!payments) return {};
+        const currentYear = new Date().getFullYear().toString();
         return payments.reduce((acc, payment) => {
-            acc[payment.paymentMonth] = payment;
+            const [year, month] = payment.paymentMonth.split('-');
+            if (year === currentYear) {
+                const monthName = months[parseInt(month, 10) -1];
+                if(monthName) acc[monthName] = payment;
+            }
             return acc;
         }, {} as Record<string, Payment>);
     }, [payments]);
@@ -89,7 +194,9 @@ function PaymentRecord({ student }: { student: Student }) {
     }
 
     const handleOpenPaymentDialog = (month: string) => {
-        setSelectedMonth(month);
+        const monthIndex = months.indexOf(month) + 1;
+        const year = new Date().getFullYear();
+        setSelectedMonth(`${year}-${monthIndex.toString().padStart(2, '0')}`);
         setPaymentAmount(student.monthlyFee);
         setIsDialogOpen(true);
     };
@@ -101,7 +208,6 @@ function PaymentRecord({ student }: { student: Student }) {
         }
         
         setIsSaving(true);
-
         try {
             const paymentData = {
                 studentId: student.id,
@@ -150,7 +256,7 @@ function PaymentRecord({ student }: { student: Student }) {
                     <div class="header">
                         <h1>${settings?.institutionName || 'টপ গ্রেড টিউটোরিয়ালস'}</h1>
                         <p>বীরগঞ্জ পৌরসভা, বীরগঞ্জ, দিনাজপুর।</p>
-                        <h3>বেতন আদায় কার্ড</h3>
+                        <h3>বেতন আদায় কার্ড - ${new Date().getFullYear()}</h3>
                     </div>
                     <table class="info-table">
                         <tr>
@@ -177,7 +283,7 @@ function PaymentRecord({ student }: { student: Student }) {
                             ${months.map(month => `
                                 <tr>
                                     <td>${month}</td>
-                                    <td>${paymentsByMonth[month] ? format(new Date(paymentsByMonth[month]!.paymentDate), 'PP', { locale: bn }) : ''}</td>
+                                    <td>${paymentsByMonth[month] ? format(parseISO(paymentsByMonth[month]!.paymentDate), 'PP', { locale: bn }) : ''}</td>
                                     <td>${student.monthlyFee}</td>
                                     <td>${paymentsByMonth[month]?.amount || ''}</td>
                                     <td>${paymentsByMonth[month] ? getTeacherName(paymentsByMonth[month]!.teacherId) : ''}</td>
@@ -240,7 +346,7 @@ function PaymentRecord({ student }: { student: Student }) {
                                 return (
                                     <TableRow key={month}>
                                         <TableCell className="font-medium">{month}</TableCell>
-                                        <TableCell>{payment ? format(new Date(payment.paymentDate), 'PP', { locale: bn }) : 'N/A'}</TableCell>
+                                        <TableCell>{payment ? format(parseISO(payment.paymentDate), 'PP', { locale: bn }) : 'N/A'}</TableCell>
                                         <TableCell>{payment ? `৳${payment.amount}` : 'N/A'}</TableCell>
                                         <TableCell>{payment ? getTeacherName(payment.teacherId) : 'N/A'}</TableCell>
                                         <TableCell className="text-right">
@@ -264,7 +370,7 @@ function PaymentRecord({ student }: { student: Student }) {
              <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>{selectedMonth} মাসের বেতন আদায়</DialogTitle>
+                        <DialogTitle>{months[parseInt(selectedMonth.split('-')[1], 10) - 1]} মাসের বেতন আদায়</DialogTitle>
                     </DialogHeader>
                     <div className="space-y-4 py-4">
                         <div className="space-y-2">
@@ -295,102 +401,331 @@ function PaymentRecord({ student }: { student: Student }) {
     );
 }
 
+// Payment List Component
+function PaymentList() {
+    const firestore = useFirestore();
+    const paymentsQuery = useMemoFirebase(() => {
+        if (!firestore) return null;
+        return collection(firestore, 'payments');
+    }, [firestore]);
+    const { data: payments, isLoading: isLoadingPayments } = useCollection<Payment>(paymentsQuery);
+
+    const studentsQuery = useMemoFirebase(() => {
+        if (!firestore) return null;
+        return collection(firestore, 'students');
+    }, [firestore]);
+    const { data: students } = useCollection<Student>(studentsQuery);
+    
+    const teachersQuery = useMemoFirebase(() => {
+        if (!firestore) return null;
+        return collection(firestore, 'teachers');
+    }, [firestore]);
+    const { data: teachers } = useCollection<Teacher>(teachersQuery);
+
+    const { dailyTotal, monthlyTotal, yearlyTotal } = useMemo(() => {
+        if (!payments) return { dailyTotal: 0, monthlyTotal: 0, yearlyTotal: 0 };
+        return payments.reduce((acc, p) => {
+            const paymentDate = parseISO(p.paymentDate);
+            if (isToday(paymentDate)) acc.dailyTotal += p.amount;
+            if (isThisMonth(paymentDate)) acc.monthlyTotal += p.amount;
+            if (isThisYear(paymentDate)) acc.yearlyTotal += p.amount;
+            return acc;
+        }, { dailyTotal: 0, monthlyTotal: 0, yearlyTotal: 0 });
+    }, [payments]);
+
+    const getStudentInfo = (studentId: string) => {
+        const student = students?.find(s => s.id === studentId);
+        return student ? `${student.name} (রোল: ${student.rollNumber})` : 'N/A';
+    }
+
+    const getTeacherName = (teacherId: string) => {
+        return teachers?.find(t => t.id === teacherId)?.name || 'N/A';
+    }
+    
+    return (
+        <div className="space-y-6">
+            <div className="grid gap-4 md:grid-cols-3">
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">দৈনিক আদায়</CardTitle>
+                        <DollarSign className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold">৳{dailyTotal}</div>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">মাসিক আদায়</CardTitle>
+                        <DollarSign className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold">৳{monthlyTotal}</div>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">বাৎসরিক আদায়</CardTitle>
+                        <DollarSign className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold">৳{yearlyTotal}</div>
+                    </CardContent>
+                </Card>
+            </div>
+            <Card>
+                <CardHeader>
+                    <CardTitle>সকল আদায়ের তালিকা</CardTitle>
+                </CardHeader>
+                <CardContent>
+                {isLoadingPayments ? (
+                    <div className="flex justify-center items-center h-40">
+                        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                    </div>
+                ) : (
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>শিক্ষার্থী</TableHead>
+                                <TableHead>মাস</TableHead>
+                                <TableHead>পরিমাণ</TableHead>
+                                <TableHead>আদায়ের তারিখ</TableHead>
+                                <TableHead>আদায়কারী</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {payments?.map(p => (
+                                <TableRow key={p.id}>
+                                    <TableCell>{getStudentInfo(p.studentId)}</TableCell>
+                                    <TableCell>{format(parseISO(p.paymentDate), 'MMMM yyyy', {locale: bn})}</TableCell>
+                                    <TableCell>৳{p.amount}</TableCell>
+                                    <TableCell>{format(parseISO(p.paymentDate), 'PP', {locale: bn})}</TableCell>
+                                    <TableCell>{getTeacherName(p.teacherId)}</TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                )}
+                </CardContent>
+            </Card>
+        </div>
+    )
+}
+
+// Expense Component
+function Expenses() {
+    const firestore = useFirestore();
+    const { toast } = useToast();
+    const { user } = useUser();
+    
+    const [isDialogOpen, setIsDialogOpen] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
+    const [description, setDescription] = useState('');
+    const [amount, setAmount] = useState<number | string>('');
+    const [expenseDate, setExpenseDate] = useState<Date | undefined>(new Date());
+
+    const expensesQuery = useMemoFirebase(() => {
+        if (!firestore) return null;
+        return collection(firestore, 'expenses');
+    }, [firestore]);
+    const { data: expenses, isLoading: isLoadingExpenses } = useCollection<Expense>(expensesQuery);
+
+    const teachersQuery = useMemoFirebase(() => {
+        if (!firestore) return null;
+        return collection(firestore, 'teachers');
+    }, [firestore]);
+    const { data: teachers } = useCollection<Teacher>(teachersQuery);
+
+    const getTeacherName = (teacherId: string) => {
+        return teachers?.find(t => t.id === teacherId)?.name || 'N/A';
+    }
+
+    const handleSaveExpense = async () => {
+        if (!firestore || !description || !amount || !expenseDate || !user) {
+            toast({ variant: 'destructive', title: 'ত্রুটি', description: 'অনুগ্রহ করে সকল তথ্য পূরণ করুন।' });
+            return;
+        }
+        setIsSaving(true);
+        try {
+            await addDoc(collection(firestore, 'expenses'), {
+                description,
+                amount: Number(amount),
+                expenseDate: expenseDate.toISOString(),
+                spentByTeacherId: user.uid // Assuming logged in user is a teacher
+            });
+            toast({ title: 'সফল', description: 'খরচ সফলভাবে যোগ করা হয়েছে।' });
+            setIsDialogOpen(false);
+            setDescription('');
+            setAmount('');
+            setExpenseDate(new Date());
+        } catch (error: any) {
+            toast({ variant: 'destructive', title: 'ত্রুটি', description: `খরচ যোগ করতে সমস্যা হয়েছে: ${error.message}` });
+        } finally {
+            setIsSaving(false);
+        }
+    }
+
+    return (
+         <div className="space-y-6">
+            <Card>
+                <CardHeader className="flex-row items-center justify-between">
+                    <CardTitle>খরচের তালিকা</CardTitle>
+                    <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                        <DialogTrigger asChild>
+                            <Button><PlusCircle className="mr-2 h-4 w-4" />নতুন খরচ</Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                            <DialogHeader>
+                                <DialogTitle>নতুন খরচ যোগ করুন</DialogTitle>
+                            </DialogHeader>
+                            <div className="space-y-4 py-4">
+                                <Input placeholder="খরচের বিবরণ" value={description} onChange={e => setDescription(e.target.value)} />
+                                <Input type="number" placeholder="টাকার পরিমাণ" value={amount} onChange={e => setAmount(e.target.value)} />
+                                 <Popover>
+                                    <PopoverTrigger asChild>
+                                    <Button
+                                        variant={"outline"}
+                                        className={cn(
+                                        "w-full justify-start text-left font-normal",
+                                        !expenseDate && "text-muted-foreground"
+                                        )}
+                                    >
+                                        <ChevronsRight className="mr-2 h-4 w-4" />
+                                        {expenseDate ? format(expenseDate, "PPP", { locale: bn }) : <span>একটি তারিখ নির্বাচন করুন</span>}
+                                    </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-auto p-0">
+                                        <Calendar mode="single" selected={expenseDate} onSelect={setExpenseDate} initialFocus />
+                                    </PopoverContent>
+                                </Popover>
+                            </div>
+                            <DialogFooter>
+                                <Button onClick={handleSaveExpense} disabled={isSaving}>
+                                    {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'সেভ করুন'}
+                                </Button>
+                            </DialogFooter>
+                        </DialogContent>
+                    </Dialog>
+                </CardHeader>
+                <CardContent>
+                    {isLoadingExpenses ? (
+                        <Loader2 className="mx-auto h-8 w-8 animate-spin" />
+                    ) : (
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>বিবরণ</TableHead>
+                                    <TableHead>পরিমাণ</TableHead>
+                                    <TableHead>খরচের তারিখ</TableHead>
+                                    <TableHead>খরচ করেছেন</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {expenses?.map(e => (
+                                    <TableRow key={e.id}>
+                                        <TableCell>{e.description}</TableCell>
+                                        <TableCell>৳{e.amount}</TableCell>
+                                        <TableCell>{format(parseISO(e.expenseDate), 'PP', {locale: bn})}</TableCell>
+                                        <TableCell>{getTeacherName(e.spentByTeacherId)}</TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    )}
+                </CardContent>
+            </Card>
+        </div>
+    )
+}
+
+function Report() {
+    const firestore = useFirestore();
+    const paymentsQuery = useMemoFirebase(() => {
+        if (!firestore) return null;
+        return collection(firestore, 'payments');
+    }, [firestore]);
+    const { data: payments, isLoading: isLoadingPayments } = useCollection<Payment>(paymentsQuery);
+
+    const expensesQuery = useMemoFirebase(() => {
+        if (!firestore) return null;
+        return collection(firestore, 'expenses');
+    }, [firestore]);
+    const { data: expenses, isLoading: isLoadingExpenses } = useCollection<Expense>(expensesQuery);
+    
+    const totalIncome = useMemo(() => payments?.reduce((sum, p) => sum + p.amount, 0) || 0, [payments]);
+    const totalExpense = useMemo(() => expenses?.reduce((sum, e) => sum + e.amount, 0) || 0, [expenses]);
+    const netBalance = totalIncome - totalExpense;
+
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle>আয়-ব্যয় রিপোর্ট</CardTitle>
+                <CardDescription>প্রতিষ্ঠানের মোট আয়, ব্যয় এবং বর্তমান ব্যালেন্স দেখুন।</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+                {(isLoadingPayments || isLoadingExpenses) ? (
+                    <Loader2 className="mx-auto h-8 w-8 animate-spin" />
+                ) : (
+                    <div className="grid gap-4 md:grid-cols-3">
+                         <Card className="bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800">
+                            <CardHeader>
+                                <CardTitle className="text-green-800 dark:text-green-300">মোট আয়</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <p className="text-3xl font-bold text-green-900 dark:text-green-200">৳{totalIncome}</p>
+                            </CardContent>
+                         </Card>
+                         <Card className="bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800">
+                            <CardHeader>
+                                <CardTitle className="text-red-800 dark:text-red-300">মোট ব্যয়</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <p className="text-3xl font-bold text-red-900 dark:text-red-200">৳{totalExpense}</p>
+                            </CardContent>
+                         </Card>
+                         <Card className={cn(netBalance >= 0 ? "bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800" : "bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800")}>
+                            <CardHeader>
+                                <CardTitle className={cn(netBalance >= 0 ? "text-blue-800 dark:text-blue-300" : "text-orange-800 dark:text-orange-300")}>বর্তমান ব্যালেন্স</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <p className="text-3xl font-bold">৳{netBalance}</p>
+                            </CardContent>
+                         </Card>
+                    </div>
+                )}
+            </CardContent>
+        </Card>
+    );
+}
+
 export default function AccountingPage() {
-  const firestore = useFirestore();
-  const { toast } = useToast();
-  
-  const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
-  const [isSearching, setIsSearching] = useState(false);
-  const [searchRoll, setSearchRoll] = useState('');
-  const [searchClass, setSearchClass] = useState('');
-
-  const handleSearch = async () => {
-    if (!firestore || !searchClass || !searchRoll) {
-      toast({ variant: 'destructive', title: 'ত্রুটি', description: 'শ্রেণি এবং রোল নম্বর দিন।' });
-      return;
-    }
-    setIsSearching(true);
-    setSelectedStudent(null);
-    try {
-      const studentsRef = collection(firestore, 'students');
-      const q = query(studentsRef, where('classGrade', '==', searchClass), where('rollNumber', '==', searchRoll));
-      const querySnapshot = await getDocs(q);
-      
-      if (querySnapshot.empty) {
-        toast({ variant: 'destructive', title: 'পাওয়া যায়নি', description: 'এই রোল নম্বরের কোনো শিক্ষার্থী এই শ্রেণিতে নেই।' });
-      } else {
-        const studentDoc = querySnapshot.docs[0];
-        const studentData = { id: studentDoc.id, ...studentDoc.data() } as Student;
-        setSelectedStudent(studentData);
-      }
-    } catch (error) {
-      console.error("Error searching for student:", error);
-      toast({ variant: 'destructive', title: 'ত্রুটি', description: 'শিক্ষার্থী খুঁজতে গিয়ে সমস্যা হয়েছে।' });
-    } finally {
-      setIsSearching(false);
-    }
-  };
-
   return (
     <div className="space-y-8">
       <div>
         <h1 className="text-3xl font-bold font-headline">হিসাবরক্ষণ</h1>
-        <p className="text-muted-foreground">শিক্ষার্থীদের মাসিক বেতন আদায় করুন এবং রসিদ প্রিন্ট করুন।</p>
+        <p className="text-muted-foreground">শিক্ষার্থীদের মাসিক বেতন আদায়, খরচ এবং আয়-ব্যয়ের রিপোর্ট দেখুন।</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-1">
-          <Card>
-            <CardHeader>
-              <CardTitle>শিক্ষার্থী খুঁজুন</CardTitle>
-              <CardDescription>বেতন আদায়ের জন্য শিক্ষার্থী খুঁজুন।</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="search-class">শ্রেণি</Label>
-                <Select value={searchClass} onValueChange={setSearchClass}>
-                  <SelectTrigger id="search-class">
-                    <SelectValue placeholder="শ্রেণি নির্বাচন করুন" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {classNames.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="search-roll">রোল</Label>
-                <Input
-                  id="search-roll"
-                  placeholder="রোল নম্বর লিখুন"
-                  value={searchRoll}
-                  onChange={(e) => setSearchRoll(e.target.value)}
-                />
-              </div>
-              <Button onClick={handleSearch} className="w-full" disabled={isSearching}>
-                {isSearching ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Search className="mr-2 h-4 w-4" />}
-                খুঁজুন
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-
-        <div className="lg:col-span-2">
-          {selectedStudent ? (
-            <PaymentRecord student={selectedStudent} />
-          ) : (
-            <div className="flex flex-col items-center justify-center text-center p-12 border-2 border-dashed rounded-lg h-full">
-              {isSearching ? (
-                <div className="text-center">
-                    <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-2" />
-                    <p>শিক্ষার্থী খোঁজা হচ্ছে...</p>
-                </div>
-              ) : (
-                <p className="text-muted-foreground">শিক্ষার্থীর পেমেন্ট রেকর্ড দেখার জন্য শ্রেণি ও রোল দিয়ে খুঁজুন।</p>
-              )}
-            </div>
-          )}
-        </div>
-      </div>
+      <Tabs defaultValue="collection" className="space-y-4">
+        <TabsList>
+            <TabsTrigger value="collection">বেতন আদায়</TabsTrigger>
+            <TabsTrigger value="payment-list">আদায়ের তালিকা</TabsTrigger>
+            <TabsTrigger value="expenses">খরচের হিসাব</TabsTrigger>
+            <TabsTrigger value="report">রিপোর্ট</TabsTrigger>
+        </TabsList>
+        <TabsContent value="collection">
+            <FeeCollection />
+        </TabsContent>
+        <TabsContent value="payment-list">
+            <PaymentList />
+        </TabsContent>
+        <TabsContent value="expenses">
+            <Expenses />
+        </TabsContent>
+        <TabsContent value="report">
+            <Report />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

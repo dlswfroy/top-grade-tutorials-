@@ -8,9 +8,9 @@ import {
 } from '@/components/ui/card';
 import { Users, UserCheck, UserX, Loader2 } from 'lucide-react';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection } from 'firebase/firestore';
+import { collection, query, where } from 'firebase/firestore';
 import { DashboardChart } from './dashboard-chart';
-import type { Student, Payment } from '@/lib/data';
+import type { Student, Payment, Attendance } from '@/lib/data';
 import { format } from 'date-fns';
 import { bn } from 'date-fns/locale';
 
@@ -29,17 +29,28 @@ export default function DashboardPage() {
   }, [firestore]);
   const { data: payments, isLoading: isLoadingPayments } = useCollection<Payment>(paymentsQuery);
   
+  const today = format(new Date(), 'yyyy-MM-dd');
+  const attendanceQuery = useMemoFirebase(() => {
+      if (!firestore) return null;
+      return query(collection(firestore, 'attendance'), where('date', '==', today));
+  }, [firestore, today]);
+  const { data: todaysAttendance, isLoading: isLoadingAttendance } = useCollection<Attendance>(attendanceQuery);
+
   const totalStudents = students?.length ?? 0;
-  // Mock values for attendance as it is not implemented
-  const presentStudents = Math.floor(totalStudents * 0.9);
-  const absentStudents = totalStudents - presentStudents;
+  
+  const { presentStudents, absentStudents } = useMemo(() => {
+    if (!todaysAttendance) return { presentStudents: 0, absentStudents: 0 };
+    const present = todaysAttendance.filter(a => a.status === 'present').length;
+    const absent = todaysAttendance.filter(a => a.status === 'absent').length;
+    return { presentStudents: present, absentStudents: absent };
+  }, [todaysAttendance]);
 
   const monthlyIncome = useMemo(() => {
     if (!payments) return 0;
-    const currentMonthName = format(new Date(), 'MMMM', { locale: bn });
+    const currentMonth = format(new Date(), 'yyyy-MM');
     
     return payments
-        .filter(p => p.paymentMonth === currentMonthName)
+        .filter(p => p.paymentMonth.startsWith(currentMonth))
         .reduce((sum, p) => sum + p.amount, 0);
   }, [payments]);
 
@@ -72,7 +83,7 @@ export default function DashboardPage() {
             <UserCheck className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-             {isLoadingStudents ? <Loader2 className="h-6 w-6 animate-spin" /> : (
+             {isLoadingStudents || isLoadingAttendance ? <Loader2 className="h-6 w-6 animate-spin" /> : (
                 <div className="text-2xl font-bold flex items-center gap-4">
                     <span>উপস্থিত: {presentStudents}</span>
                     <span className="text-destructive flex items-center gap-1">

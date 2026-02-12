@@ -236,6 +236,33 @@
         "logoUrl",
         "lastUpdated"
       ]
+    },
+     "Expense": {
+      "title": "Expense",
+      "type": "object",
+      "description": "Records an expense made by the institution.",
+      "properties": {
+        "id": { "type": "string" },
+        "description": { "type": "string" },
+        "amount": { "type": "number" },
+        "expenseDate": { "type": "string", "format": "date-time" },
+        "spentByTeacherId": { "type": "string" }
+      },
+      "required": ["id", "description", "amount", "expenseDate", "spentByTeacherId"]
+    },
+    "Attendance": {
+      "title": "Attendance",
+      "type": "object",
+      "description": "Records student attendance for a specific date.",
+      "properties": {
+        "id": { "type": "string" },
+        "studentId": { "type": "string" },
+        "classGrade": { "type": "string" },
+        "date": { "type": "string", "format": "date" },
+        "status": { "type": "string", "enum": ["present", "absent"] },
+        "recordedByTeacherId": { "type": "string" }
+      },
+      "required": ["id", "studentId", "classGrade", "date", "status"]
     }
   },
   "auth": {
@@ -354,6 +381,38 @@
             {
               "name": "teacherUid",
               "description": "The UID of the authenticated user who has teacher privileges."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/expenses/{expenseId}",
+        "definition": {
+          "entityName": "Expense",
+          "schema": {
+            "$ref": "#/backend/entities/Expense"
+          },
+          "description": "Contains records of all institutional expenses.",
+          "params": [
+            {
+              "name": "expenseId",
+              "description": "The unique identifier for the expense."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/attendance/{attendanceId}",
+        "definition": {
+          "entityName": "Attendance",
+          "schema": {
+            "$ref": "#/backend/entities/Attendance"
+          },
+          "description": "Contains daily student attendance records. Document ID is a composite of studentId and date for easy lookup and updates.",
+          "params": [
+            {
+              "name": "attendanceId",
+              "description": "The unique identifier for the attendance record, typically studentId_YYYY-MM-DD."
             }
           ]
         }

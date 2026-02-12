@@ -30,5 +30,22 @@ export type Payment = {
   receiptNumber: string;
 };
 
+export type Expense = {
+  id: string;
+  description: string;
+  amount: number;
+  expenseDate: string;
+  spentByTeacherId: string;
+}
+
+export type Attendance = {
+    id: string;
+    studentId: string;
+    classGrade: string;
+    date: string; // YYYY-MM-DD
+    status: 'present' | 'absent';
+    recordedByTeacherId?: string;
+}
+
 
 export const classNames = ["ষষ্ঠ", "সপ্তম", "অষ্টম", "নবম", "দশম"];
