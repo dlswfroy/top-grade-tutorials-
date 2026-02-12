@@ -447,11 +447,6 @@ function PaymentList() {
         }, { dailyTotal: 0, monthlyTotal: 0, yearlyTotal: 0 });
     }, [payments]);
 
-    const getStudentInfo = (studentId: string) => {
-        const student = students?.find(s => s.id === studentId);
-        return student ? `${student.name} (রোল: ${student.rollNumber})` : 'N/A';
-    }
-
     const getTeacherName = (teacherId: string) => {
         return teachers?.find(t => t.id === teacherId)?.name || 'N/A';
     }
@@ -547,6 +542,7 @@ function PaymentList() {
                         <TableHeader>
                             <TableRow>
                                 <TableHead>শিক্ষার্থী</TableHead>
+                                <TableHead>শ্রেণি</TableHead>
                                 <TableHead>মাস</TableHead>
                                 <TableHead>পরিমাণ</TableHead>
                                 <TableHead>আদায়ের তারিখ</TableHead>
@@ -555,9 +551,12 @@ function PaymentList() {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {payments?.map(p => (
+                            {payments?.map(p => {
+                                const student = students?.find(s => s.id === p.studentId);
+                                return (
                                 <TableRow key={p.id}>
-                                    <TableCell>{getStudentInfo(p.studentId)}</TableCell>
+                                    <TableCell>{student ? `${student.name} (রোল: ${student.rollNumber})` : 'N/A'}</TableCell>
+                                    <TableCell>{student?.classGrade || 'N/A'}</TableCell>
                                     <TableCell>{format(parseISO(p.paymentDate), 'MMMM yyyy', {locale: bn})}</TableCell>
                                     <TableCell>৳{p.amount}</TableCell>
                                     <TableCell>{format(parseISO(p.paymentDate), 'PP', {locale: bn})}</TableCell>
@@ -583,7 +582,7 @@ function PaymentList() {
                                         </DropdownMenu>
                                     </TableCell>
                                 </TableRow>
-                            ))}
+                            )})}
                         </TableBody>
                     </Table>
                 )}
