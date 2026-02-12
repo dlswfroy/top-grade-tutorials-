@@ -67,6 +67,8 @@ export default function StudentsPage() {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [classFilter, setClassFilter] = useState('');
+  const [activeSearchTerm, setActiveSearchTerm] = useState('');
+  const [activeClassFilter, setActiveClassFilter] = useState('');
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [formData, setFormData] = useState(defaultStudentState);
@@ -198,13 +200,21 @@ export default function StudentsPage() {
     setImageFile(null);
   }
 
-  const filteredStudents = useMemo(() => students?.filter(
-    (student) =>
-      (!classFilter || student.classGrade === classFilter) &&
-      (searchTerm === '' ||
-       student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-       student.rollNumber.toString().includes(searchTerm))
-  ), [students, searchTerm, classFilter]);
+  const handleSearch = () => {
+    setActiveSearchTerm(searchTerm);
+    setActiveClassFilter(classFilter);
+  };
+
+  const filteredStudents = useMemo(() => {
+    if (!students) return [];
+    return students.filter(
+      (student) =>
+        (!activeClassFilter || student.classGrade === activeClassFilter) &&
+        (activeSearchTerm === '' ||
+         student.name.toLowerCase().includes(activeSearchTerm.toLowerCase()) ||
+         student.rollNumber.toString().includes(activeSearchTerm))
+    );
+  }, [students, activeSearchTerm, activeClassFilter]);
 
   return (
     <div className="space-y-8">
@@ -224,6 +234,7 @@ export default function StudentsPage() {
                 type="search"
                 placeholder="রোল বা নাম দিয়ে খুঁজুন..."
                 className="w-full rounded-lg bg-background pl-8"
+                value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
@@ -238,6 +249,10 @@ export default function StudentsPage() {
                 ))}
               </SelectContent>
             </Select>
+            <Button onClick={handleSearch} className="w-full sm:w-auto">
+              <Search className="mr-2 h-4 w-4" />
+              অনুসন্ধান
+            </Button>
             <Dialog open={isDialogOpen} onOpenChange={(open) => !open && handleCloseDialog()}>
               <DialogTrigger asChild>
                 <Button onClick={() => handleOpenDialog(null)} className="w-full sm:w-auto">
