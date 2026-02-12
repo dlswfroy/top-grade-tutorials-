@@ -19,10 +19,10 @@ import {
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { classNames, type Student, type Teacher, type Payment, type Expense } from '@/lib/data';
-import { Search, Printer, Loader2, DollarSign, Save, PlusCircle, TrendingDown, ChevronsRight } from 'lucide-react';
+import { Search, Printer, Loader2, DollarSign, Save, PlusCircle, TrendingDown, ChevronsRight, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useFirestore, useCollection, useDoc, useMemoFirebase, useUser } from '@/firebase';
-import { collection, where, query, getDocs, doc, addDoc, setDoc, writeBatch } from 'firebase/firestore';
+import { collection, where, query, getDocs, doc, addDoc, setDoc, writeBatch, updateDoc, deleteDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { format, isToday, isThisMonth, isThisYear, parseISO } from 'date-fns';
 import { bn } from 'date-fns/locale';
@@ -46,6 +46,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 const months = ['জানুয়ারি', 'ফেব্রুয়ারি', 'মার্চ', 'এপ্রিল', 'মে', 'জুন', 'জুলাই', 'আগস্ট', 'সেপ্টেম্বর', 'অক্টোবর', 'নভেম্বর', 'ডিসেম্বর'];
 
@@ -404,6 +410,7 @@ function PaymentRecord({ student }: { student: Student }) {
 // Payment List Component
 function PaymentList() {
     const firestore = useFirestore();
+    const { toast } = useToast();
     const paymentsQuery = useMemoFirebase(() => {
         if (!firestore) return null;
         return collection(firestore, 'payments');
@@ -421,6 +428,13 @@ function PaymentList() {
         return collection(firestore, 'teachers');
     }, [firestore]);
     const { data: teachers } = useCollection<Teacher>(teachersQuery);
+
+    const [editingPayment, setEditingPayment] = useState<Payment | null>(null);
+    const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
+    const [editAmount, setEditAmount] = useState<number | string>('');
+    const [editPaymentDate, setEditPaymentDate] = useState<Date | undefined>();
+    const [editTeacherId, setEditTeacherId] = useState('');
 
     const { dailyTotal, monthlyTotal, yearlyTotal } = useMemo(() => {
         if (!payments) return { dailyTotal: 0, monthlyTotal: 0, yearlyTotal: 0 };
@@ -442,6 +456,52 @@ function PaymentList() {
         return teachers?.find(t => t.id === teacherId)?.name || 'N/A';
     }
     
+    const handleOpenEditDialog = (payment: Payment) => {
+        setEditingPayment(payment);
+        setEditAmount(payment.amount);
+        setEditPaymentDate(parseISO(payment.paymentDate));
+        setEditTeacherId(payment.teacherId);
+        setIsEditDialogOpen(true);
+    };
+
+    const handleCloseEditDialog = () => {
+        setIsEditDialogOpen(false);
+        setEditingPayment(null);
+    };
+
+    const handleUpdatePayment = async () => {
+        if (!firestore || !editingPayment || !editAmount || !editPaymentDate || !editTeacherId) {
+            toast({ variant: 'destructive', title: 'ত্রুটি', description: 'অনুগ্রহ করে সকল তথ্য পূরণ করুন।' });
+            return;
+        }
+
+        setIsSaving(true);
+        try {
+            const paymentRef = doc(firestore, 'payments', editingPayment.id);
+            await updateDoc(paymentRef, {
+                amount: Number(editAmount),
+                paymentDate: editPaymentDate.toISOString(),
+                teacherId: editTeacherId,
+            });
+            toast({ title: 'সফল', description: 'পেমেন্টের তথ্য আপডেট করা হয়েছে।' });
+            handleCloseEditDialog();
+        } catch (error: any) {
+            toast({ variant: 'destructive', title: 'ত্রুটি', description: `আপডেট করতে সমস্যা হয়েছে: ${error.message}` });
+        } finally {
+            setIsSaving(false);
+        }
+    };
+    
+    const handleDeletePayment = async (paymentId: string) => {
+        if (!firestore) return;
+        try {
+            await deleteDoc(doc(firestore, 'payments', paymentId));
+            toast({ title: 'সফল', description: 'পেমেন্ট মুছে ফেলা হয়েছে।' });
+        } catch (error: any) {
+            toast({ variant: 'destructive', title: 'ত্রুটি', description: `মুছে ফেলতে সমস্যা হয়েছে: ${error.message}` });
+        }
+    };
+
     return (
         <div className="space-y-6">
             <div className="grid gap-4 md:grid-cols-3">
@@ -491,6 +551,7 @@ function PaymentList() {
                                 <TableHead>পরিমাণ</TableHead>
                                 <TableHead>আদায়ের তারিখ</TableHead>
                                 <TableHead>আদায়কারী</TableHead>
+                                <TableHead className="text-right">একশন</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -501,6 +562,26 @@ function PaymentList() {
                                     <TableCell>৳{p.amount}</TableCell>
                                     <TableCell>{format(parseISO(p.paymentDate), 'PP', {locale: bn})}</TableCell>
                                     <TableCell>{getTeacherName(p.teacherId)}</TableCell>
+                                    <TableCell className="text-right">
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                                <Button variant="ghost" className="h-8 w-8 p-0">
+                                                    <span className="sr-only">Open menu</span>
+                                                    <MoreHorizontal className="h-4 w-4" />
+                                                </Button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent align="end">
+                                                <DropdownMenuItem onClick={() => handleOpenEditDialog(p)}>
+                                                    <Pencil className="mr-2 h-4 w-4" />
+                                                    <span>এডিট</span>
+                                                </DropdownMenuItem>
+                                                <DropdownMenuItem className="text-destructive" onClick={() => handleDeletePayment(p.id)}>
+                                                    <Trash2 className="mr-2 h-4 w-4" />
+                                                    <span>ডিলিট</span>
+                                                </DropdownMenuItem>
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
+                                    </TableCell>
                                 </TableRow>
                             ))}
                         </TableBody>
@@ -508,6 +589,51 @@ function PaymentList() {
                 )}
                 </CardContent>
             </Card>
+
+            <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>পেমেন্টের তথ্য এডিট করুন</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="edit-amount">টাকার পরিমাণ</Label>
+                            <Input id="edit-amount" type="number" value={editAmount} onChange={(e) => setEditAmount(e.target.value)} disabled={isSaving} />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="edit-date">আদায়ের তারিখ</Label>
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                    <Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !editPaymentDate && "text-muted-foreground")} disabled={isSaving}>
+                                        <ChevronsRight className="mr-2 h-4 w-4" />
+                                        {editPaymentDate ? format(editPaymentDate, "PPP", { locale: bn }) : <span>একটি তারিখ নির্বাচন করুন</span>}
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0">
+                                    <Calendar mode="single" selected={editPaymentDate} onSelect={setEditPaymentDate} initialFocus />
+                                </PopoverContent>
+                            </Popover>
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="edit-collector">আদায়কারী</Label>
+                            <Select value={editTeacherId} onValueChange={setEditTeacherId} disabled={isSaving}>
+                                <SelectTrigger id="edit-collector">
+                                    <SelectValue placeholder="আদায়কারীর নাম নির্বাচন করুন" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {teachers?.map(t => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button onClick={handleUpdatePayment} disabled={isSaving}>
+                            {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                            {isSaving ? 'সেভ হচ্ছে...' : 'সেভ করুন'}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     )
 }
