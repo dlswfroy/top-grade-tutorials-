@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -29,7 +28,10 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
-import { useUser } from '@/firebase';
+import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { doc } from 'firebase/firestore';
+import Image from 'next/image';
+import { useMemo } from 'react';
 
 const menuItems = [
   { href: '/', label: 'ড্যাসবোর্ড', icon: LayoutDashboard },
@@ -42,21 +44,50 @@ const menuItems = [
 
 const adminAvatar = PlaceHolderImages.find(p => p.id === 'admin-avatar');
 
+type InstitutionSettings = {
+    institutionName?: string;
+    logoUrl?: string;
+};
+
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { user, isUserLoading } = useUser();
+  const firestore = useFirestore();
+
+  const settingsRef = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return doc(firestore, 'institution_settings', 'default');
+  }, [firestore]);
+
+  const { data: settings, isLoading: isLoadingSettings } = useDoc<InstitutionSettings>(settingsRef);
+
+  const institutionName = settings?.institutionName || 'টপ গ্রেড টিউটোরিয়ালস';
+  const logoUrl = settings?.logoUrl;
+  
+  const shortInstitutionName = useMemo(() => {
+    if (isLoadingSettings) return '';
+    const nameParts = institutionName.split(' ');
+    return nameParts.length > 1 ? nameParts.slice(0, 2).join(' ') : nameParts[0];
+  }, [institutionName, isLoadingSettings]);
+
 
   return (
     <SidebarProvider>
       <Sidebar>
         <SidebarHeader>
           <div className="flex items-center gap-2 p-2">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-8 h-8 text-primary">
-              <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
-              <path d="M2 17l10 5 10-5"></path>
-              <path d="M2 12l10 5 10-5"></path>
-            </svg>
-            <h1 className="text-xl font-headline font-semibold">টপ গ্রেড টিউটোরিয়ালস</h1>
+            {isLoadingSettings ? (
+                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            ) : logoUrl ? (
+                <Image src={logoUrl} alt={institutionName} width={32} height={32} className="rounded-sm object-cover" />
+            ) : (
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-8 h-8 text-primary">
+                    <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
+                    <path d="M2 17l10 5 10-5"></path>
+                    <path d="M2 12l10 5 10-5"></path>
+                </svg>
+            )}
+            <h1 className="text-xl font-headline font-semibold">{isLoadingSettings ? 'Loading...' : institutionName}</h1>
           </div>
         </SidebarHeader>
         <SidebarContent>
@@ -96,12 +127,18 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       <SidebarInset>
         <header className="flex items-center justify-between p-2 border-b bg-background/80 backdrop-blur-sm sticky top-0 z-10 md:hidden">
             <Link href="/" className="flex items-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6 text-primary">
-                  <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
-                  <path d="M2 17l10 5 10-5"></path>
-                  <path d="M2 12l10 5 10-5"></path>
-                </svg>
-                <h1 className="text-lg font-headline font-semibold">টপ গ্রেড</h1>
+                {isLoadingSettings ? (
+                    <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                ) : logoUrl ? (
+                    <Image src={logoUrl} alt={institutionName} width={24} height={24} className="rounded-sm object-cover" />
+                ) : (
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6 text-primary">
+                      <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
+                      <path d="M2 17l10 5 10-5"></path>
+                      <path d="M2 12l10 5 10-5"></path>
+                    </svg>
+                )}
+                <h1 className="text-lg font-headline font-semibold">{shortInstitutionName}</h1>
             </Link>
             <SidebarTrigger>
                 <MoreVertical />
