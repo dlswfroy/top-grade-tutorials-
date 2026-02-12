@@ -14,9 +14,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Save, Loader2 } from 'lucide-react';
 import { useFirebaseApp, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { doc } from 'firebase/firestore';
+import { doc, setDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
-import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 type InstitutionSettings = {
@@ -82,7 +81,7 @@ export default function SettingsPage() {
             logoUrl: newLogoUrl
         };
 
-        setDocumentNonBlocking(settingsRef, settingsData, { merge: true });
+        await setDoc(settingsRef, settingsData, { merge: true });
 
         toast({
             title: 'সফল',
