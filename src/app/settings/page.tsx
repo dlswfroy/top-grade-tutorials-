@@ -67,7 +67,6 @@ export default function SettingsPage() {
     try {
         let newLogoUrl = settings?.logoUrl || null;
 
-        // If a new file is selected, upload it to Firebase Storage
         if (logoFile) {
             const storage = getStorage(firebaseApp);
             const storageRef = ref(storage, `institution_assets/logo_${Date.now()}`);
@@ -87,13 +86,13 @@ export default function SettingsPage() {
             title: 'সফল',
             description: 'সেটিংস সফলভাবে সেভ করা হয়েছে।',
         });
-        setLogoFile(null); // Reset after successful save
-    } catch (error) {
+        setLogoFile(null);
+    } catch (error: any) {
         console.error("Error saving settings:", error);
         toast({
             variant: "destructive",
             title: "ত্রুটি",
-            description: "সেটিংস সেভ করতে সমস্যা হয়েছে।",
+            description: `সেটিংস সেভ করতে সমস্যা হয়েছে: ${error.message}`,
         });
     } finally {
         setIsSaving(false);
