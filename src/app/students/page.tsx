@@ -217,16 +217,30 @@ export default function StudentsPage() {
 
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>শিক্ষার্থী ম্যানেজমেন্ট</CardTitle>
-              <CardDescription>
-                নতুন শিক্ষার্থী যোগ করুন, তথ্য সম্পাদনা করুন বা তালিকা থেকে খুঁজুন।
-              </CardDescription>
+          <div className="flex flex-col sm:flex-row items-center gap-2">
+            <div className="relative flex-1 w-full">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="search"
+                placeholder="রোল বা নাম দিয়ে খুঁজুন..."
+                className="w-full rounded-lg bg-background pl-8"
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
             </div>
+            <Select value={classFilter} onValueChange={(value) => setClassFilter(value === "all" ? "" : value)}>
+              <SelectTrigger className="w-full sm:w-[180px]">
+                <SelectValue placeholder="শ্রেণি নির্বাচন করুন" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">সকল শ্রেণি</SelectItem>
+                {classNames.map((c) => (
+                  <SelectItem key={c} value={c}>{c}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <Dialog open={isDialogOpen} onOpenChange={(open) => !open && handleCloseDialog()}>
               <DialogTrigger asChild>
-                <Button onClick={() => handleOpenDialog(null)}>
+                <Button onClick={() => handleOpenDialog(null)} className="w-full sm:w-auto">
                   <PlusCircle className="mr-2 h-4 w-4" />
                   নতুন শিক্ষার্থী
                 </Button>
@@ -290,30 +304,8 @@ export default function StudentsPage() {
               </DialogContent>
             </Dialog>
           </div>
-          <div className="flex flex-col sm:flex-row gap-4 pt-4">
-            <div className="relative flex-1">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                type="search"
-                placeholder="রোল বা নাম দিয়ে খুঁজুন..."
-                className="w-full rounded-lg bg-background pl-8"
-                onChange={(e) => setSearchTerm(e.target.value)}
-                />
-            </div>
-            <Select value={classFilter} onValueChange={(value) => setClassFilter(value === "all" ? "" : value)}>
-                <SelectTrigger className="w-full sm:w-[180px]">
-                    <SelectValue placeholder="শ্রেণি নির্বাচন করুন" />
-                </SelectTrigger>
-                <SelectContent>
-                    <SelectItem value="all">সকল শ্রেণি</SelectItem>
-                    {classNames.map((c) => (
-                        <SelectItem key={c} value={c}>{c}</SelectItem>
-                    ))}
-                </SelectContent>
-            </Select>
-          </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-4">
             {isLoading ? (
                 <div className="flex justify-center items-center h-64">
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -337,7 +329,7 @@ export default function StudentsPage() {
                         <TableRow key={student.id}>
                         <TableCell>
                             <Avatar>
-                            <AvatarImage src={student.imageUrl} data-ai-hint={student.imageHint} alt={student.name} />
+                            <AvatarImage src={student.imageUrl || `https://picsum.photos/seed/${student.rollNumber}/200/200`} data-ai-hint={student.imageHint || 'student person'} alt={student.name} />
                             <AvatarFallback>{student.name?.charAt(0)}</AvatarFallback>
                             </Avatar>
                         </TableCell>
