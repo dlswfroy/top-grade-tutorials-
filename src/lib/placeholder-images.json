@@ -1,3 +1,76 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "admin-avatar",
+      "description": "Admin user avatar",
+      "imageUrl": "https://images.unsplash.com/photo-1548544149-4835e62ee5b3?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHxwZXJzb24lMjBmYWNlfGVufDB8fHx8MTc3MDg5NzcxNHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "person face"
+    },
+    {
+      "id": "student-1",
+      "description": "Student Abir Ahmed",
+      "imageUrl": "https://images.unsplash.com/photo-1693011726259-cc6b89c90d62?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxzdHVkZW50JTIwYm95fGVufDB8fHx8MTc3MDkxMTI0Nnww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "student boy"
+    },
+    {
+      "id": "student-2",
+      "description": "Student Sumon Chowdhury",
+      "imageUrl": "https://images.unsplash.com/photo-1667655787062-b675b26d5c4b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxzdHVkZW50JTIwYm95fGVufDB8fHx8MTc3MDkxMTI0Nnww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "student boy"
+    },
+    {
+      "id": "student-3",
+      "description": "Student Faria Islam",
+      "imageUrl": "https://images.unsplash.com/photo-1637589381587-f8f416046fb4?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxzdHVkZW50JTIwZ2lybHxlbnwwfHx8fDE3NzA5MTEyNDZ8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "student girl"
+    },
+    {
+      "id": "student-4",
+      "description": "Student Tamanna Khatun",
+      "imageUrl": "https://images.unsplash.com/photo-1713270189711-b110fa8f124a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMHx8c3R1ZGVudCUyMGdpcmx8ZW58MHx8fHwxNzcwOTExMjQ2fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "student girl"
+    },
+    {
+      "id": "student-5",
+      "description": "Student Rakib Hasan",
+      "imageUrl": "https://images.unsplash.com/photo-1693011726259-cc6b89c90d62?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxzdHVkZW50JTIwYm95fGVufDB8fHx8MTc3MDkxMTI0Nnww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "student boy"
+    },
+    {
+      "id": "student-6",
+      "description": "Student Nafis Iqbal",
+      "imageUrl": "https://images.unsplash.com/photo-1719861915316-449b8de4b0f2?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHxzdHVkZW50JTIwYm95fGVufDB8fHx8MTc3MDkxMTI0Nnww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "student boy"
+    },
+    {
+      "id": "student-7",
+      "description": "Student Sadia Afrin",
+      "imageUrl": "https://images.unsplash.com/photo-1590237563976-797e6130b3e1?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxzdHVkZW50JTIwZ2lybHxlbnwwfHx8fDE3NzA5MTEyNDZ8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "student girl"
+    },
+    {
+      "id": "teacher-1",
+      "description": "Teacher Abdul Karim",
+      "imageUrl": "https://images.unsplash.com/photo-1601655781320-205e34c94eb1?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxtYWxlJTIwdGVhY2hlcnxlbnwwfHx8fDE3NzA4OTE4MjZ8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "male teacher"
+    },
+    {
+      "id": "teacher-2",
+      "description": "Teacher Shafiqur Rahman",
+      "imageUrl": "https://images.unsplash.com/photo-1557862921-37829c790f19?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxtYWxlJTIwdGVhY2hlcnxlbnwwfHx8fDE3NzA4OTE4MjZ8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "male teacher"
+    },
+    {
+      "id": "teacher-3",
+      "description": "Teacher Fatema Begum",
+      "imageUrl": "https://images.unsplash.com/photo-1489278353717-f64c6ee8a4d2?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMHx8ZmVtYWxlJTIwdGVhY2hlcnxlbnwwfHx8fDE3NzA5MTEyNDZ8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "female teacher"
+    },
+    {
+      "id": "logo-placeholder",
+      "description": "Top Grade Tutorials Logo",
+      "imageUrl": "https://images.unsplash.com/photo-1646334886592-cf7a9b692c75?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxlZHVjYXRpb24lMjBsb2dvfGVufDB8fHx8MTc3MDg3ODg1OXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "education logo"
+    }
+  ]
 }

@@ -1,0 +1,50 @@
+'use server';
+/**
+ * @fileOverview A Genkit flow for generating custom exam papers based on user-defined criteria.
+ *
+ * - generateExamPaper - A function that handles the exam paper generation process.
+ * - GenerateExamPaperInput - The input type for the generateExamPaper function.
+ * - GenerateExamPaperOutput - The return type for the generateExamPaper function.
+ */
+
+import {ai} from '@/ai/genkit';
+import {z} from 'genkit';
+
+const GenerateExamPaperInputSchema = z.object({
+  class: z.string().describe('The class for which the exam paper is to be generated (e.g., "ষষ্ঠ", "দশম").'),
+  subject: z.string().describe('The subject of the exam (e.g., "গণিত", "বাংলা").'),
+  chapter: z.string().describe('The specific chapter or topic for the questions.'),
+  questionType: z.enum(['creative', 'mcq']).describe('The type of questions: "creative" (সৃজনশীল) or "mcq" (বহুনির্বাচনী).'),
+  numberOfQuestions: z.number().int().positive().describe('The desired number of questions in the exam paper.'),
+  timeLimit: z.string().describe('The time limit for the exam (e.g., "৬০ মিনিট", "২ ঘণ্টা").'),
+  totalMarks: z.number().int().positive().describe('The total marks for the exam paper.'),
+});
+export type GenerateExamPaperInput = z.infer<typeof GenerateExamPaperInputSchema>;
+
+const GenerateExamPaperOutputSchema = z.object({
+  examPaperText: z.string().describe('The generated exam paper content, including header and questions.'),
+});
+export type GenerateExamPaperOutput = z.infer<typeof GenerateExamPaperOutputSchema>;
+
+export async function generateExamPaper(input: GenerateExamPaperInput): Promise<GenerateExamPaperOutput> {
+  return generateExamPaperFlow(input);
+}
+
+const prompt = ai.definePrompt({
+  name: 'generateExamPaperPrompt',
+  input: {schema: GenerateExamPaperInputSchema},
+  output: {schema: GenerateExamPaperOutputSchema},
+  prompt: `আপনি একজন অভিজ্ঞ শিক্ষক এবং প্রশ্নপত্র প্রস্তুতকারক। আপনাকে একটি পরীক্ষার প্রশ্নপত্র তৈরি করতে হবে।\nনিম্নলিখিত তথ্য ব্যবহার করে একটি সম্পূর্ণ প্রশ্নপত্র তৈরি করুন:\n\nশ্রেণি: {{{class}}}\nবিষয়: {{{subject}}}\nঅধ্যায়/বিষয়বস্তু: {{{chapter}}}\nপ্রশ্নের ধরণ: {{#if (eq questionType 'creative')}}সৃজনশীল{{else}}বহুনির্বাচনী{{/if}}\nপ্রশ্নের সংখ্যা: {{{numberOfQuestions}}}\nসময়: {{{timeLimit}}}\nপূর্ণমান: {{{totalMarks}}}\n\nপ্রশ্নপত্রের শুরুতেই উপরে উল্লিখিত "শ্রেণি", "বিষয়", "সময়" এবং "পূর্ণমান" তথ্যগুলি পরিষ্কারভাবে উল্লেখ করুন।\nতারপর, {{#if (eq questionType 'creative')}}সৃজনশীল{{else}}বহুনির্বাচনী{{/if}} প্রশ্নগুলি ক্রমানুসারে তৈরি করুন।\n\nযদি প্রশ্নের ধরণ "সৃজনশীল" হয়:\nপ্রতিটি সৃজনশীল প্রশ্ন একটি উদ্দীপক (যদি প্রয়োজন হয়) এবং কমপক্ষে ৩-৪টি উপ-প্রশ্ন (ক, খ, গ, ঘ) নিয়ে গঠিত হবে।\nপ্রশ্নগুলো {{{chapter}}} অধ্যায় থেকে প্রাসঙ্গিক এবং শিক্ষার্থীবান্ধব হতে হবে।\nপ্রতিটি প্রশ্নের মান উল্লেখ করুন।\n\nযদি প্রশ্নের ধরণ "বহুনির্বাচনী" হয়:\nপ্রতিটি বহুনির্বাচনী প্রশ্নের জন্য ৪টি বিকল্প (ক, খ, গ, ঘ) থাকবে, যার মধ্যে শুধুমাত্র একটি সঠিক উত্তর।\nসঠিক উত্তর চিহ্নিত করার দরকার নেই।\nপ্রশ্নগুলো {{{chapter}}} অধ্যায় থেকে প্রাসঙ্গিক এবং শিক্ষার্থীবান্ধব হতে হবে।\nপ্রতিটি প্রশ্নের মান ১ হবে।\n\nপ্রশ্নপত্রটি অত্যন্ত সুসংগঠিত এবং পঠনযোগ্য হতে হবে।`,
+});
+
+const generateExamPaperFlow = ai.defineFlow(
+  {
+    name: 'generateExamPaperFlow',
+    inputSchema: GenerateExamPaperInputSchema,
+    outputSchema: GenerateExamPaperOutputSchema,
+  },
+  async input => {
+    const {output} = await prompt(input);
+    return output!;
+  }
+);
