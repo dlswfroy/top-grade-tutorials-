@@ -28,7 +28,7 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { type Teacher } from '@/lib/data';
-import { PlusCircle, MoreHorizontal, Pencil, Trash2, Loader2 } from 'lucide-react';
+import { PlusCircle, MoreHorizontal, Pencil, Trash2, Loader2, Save } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   DropdownMenu,
@@ -36,25 +36,29 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useFirebaseApp, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, doc } from 'firebase/firestore';
 import { addDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { useToast } from '@/hooks/use-toast';
+import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 const defaultTeacherState: Omit<Teacher, 'id' | 'dateAdded'> = {
     name: '',
     mobileNumber: '',
     imageUrl: '',
-    imageHint: '',
+    imageHint: 'teacher person',
 };
 
 export default function TeachersPage() {
+  const firebaseApp = useFirebaseApp();
   const firestore = useFirestore();
   const { toast } = useToast();
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
   const [formData, setFormData] = useState(defaultTeacherState);
   const [editingTeacher, setEditingTeacher] = useState<Teacher | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   const teachersQuery = useMemoFirebase(() => {
       if (!firestore) return null;
@@ -73,13 +77,14 @@ export default function TeachersPage() {
         setFormData(defaultTeacherState);
         setImagePreview(null);
     }
+    setImageFile(null);
   }, [editingTeacher]);
 
   const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
+      setImageFile(file);
       setImagePreview(URL.createObjectURL(file));
-      // In a real app, upload this and set formData.imageUrl
     }
   };
 
@@ -88,8 +93,8 @@ export default function TeachersPage() {
     setFormData(prev => ({ ...prev, [id]: value }));
   };
 
-  const handleSaveTeacher = () => {
-    if (!firestore) return;
+  const handleSaveTeacher = async () => {
+    if (!firestore || !firebaseApp) return;
 
     if (!formData.name || !formData.mobileNumber) {
         toast({
@@ -100,33 +105,54 @@ export default function TeachersPage() {
         return;
     }
 
-    if (editingTeacher) {
-        const teacherRef = doc(firestore, 'teachers', editingTeacher.id);
-        const updatedData: Partial<Teacher> = { ...formData };
-        if (!updatedData.imageUrl) {
-            updatedData.imageUrl = `https://picsum.photos/seed/${formData.mobileNumber}/200/200`;
-            updatedData.imageHint = 'teacher person';
-        }
-        updateDocumentNonBlocking(teacherRef, updatedData);
-        toast({
-            title: "সফল",
-            description: `${formData.name}-এর তথ্য আপডেট করা হয়েছে।`,
-        });
-    } else {
-        const teacherData = {
-            ...formData,
-            dateAdded: new Date().toISOString(),
-            imageUrl: `https://picsum.photos/seed/${formData.mobileNumber}/200/200`,
-            imageHint: 'teacher person',
-        };
-        addDocumentNonBlocking(collection(firestore, 'teachers'), teacherData);
-        toast({
-            title: "সফল",
-            description: `${formData.name} কে শিক্ষক হিসেবে যোগ করা হয়েছে।`,
-        });
-    }
+    setIsSaving(true);
 
-    setIsDialogOpen(false);
+    try {
+        let imageUrl = editingTeacher?.imageUrl || '';
+        let imageHint = formData.imageHint || 'teacher person';
+
+        if (imageFile) {
+            const storage = getStorage(firebaseApp);
+            const storageRef = ref(storage, `teacher_images/${Date.now()}_${imageFile.name}`);
+            const uploadResult = await uploadBytes(storageRef, imageFile);
+            imageUrl = await getDownloadURL(uploadResult.ref);
+        } else if (!imageUrl && !editingTeacher) {
+            imageUrl = `https://picsum.photos/seed/${formData.mobileNumber}/200/200`;
+        }
+        
+        if (editingTeacher) {
+            const teacherRef = doc(firestore, 'teachers', editingTeacher.id);
+            const updatedData: Partial<Teacher> = { ...formData, imageUrl, imageHint };
+            updateDocumentNonBlocking(teacherRef, updatedData);
+            toast({
+                title: "সফল",
+                description: `${formData.name}-এর তথ্য আপডেট করা হয়েছে।`,
+            });
+        } else {
+            const teacherData = {
+                ...formData,
+                imageUrl,
+                imageHint,
+                dateAdded: new Date().toISOString(),
+            };
+            addDocumentNonBlocking(collection(firestore, 'teachers'), teacherData);
+            toast({
+                title: "সফল",
+                description: `${formData.name} কে শিক্ষক হিসেবে যোগ করা হয়েছে।`,
+            });
+        }
+
+        handleCloseDialog();
+    } catch (error: any) {
+        console.error("Error saving teacher:", error);
+        toast({
+            variant: "destructive",
+            title: "ত্রুটি",
+            description: `শিক্ষকের তথ্য সেভ করতে সমস্যা হয়েছে: ${error.message}`,
+        });
+    } finally {
+        setIsSaving(false);
+    }
   };
 
   const handleDeleteTeacher = (teacherId: string, teacherName: string) => {
@@ -148,6 +174,7 @@ export default function TeachersPage() {
     setEditingTeacher(null);
     setFormData(defaultTeacherState);
     setImagePreview(null);
+    setImageFile(null);
   }
 
   return (
@@ -182,15 +209,15 @@ export default function TeachersPage() {
                 <div className="grid gap-4 py-4">
                   <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="name" className="text-right">নাম</Label>
-                    <Input id="name" value={formData.name} onChange={handleInputChange} placeholder="শিক্ষকের নাম" className="col-span-3" />
+                    <Input id="name" value={formData.name} onChange={handleInputChange} placeholder="শিক্ষকের নাম" className="col-span-3" disabled={isSaving} />
                   </div>
                   <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="mobileNumber" className="text-right">মোবাইল</Label>
-                    <Input id="mobileNumber" value={formData.mobileNumber} onChange={handleInputChange} placeholder="মোবাইল নম্বর" className="col-span-3" />
+                    <Input id="mobileNumber" value={formData.mobileNumber} onChange={handleInputChange} placeholder="মোবাইল নম্বর" className="col-span-3" disabled={isSaving} />
                   </div>
                   <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="picture" className="text-right">ছবি</Label>
-                    <Input id="picture" type="file" accept="image/*" onChange={handleImageChange} className="col-span-3" />
+                    <Input id="picture" type="file" accept="image/*" onChange={handleImageChange} className="col-span-3" disabled={isSaving} />
                   </div>
                   {imagePreview && (
                     <div className="grid grid-cols-4 items-center gap-4">
@@ -201,7 +228,10 @@ export default function TeachersPage() {
                   )}
                 </div>
                 <DialogFooter>
-                  <Button onClick={handleSaveTeacher}>সেভ করুন</Button>
+                  <Button onClick={handleSaveTeacher} disabled={isSaving}>
+                      {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                      {isSaving ? 'সেভ হচ্ছে...' : 'সেভ করুন'}
+                  </Button>
                 </DialogFooter>
               </DialogContent>
             </Dialog>

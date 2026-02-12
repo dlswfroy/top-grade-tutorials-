@@ -188,7 +188,7 @@ function PaymentRecord({ student }: { student: Student }) {
             <CardHeader className="flex flex-row justify-between items-start">
                 <div className="flex items-center gap-4">
                     <Avatar className="h-20 w-20">
-                        <AvatarImage src={student.imageUrl} data-ai-hint="student person" alt={student.name} />
+                        <AvatarImage src={student.imageUrl} data-ai-hint={student.imageHint || 'student person'} alt={student.name} />
                         <AvatarFallback>{student.name.charAt(0)}</AvatarFallback>
                     </Avatar>
                     <div>
