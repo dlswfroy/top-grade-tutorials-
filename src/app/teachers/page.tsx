@@ -1,5 +1,5 @@
 'use client';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import Image from 'next/image';
 import {
   Card,
@@ -38,19 +38,22 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, doc } from 'firebase/firestore';
-import { addDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { addDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { useToast } from '@/hooks/use-toast';
 
-const defaultNewTeacher = {
+const defaultTeacherState: Omit<Teacher, 'id' | 'dateAdded'> = {
     name: '',
     mobileNumber: '',
+    imageUrl: '',
+    imageHint: '',
 };
 
 export default function TeachersPage() {
   const firestore = useFirestore();
   const { toast } = useToast();
   const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [newTeacher, setNewTeacher] = useState(defaultNewTeacher);
+  const [formData, setFormData] = useState(defaultTeacherState);
+  const [editingTeacher, setEditingTeacher] = useState<Teacher | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   const teachersQuery = useMemoFirebase(() => {
@@ -60,23 +63,35 @@ export default function TeachersPage() {
 
   const { data: teachers, isLoading } = useCollection<Teacher>(teachersQuery);
 
+  useEffect(() => {
+    if (editingTeacher) {
+        setFormData(editingTeacher);
+        if (editingTeacher.imageUrl) {
+            setImagePreview(editingTeacher.imageUrl);
+        }
+    } else {
+        setFormData(defaultTeacherState);
+        setImagePreview(null);
+    }
+  }, [editingTeacher]);
+
   const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
       setImagePreview(URL.createObjectURL(file));
-      // In a real app, you'd upload this to Firebase Storage
+      // In a real app, upload this and set formData.imageUrl
     }
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { id, value } = e.target;
-    setNewTeacher(prev => ({ ...prev, [id]: value }));
+    setFormData(prev => ({ ...prev, [id]: value }));
   };
 
-  const handleAddTeacher = () => {
+  const handleSaveTeacher = () => {
     if (!firestore) return;
 
-    if (!newTeacher.name || !newTeacher.mobileNumber) {
+    if (!formData.name || !formData.mobileNumber) {
         toast({
             variant: "destructive",
             title: "ত্রুটি",
@@ -85,22 +100,28 @@ export default function TeachersPage() {
         return;
     }
 
-    const teacherData = {
-        ...newTeacher,
-        dateAdded: new Date().toISOString(),
-        // imageUrl: '...' // from storage upload
-    };
-    
-    addDocumentNonBlocking(collection(firestore, 'teachers'), teacherData);
-
-    toast({
-        title: "সফল",
-        description: `${newTeacher.name} কে শিক্ষক হিসেবে যোগ করা হয়েছে।`,
-    });
+    if (editingTeacher) {
+        const teacherRef = doc(firestore, 'teachers', editingTeacher.id);
+        updateDocumentNonBlocking(teacherRef, formData);
+        toast({
+            title: "সফল",
+            description: `${formData.name}-এর তথ্য আপডেট করা হয়েছে।`,
+        });
+    } else {
+        const teacherData = {
+            ...formData,
+            dateAdded: new Date().toISOString(),
+            imageUrl: `https://picsum.photos/seed/${formData.mobileNumber}/200/200`,
+            imageHint: 'teacher person',
+        };
+        addDocumentNonBlocking(collection(firestore, 'teachers'), teacherData);
+        toast({
+            title: "সফল",
+            description: `${formData.name} কে শিক্ষক হিসেবে যোগ করা হয়েছে।`,
+        });
+    }
 
     setIsDialogOpen(false);
-    setNewTeacher(defaultNewTeacher);
-    setImagePreview(null);
   };
 
   const handleDeleteTeacher = (teacherId: string, teacherName: string) => {
@@ -111,6 +132,18 @@ export default function TeachersPage() {
         description: `${teacherName} কে তালিকা থেকে মুছে ফেলা হয়েছে।`,
     });
   };
+
+  const handleOpenDialog = (teacher: Teacher | null) => {
+    setEditingTeacher(teacher);
+    setIsDialogOpen(true);
+  }
+
+  const handleCloseDialog = () => {
+    setIsDialogOpen(false);
+    setEditingTeacher(null);
+    setFormData(defaultTeacherState);
+    setImagePreview(null);
+  }
 
   return (
     <div className="space-y-8">
@@ -130,31 +163,25 @@ export default function TeachersPage() {
                 এখানে সকল নিবন্ধিত শিক্ষকের তালিকা দেখুন।
               </CardDescription>
             </div>
-            <Dialog open={isDialogOpen} onOpenChange={(open) => {
-                setIsDialogOpen(open);
-                if (!open) {
-                    setNewTeacher(defaultNewTeacher);
-                    setImagePreview(null);
-                }
-            }}>
+            <Dialog open={isDialogOpen} onOpenChange={(open) => !open && handleCloseDialog()}>
               <DialogTrigger asChild>
-                <Button>
+                <Button onClick={() => handleOpenDialog(null)}>
                   <PlusCircle className="mr-2 h-4 w-4" />
                   নতুন শিক্ষক
                 </Button>
               </DialogTrigger>
               <DialogContent className="sm:max-w-[425px]">
                 <DialogHeader>
-                  <DialogTitle>নতুন শিক্ষক যোগ করুন</DialogTitle>
+                  <DialogTitle>{editingTeacher ? 'শিক্ষকের তথ্য এডিট করুন' : 'নতুন শিক্ষক যোগ করুন'}</DialogTitle>
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
                   <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="name" className="text-right">নাম</Label>
-                    <Input id="name" value={newTeacher.name} onChange={handleInputChange} placeholder="শিক্ষকের নাম" className="col-span-3" />
+                    <Input id="name" value={formData.name} onChange={handleInputChange} placeholder="শিক্ষকের নাম" className="col-span-3" />
                   </div>
                   <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="mobileNumber" className="text-right">মোবাইল</Label>
-                    <Input id="mobileNumber" value={newTeacher.mobileNumber} onChange={handleInputChange} placeholder="মোবাইল নম্বর" className="col-span-3" />
+                    <Input id="mobileNumber" value={formData.mobileNumber} onChange={handleInputChange} placeholder="মোবাইল নম্বর" className="col-span-3" />
                   </div>
                   <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="picture" className="text-right">ছবি</Label>
@@ -163,13 +190,13 @@ export default function TeachersPage() {
                   {imagePreview && (
                     <div className="grid grid-cols-4 items-center gap-4">
                       <div className="col-start-2 col-span-3">
-                        <Image src={imagePreview} alt="Image Preview" width={100} height={100} className="rounded-md" />
+                        <Image src={imagePreview} alt="Image Preview" width={100} height={100} className="rounded-md object-cover" />
                       </div>
                     </div>
                   )}
                 </div>
                 <DialogFooter>
-                  <Button onClick={handleAddTeacher}>সেভ করুন</Button>
+                  <Button onClick={handleSaveTeacher}>সেভ করুন</Button>
                 </DialogFooter>
               </DialogContent>
             </Dialog>
@@ -196,7 +223,7 @@ export default function TeachersPage() {
                         <TableCell>
                             <Avatar>
                             <AvatarImage src={teacher.imageUrl} data-ai-hint={teacher.imageHint} alt={teacher.name} />
-                            <AvatarFallback>{teacher.name.charAt(0)}</AvatarFallback>
+                            <AvatarFallback>{teacher.name?.charAt(0)}</AvatarFallback>
                             </Avatar>
                         </TableCell>
                         <TableCell className="font-medium">{teacher.name}</TableCell>
@@ -210,7 +237,7 @@ export default function TeachersPage() {
                                 </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                                <DropdownMenuItem disabled>
+                                <DropdownMenuItem onClick={() => handleOpenDialog(teacher)}>
                                 <Pencil className="mr-2 h-4 w-4" />
                                 <span>এডিট</span>
                                 </DropdownMenuItem>

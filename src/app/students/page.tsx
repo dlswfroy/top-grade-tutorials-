@@ -1,5 +1,5 @@
 'use client';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import Image from 'next/image';
 import {
   Card,
@@ -25,7 +25,6 @@ import {
   DialogTitle,
   DialogTrigger,
   DialogFooter,
-  DialogClose,
 } from '@/components/ui/dialog';
 import {
   Select,
@@ -45,18 +44,20 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, doc, serverTimestamp } from 'firebase/firestore';
-import { addDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { collection, doc } from 'firebase/firestore';
+import { addDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { useToast } from '@/hooks/use-toast';
 
 // Default student state for the form
-const defaultNewStudent = {
+const defaultStudentState: Omit<Student, 'id' | 'dateAdded'> = {
   name: '',
   classGrade: '',
   rollNumber: '',
   fatherName: '',
   mobileNumber: '',
   monthlyFee: 0,
+  imageUrl: '',
+  imageHint: '',
 };
 
 export default function StudentsPage() {
@@ -64,39 +65,52 @@ export default function StudentsPage() {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [newStudent, setNewStudent] = useState(defaultNewStudent);
+  const [formData, setFormData] = useState(defaultStudentState);
+  const [editingStudent, setEditingStudent] = useState<Student | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   // Memoize the collection query
   const studentsQuery = useMemoFirebase(() => {
-      if (!firestore) return null;
-      return collection(firestore, 'students');
+    if (!firestore) return null;
+    return collection(firestore, 'students');
   }, [firestore]);
 
   const { data: students, isLoading } = useCollection<Student>(studentsQuery);
   
+  useEffect(() => {
+    if (editingStudent) {
+        setFormData(editingStudent);
+        if (editingStudent.imageUrl) {
+            setImagePreview(editingStudent.imageUrl);
+        }
+    } else {
+        setFormData(defaultStudentState);
+        setImagePreview(null);
+    }
+  }, [editingStudent]);
+
   const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
       setImagePreview(URL.createObjectURL(file));
-      // In a real app, you would upload this file to Firebase Storage and get a URL
+      // In a real app, upload this and set `formData.imageUrl` to the returned URL
     }
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { id, value } = e.target;
-    setNewStudent(prev => ({ ...prev, [id]: value }));
+    setFormData(prev => ({ ...prev, [id]: value }));
   };
 
   const handleSelectChange = (value: string) => {
-    setNewStudent(prev => ({ ...prev, classGrade: value }));
+    setFormData(prev => ({ ...prev, classGrade: value }));
   };
   
-  const handleAddStudent = () => {
+  const handleSaveStudent = () => {
     if (!firestore) return;
 
     // Basic validation
-    if (!newStudent.name || !newStudent.classGrade || !newStudent.rollNumber) {
+    if (!formData.name || !formData.classGrade || !formData.rollNumber) {
         toast({
             variant: "destructive",
             title: "ত্রুটি",
@@ -105,41 +119,65 @@ export default function StudentsPage() {
         return;
     }
 
-    const studentData = {
-        ...newStudent,
-        monthlyFee: Number(newStudent.monthlyFee) || 0,
-        dateAdded: new Date().toISOString(),
-        // imageUrl would be set after uploading the image to storage
-    };
-
-    addDocumentNonBlocking(collection(firestore, 'students'), studentData);
-
-    toast({
-        title: "সফল",
-        description: `${newStudent.name} কে শিক্ষার্থী হিসেবে যোগ করা হয়েছে।`,
-    });
+    if (editingStudent) {
+        // Update existing student
+        const studentRef = doc(firestore, 'students', editingStudent.id);
+        const updatedData = {
+            ...formData,
+            monthlyFee: Number(formData.monthlyFee) || 0,
+            // imageUrl would be updated if a new file was uploaded and its URL obtained
+        };
+        updateDocumentNonBlocking(studentRef, updatedData);
+        toast({
+            title: "সফল",
+            description: `${formData.name}-এর তথ্য আপডেট করা হয়েছে।`,
+        });
+    } else {
+        // Add new student
+        const studentData = {
+            ...formData,
+            monthlyFee: Number(formData.monthlyFee) || 0,
+            dateAdded: new Date().toISOString(),
+            // Use a placeholder image if no image was selected
+            imageUrl: `https://picsum.photos/seed/${formData.rollNumber}/200/200`,
+            imageHint: 'student person'
+        };
+        addDocumentNonBlocking(collection(firestore, 'students'), studentData);
+        toast({
+            title: "সফল",
+            description: `${formData.name} কে শিক্ষার্থী হিসেবে যোগ করা হয়েছে।`,
+        });
+    }
     
     setIsDialogOpen(false);
-    setNewStudent(defaultNewStudent);
-    setImagePreview(null);
   };
 
   const handleDeleteStudent = (studentId: string, studentName: string) => {
     if (!firestore) return;
-    
     deleteDocumentNonBlocking(doc(firestore, 'students', studentId));
-    
     toast({
         title: "সফল",
         description: `${studentName} কে তালিকা থেকে মুছে ফেলা হয়েছে।`,
     });
   };
 
-  const filteredStudents = students?.filter(
+  const handleOpenDialog = (student: Student | null) => {
+    setEditingStudent(student);
+    setIsDialogOpen(true);
+  }
+
+  const handleCloseDialog = () => {
+    setIsDialogOpen(false);
+    setEditingStudent(null);
+    setFormData(defaultStudentState);
+    setImagePreview(null);
+  }
+
+  const filteredStudents = useMemo(() => students?.filter(
     (student) =>
       student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       student.rollNumber.toString().includes(searchTerm)
-  );
+  ), [students, searchTerm]);
 
   return (
     <div className="space-y-8">
@@ -159,35 +197,29 @@ export default function StudentsPage() {
                 এখানে সকল শিক্ষার্থীর তালিকা দেখুন।
               </CardDescription>
             </div>
-            <Dialog open={isDialogOpen} onOpenChange={(open) => {
-                setIsDialogOpen(open);
-                if (!open) {
-                    setNewStudent(defaultNewStudent);
-                    setImagePreview(null);
-                }
-            }}>
+            <Dialog open={isDialogOpen} onOpenChange={(open) => !open && handleCloseDialog()}>
               <DialogTrigger asChild>
-                <Button>
+                <Button onClick={() => handleOpenDialog(null)}>
                   <PlusCircle className="mr-2 h-4 w-4" />
                   নতুন শিক্ষার্থী
                 </Button>
               </DialogTrigger>
               <DialogContent className="sm:max-w-[425px]">
                 <DialogHeader>
-                  <DialogTitle>নতুন শিক্ষার্থী যোগ করুন</DialogTitle>
+                  <DialogTitle>{editingStudent ? 'শিক্ষার্থীর তথ্য এডিট করুন' : 'নতুন শিক্ষার্থী যোগ করুন'}</DialogTitle>
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
                   <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="name" className="text-right">নাম</Label>
-                    <Input id="name" value={newStudent.name} onChange={handleInputChange} placeholder="শিক্ষার্থীর নাম" className="col-span-3" />
+                    <Input id="name" value={formData.name} onChange={handleInputChange} placeholder="শিক্ষার্থীর নাম" className="col-span-3" />
                   </div>
                    <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="rollNumber" className="text-right">রোল</Label>
-                    <Input id="rollNumber" value={newStudent.rollNumber} onChange={handleInputChange} placeholder="রোল নম্বর" className="col-span-3" />
+                    <Input id="rollNumber" value={formData.rollNumber} onChange={handleInputChange} placeholder="রোল নম্বর" className="col-span-3" />
                   </div>
                   <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="classGrade" className="text-right">শ্রেণি</Label>
-                    <Select value={newStudent.classGrade} onValueChange={handleSelectChange}>
+                    <Select value={formData.classGrade} onValueChange={handleSelectChange}>
                       <SelectTrigger className="col-span-3">
                         <SelectValue placeholder="শ্রেণি নির্বাচন করুন" />
                       </SelectTrigger>
@@ -200,15 +232,15 @@ export default function StudentsPage() {
                   </div>
                   <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="fatherName" className="text-right">পিতার নাম</Label>
-                    <Input id="fatherName" value={newStudent.fatherName} onChange={handleInputChange} placeholder="পিতার নাম" className="col-span-3" />
+                    <Input id="fatherName" value={formData.fatherName} onChange={handleInputChange} placeholder="পিতার নাম" className="col-span-3" />
                   </div>
                   <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="mobileNumber" className="text-right">মোবাইল</Label>
-                    <Input id="mobileNumber" value={newStudent.mobileNumber} onChange={handleInputChange} placeholder="মোবাইল নম্বর" className="col-span-3" />
+                    <Input id="mobileNumber" value={formData.mobileNumber} onChange={handleInputChange} placeholder="মোবাইল নম্বর" className="col-span-3" />
                   </div>
                   <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="monthlyFee" className="text-right">মাসিক বেতন</Label>
-                    <Input id="monthlyFee" type="number" value={newStudent.monthlyFee} onChange={handleInputChange} placeholder="মাসিক বেতন" className="col-span-3" />
+                    <Input id="monthlyFee" type="number" value={formData.monthlyFee} onChange={handleInputChange} placeholder="মাসিক বেতন" className="col-span-3" />
                   </div>
                   <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="picture" className="text-right">ছবি</Label>
@@ -217,13 +249,13 @@ export default function StudentsPage() {
                   {imagePreview && (
                     <div className="grid grid-cols-4 items-center gap-4">
                       <div className="col-start-2 col-span-3">
-                        <Image src={imagePreview} alt="Image Preview" width={100} height={100} className="rounded-md" />
+                        <Image src={imagePreview} alt="Image Preview" width={100} height={100} className="rounded-md object-cover" />
                       </div>
                     </div>
                   )}
                 </div>
                 <DialogFooter>
-                    <Button onClick={handleAddStudent}>সেভ করুন</Button>
+                    <Button onClick={handleSaveStudent}>সেভ করুন</Button>
                 </DialogFooter>
               </DialogContent>
             </Dialog>
@@ -263,7 +295,7 @@ export default function StudentsPage() {
                         <TableCell>
                             <Avatar>
                             <AvatarImage src={student.imageUrl} data-ai-hint={student.imageHint} alt={student.name} />
-                            <AvatarFallback>{student.name.charAt(0)}</AvatarFallback>
+                            <AvatarFallback>{student.name?.charAt(0)}</AvatarFallback>
                             </Avatar>
                         </TableCell>
                         <TableCell>{student.rollNumber}</TableCell>
@@ -281,7 +313,7 @@ export default function StudentsPage() {
                                 </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                                <DropdownMenuItem disabled>
+                                <DropdownMenuItem onClick={() => handleOpenDialog(student)}>
                                 <Pencil className="mr-2 h-4 w-4" />
                                 <span>এডিট</span>
                                 </DropdownMenuItem>
