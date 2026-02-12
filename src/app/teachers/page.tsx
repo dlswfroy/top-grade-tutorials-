@@ -36,7 +36,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { useFirebaseApp, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useFirebaseApp, useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
 import { collection, doc, addDoc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -51,6 +51,7 @@ const defaultTeacherState: Omit<Teacher, 'id' | 'dateAdded'> = {
 export default function TeachersPage() {
   const firebaseApp = useFirebaseApp();
   const firestore = useFirestore();
+  const { user } = useUser();
   const { toast } = useToast();
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -60,9 +61,9 @@ export default function TeachersPage() {
   const [isSaving, setIsSaving] = useState(false);
 
   const teachersQuery = useMemoFirebase(() => {
-      if (!firestore) return null;
+      if (!firestore || !user) return null;
       return collection(firestore, 'teachers');
-  }, [firestore]);
+  }, [firestore, user]);
 
   const { data: teachers, isLoading } = useCollection<Teacher>(teachersQuery);
 
@@ -265,7 +266,7 @@ export default function TeachersPage() {
                         <TableRow key={teacher.id}>
                         <TableCell>
                             <Avatar>
-                            <AvatarImage src={teacher.imageUrl} data-ai-hint={teacher.imageHint} alt={teacher.name} />
+                            <AvatarImage src={teacher.imageUrl || `https://picsum.photos/seed/${teacher.mobileNumber}/200/200`} data-ai-hint={teacher.imageHint} alt={teacher.name} />
                             <AvatarFallback>{teacher.name?.charAt(0)}</AvatarFallback>
                             </Avatar>
                         </TableCell>

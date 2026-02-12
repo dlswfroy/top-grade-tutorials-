@@ -56,16 +56,16 @@ export default function AttendancePage() {
 
   // Fetch students of the selected class
   const studentsQuery = useMemoFirebase(() => {
-    if (!firestore || !selectedClass) return null;
+    if (!firestore || !selectedClass || !user) return null;
     return query(collection(firestore, 'students'), where('classGrade', '==', selectedClass));
-  }, [firestore, selectedClass]);
+  }, [firestore, selectedClass, user]);
   const { data: students, isLoading: isLoadingStudents } = useCollection<Student>(studentsQuery);
 
   // Fetch existing attendance for the selected class and date
   const attendanceQuery = useMemoFirebase(() => {
-    if (!firestore || !selectedClass || !formattedDate) return null;
+    if (!firestore || !selectedClass || !formattedDate || !user) return null;
     return query(collection(firestore, 'attendance'), where('classGrade', '==', selectedClass), where('date', '==', formattedDate));
-  }, [firestore, selectedClass, formattedDate]);
+  }, [firestore, selectedClass, formattedDate, user]);
   const { data: existingAttendance, isLoading: isLoadingAttendance } = useCollection<Attendance>(attendanceQuery);
   
   const isAttendanceAlreadySaved = useMemo(() => {

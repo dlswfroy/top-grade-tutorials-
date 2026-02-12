@@ -13,7 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Save, Loader2 } from 'lucide-react';
-import { useFirebaseApp, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { useFirebaseApp, useFirestore, useDoc, useMemoFirebase, useUser } from '@/firebase';
 import { doc, setDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -26,6 +26,7 @@ type InstitutionSettings = {
 export default function SettingsPage() {
   const firebaseApp = useFirebaseApp();
   const firestore = useFirestore();
+  const { user } = useUser();
   const { toast } = useToast();
   const [institutionName, setInstitutionName] = useState('টপ গ্রেড টিউটোরিয়ালস');
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
@@ -33,9 +34,9 @@ export default function SettingsPage() {
   const [isSaving, setIsSaving] = useState(false);
 
   const settingsRef = useMemoFirebase(() => {
-    if (!firestore) return null;
+    if (!firestore || !user) return null;
     return doc(firestore, 'institution_settings', 'default');
-  }, [firestore]);
+  }, [firestore, user]);
 
   const { data: settings, isLoading } = useDoc<InstitutionSettings>(settingsRef);
 

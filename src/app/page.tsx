@@ -7,7 +7,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Users, UserCheck, UserX, Loader2 } from 'lucide-react';
-import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
 import { collection, query, where } from 'firebase/firestore';
 import { DashboardChart } from './dashboard-chart';
 import type { Student, Payment, Attendance } from '@/lib/data';
@@ -16,24 +16,25 @@ import { bn } from 'date-fns/locale';
 
 export default function DashboardPage() {
   const firestore = useFirestore();
+  const { user } = useUser();
   
   const studentsQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
+    if (!firestore || !user) return null;
     return collection(firestore, 'students');
-  }, [firestore]);
+  }, [firestore, user]);
   const { data: students, isLoading: isLoadingStudents } = useCollection<Student>(studentsQuery);
 
   const paymentsQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
+    if (!firestore || !user) return null;
     return collection(firestore, 'payments');
-  }, [firestore]);
+  }, [firestore, user]);
   const { data: payments, isLoading: isLoadingPayments } = useCollection<Payment>(paymentsQuery);
   
   const today = format(new Date(), 'yyyy-MM-dd');
   const attendanceQuery = useMemoFirebase(() => {
-      if (!firestore) return null;
+      if (!firestore || !user) return null;
       return query(collection(firestore, 'attendance'), where('date', '==', today));
-  }, [firestore, today]);
+  }, [firestore, user, today]);
   const { data: todaysAttendance, isLoading: isLoadingAttendance } = useCollection<Attendance>(attendanceQuery);
 
   const totalStudents = students?.length ?? 0;

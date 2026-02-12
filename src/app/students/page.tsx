@@ -43,7 +43,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { useFirebaseApp, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useFirebaseApp, useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
 import { collection, doc, addDoc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -63,6 +63,7 @@ const defaultStudentState: Omit<Student, 'id' | 'dateAdded'> = {
 export default function StudentsPage() {
   const firebaseApp = useFirebaseApp();
   const firestore = useFirestore();
+  const { user } = useUser();
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [classFilter, setClassFilter] = useState('');
@@ -77,9 +78,9 @@ export default function StudentsPage() {
 
   // Memoize the collection query
   const studentsQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
+    if (!firestore || !user) return null;
     return collection(firestore, 'students');
-  }, [firestore]);
+  }, [firestore, user]);
 
   const { data: students, isLoading } = useCollection<Student>(studentsQuery);
   

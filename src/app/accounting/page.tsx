@@ -157,6 +157,7 @@ function FeeCollection() {
 
 function PaymentRecord({ student }: { student: Student }) {
     const firestore = useFirestore();
+    const { user } = useUser();
     const { toast } = useToast();
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [selectedMonth, setSelectedMonth] = useState('');
@@ -165,21 +166,21 @@ function PaymentRecord({ student }: { student: Student }) {
     const [isSaving, setIsSaving] = useState(false);
 
     const settingsRef = useMemoFirebase(() => {
-        if (!firestore) return null;
+        if (!firestore || !user) return null;
         return doc(firestore, 'institution_settings', 'default');
-    }, [firestore]);
+    }, [firestore, user]);
     const { data: settings } = useDoc<InstitutionSettings>(settingsRef);
 
     const teachersQuery = useMemoFirebase(() => {
-        if (!firestore) return null;
+        if (!firestore || !user) return null;
         return collection(firestore, 'teachers');
-    }, [firestore]);
+    }, [firestore, user]);
     const { data: teachers } = useCollection<Teacher>(teachersQuery);
 
     const paymentsQuery = useMemoFirebase(() => {
-        if (!firestore) return null;
+        if (!firestore || !user) return null;
         return query(collection(firestore, 'payments'), where('studentId', '==', student.id));
-    }, [firestore, student.id]);
+    }, [firestore, user, student.id]);
     const { data: payments, isLoading: isLoadingPayments } = useCollection<Payment>(paymentsQuery);
 
     const paymentsByMonth = useMemo(() => {
@@ -314,7 +315,7 @@ function PaymentRecord({ student }: { student: Student }) {
             <CardHeader className="flex flex-row justify-between items-start">
                 <div className="flex items-center gap-4">
                     <Avatar className="h-20 w-20">
-                        <AvatarImage src={student.imageUrl} data-ai-hint={student.imageHint || 'student person'} alt={student.name} />
+                        <AvatarImage src={student.imageUrl || `https://picsum.photos/seed/${student.rollNumber}/200/200`} data-ai-hint={student.imageHint || 'student person'} alt={student.name} />
                         <AvatarFallback>{student.name.charAt(0)}</AvatarFallback>
                     </Avatar>
                     <div>
@@ -410,23 +411,24 @@ function PaymentRecord({ student }: { student: Student }) {
 // Payment List Component
 function PaymentList() {
     const firestore = useFirestore();
+    const { user } = useUser();
     const { toast } = useToast();
     const paymentsQuery = useMemoFirebase(() => {
-        if (!firestore) return null;
+        if (!firestore || !user) return null;
         return collection(firestore, 'payments');
-    }, [firestore]);
+    }, [firestore, user]);
     const { data: payments, isLoading: isLoadingPayments } = useCollection<Payment>(paymentsQuery);
 
     const studentsQuery = useMemoFirebase(() => {
-        if (!firestore) return null;
+        if (!firestore || !user) return null;
         return collection(firestore, 'students');
-    }, [firestore]);
+    }, [firestore, user]);
     const { data: students } = useCollection<Student>(studentsQuery);
     
     const teachersQuery = useMemoFirebase(() => {
-        if (!firestore) return null;
+        if (!firestore || !user) return null;
         return collection(firestore, 'teachers');
-    }, [firestore]);
+    }, [firestore, user]);
     const { data: teachers } = useCollection<Teacher>(teachersQuery);
 
     const [editingPayment, setEditingPayment] = useState<Payment | null>(null);
@@ -650,15 +652,15 @@ function Expenses() {
     const [expenseDate, setExpenseDate] = useState<Date | undefined>(new Date());
 
     const expensesQuery = useMemoFirebase(() => {
-        if (!firestore) return null;
+        if (!firestore || !user) return null;
         return collection(firestore, 'expenses');
-    }, [firestore]);
+    }, [firestore, user]);
     const { data: expenses, isLoading: isLoadingExpenses } = useCollection<Expense>(expensesQuery);
 
     const teachersQuery = useMemoFirebase(() => {
-        if (!firestore) return null;
+        if (!firestore || !user) return null;
         return collection(firestore, 'teachers');
-    }, [firestore]);
+    }, [firestore, user]);
     const { data: teachers } = useCollection<Teacher>(teachersQuery);
 
     const getTeacherName = (teacherId: string) => {
@@ -793,16 +795,17 @@ function Expenses() {
 
 function Report() {
     const firestore = useFirestore();
+    const { user } = useUser();
     const paymentsQuery = useMemoFirebase(() => {
-        if (!firestore) return null;
+        if (!firestore || !user) return null;
         return collection(firestore, 'payments');
-    }, [firestore]);
+    }, [firestore, user]);
     const { data: payments, isLoading: isLoadingPayments } = useCollection<Payment>(paymentsQuery);
 
     const expensesQuery = useMemoFirebase(() => {
-        if (!firestore) return null;
+        if (!firestore || !user) return null;
         return collection(firestore, 'expenses');
-    }, [firestore]);
+    }, [firestore, user]);
     const { data: expenses, isLoading: isLoadingExpenses } = useCollection<Expense>(expensesQuery);
     
     const totalIncome = useMemo(() => payments?.reduce((sum, p) => sum + p.amount, 0) || 0, [payments]);
