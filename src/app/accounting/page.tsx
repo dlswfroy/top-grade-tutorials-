@@ -18,11 +18,10 @@ import {
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { classNames, type Student, type Teacher, type Payment } from '@/lib/data';
-import { Search, Printer, Loader2, DollarSign } from 'lucide-react';
+import { Search, Printer, Loader2, DollarSign, Save } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
-import { collection, where, query, getDocs, doc } from 'firebase/firestore';
-import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { collection, where, query, getDocs, doc, addDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { bn } from 'date-fns/locale';
@@ -57,6 +56,7 @@ function PaymentRecord({ student }: { student: Student }) {
     const [selectedMonth, setSelectedMonth] = useState('');
     const [paymentAmount, setPaymentAmount] = useState<number | string>('');
     const [paymentCollectorId, setPaymentCollectorId] = useState('');
+    const [isSaving, setIsSaving] = useState(false);
 
     const settingsRef = useMemoFirebase(() => {
         if (!firestore) return null;
@@ -94,25 +94,39 @@ function PaymentRecord({ student }: { student: Student }) {
         setIsDialogOpen(true);
     };
 
-    const handleCollectPayment = () => {
+    const handleCollectPayment = async () => {
         if (!firestore || !selectedMonth || !paymentAmount || !paymentCollectorId) {
             toast({ variant: 'destructive', title: 'ত্রুটি', description: 'অনুগ্রহ করে সকল তথ্য পূরণ করুন।' });
             return;
         }
+        
+        setIsSaving(true);
 
-        const paymentData = {
-            studentId: student.id,
-            teacherId: paymentCollectorId,
-            amount: Number(paymentAmount),
-            paymentMonth: selectedMonth,
-            paymentDate: new Date().toISOString(),
-            receiptNumber: `RCPT-${Date.now()}`
-        };
+        try {
+            const paymentData = {
+                studentId: student.id,
+                teacherId: paymentCollectorId,
+                amount: Number(paymentAmount),
+                paymentMonth: selectedMonth,
+                paymentDate: new Date().toISOString(),
+                receiptNumber: `RCPT-${Date.now()}`
+            };
+    
+            await addDoc(collection(firestore, 'payments'), paymentData);
+            toast({ title: 'সফল', description: 'বেতন সফলভাবে আদায় করা হয়েছে।' });
+            setIsDialogOpen(false);
+            setPaymentCollectorId('');
 
-        addDocumentNonBlocking(collection(firestore, 'payments'), paymentData);
-        toast({ title: 'সফল', description: 'বেতন সফলভাবে আদায় করা হয়েছে।' });
-        setIsDialogOpen(false);
-        setPaymentCollectorId('');
+        } catch (error: any) {
+            console.error("Error collecting payment:", error);
+            toast({
+                variant: 'destructive',
+                title: 'ত্রুটি',
+                description: `বেতন আদায় করতে সমস্যা হয়েছে: ${error.message}`
+            });
+        } finally {
+            setIsSaving(false);
+        }
     };
 
     const handlePrint = () => {
@@ -255,11 +269,11 @@ function PaymentRecord({ student }: { student: Student }) {
                     <div className="space-y-4 py-4">
                         <div className="space-y-2">
                           <Label htmlFor="amount">টাকার পরিমাণ</Label>
-                          <Input id="amount" type="number" value={paymentAmount} onChange={(e) => setPaymentAmount(e.target.value)} />
+                          <Input id="amount" type="number" value={paymentAmount} onChange={(e) => setPaymentAmount(e.target.value)} disabled={isSaving} />
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="collector">আদায়কারী</Label>
-                            <Select value={paymentCollectorId} onValueChange={setPaymentCollectorId}>
+                            <Select value={paymentCollectorId} onValueChange={setPaymentCollectorId} disabled={isSaving}>
                                 <SelectTrigger id="collector">
                                     <SelectValue placeholder="আদায়কারীর নাম নির্বাচন করুন" />
                                 </SelectTrigger>
@@ -270,7 +284,10 @@ function PaymentRecord({ student }: { student: Student }) {
                         </div>
                     </div>
                     <DialogFooter>
-                        <Button onClick={handleCollectPayment}>বেতন আদায় করুন</Button>
+                        <Button onClick={handleCollectPayment} disabled={isSaving}>
+                            {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                            {isSaving ? 'আদায় করা হচ্ছে...' : 'বেতন আদায় করুন'}
+                        </Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>

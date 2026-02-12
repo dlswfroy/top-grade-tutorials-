@@ -44,8 +44,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useFirebaseApp, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, doc } from 'firebase/firestore';
-import { addDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { collection, doc, addDoc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
@@ -150,14 +149,14 @@ export default function StudentsPage() {
 
         if (editingStudent) {
             const studentRef = doc(firestore, 'students', editingStudent.id);
-            updateDocumentNonBlocking(studentRef, studentData);
+            await updateDoc(studentRef, studentData);
             toast({
                 title: "সফল",
                 description: `${formData.name}-এর তথ্য আপডেট করা হয়েছে।`,
             });
         } else {
             const finalData = { ...studentData, dateAdded: new Date().toISOString() };
-            addDocumentNonBlocking(collection(firestore, 'students'), finalData);
+            await addDoc(collection(firestore, 'students'), finalData);
             toast({
                 title: "সফল",
                 description: `${formData.name} কে শিক্ষার্থী হিসেবে যোগ করা হয়েছে।`,
@@ -178,13 +177,22 @@ export default function StudentsPage() {
     }
   };
 
-  const handleDeleteStudent = (studentId: string, studentName: string) => {
+  const handleDeleteStudent = async (studentId: string, studentName: string) => {
     if (!firestore) return;
-    deleteDocumentNonBlocking(doc(firestore, 'students', studentId));
-    toast({
-        title: "সফল",
-        description: `${studentName} কে তালিকা থেকে মুছে ফেলা হয়েছে।`,
-    });
+    try {
+        await deleteDoc(doc(firestore, 'students', studentId));
+        toast({
+            title: "সফল",
+            description: `${studentName} কে তালিকা থেকে মুছে ফেলা হয়েছে।`,
+        });
+    } catch(error: any) {
+        console.error("Error deleting student:", error);
+        toast({
+            variant: "destructive",
+            title: "ত্রুটি",
+            description: `শিক্ষার্থীকে মুছে ফেলতে সমস্যা হয়েছে: ${error.message}`,
+        });
+    }
   };
 
   const handleOpenDialog = (student: Student | null) => {

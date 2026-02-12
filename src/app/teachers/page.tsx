@@ -37,8 +37,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useFirebaseApp, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, doc } from 'firebase/firestore';
-import { addDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { collection, doc, addDoc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
@@ -123,7 +122,7 @@ export default function TeachersPage() {
         if (editingTeacher) {
             const teacherRef = doc(firestore, 'teachers', editingTeacher.id);
             const updatedData: Partial<Teacher> = { ...formData, imageUrl, imageHint };
-            updateDocumentNonBlocking(teacherRef, updatedData);
+            await updateDoc(teacherRef, updatedData);
             toast({
                 title: "সফল",
                 description: `${formData.name}-এর তথ্য আপডেট করা হয়েছে।`,
@@ -135,7 +134,7 @@ export default function TeachersPage() {
                 imageHint,
                 dateAdded: new Date().toISOString(),
             };
-            addDocumentNonBlocking(collection(firestore, 'teachers'), teacherData);
+            await addDoc(collection(firestore, 'teachers'), teacherData);
             toast({
                 title: "সফল",
                 description: `${formData.name} কে শিক্ষক হিসেবে যোগ করা হয়েছে।`,
@@ -155,13 +154,22 @@ export default function TeachersPage() {
     }
   };
 
-  const handleDeleteTeacher = (teacherId: string, teacherName: string) => {
+  const handleDeleteTeacher = async (teacherId: string, teacherName: string) => {
     if (!firestore) return;
-    deleteDocumentNonBlocking(doc(firestore, 'teachers', teacherId));
-    toast({
-        title: "সফল",
-        description: `${teacherName} কে তালিকা থেকে মুছে ফেলা হয়েছে।`,
-    });
+    try {
+        await deleteDoc(doc(firestore, 'teachers', teacherId));
+        toast({
+            title: "সফল",
+            description: `${teacherName} কে তালিকা থেকে মুছে ফেলা হয়েছে।`,
+        });
+    } catch (error: any) {
+        console.error("Error deleting teacher:", error);
+        toast({
+            variant: "destructive",
+            title: "ত্রুটি",
+            description: `শিক্ষককে মুছে ফেলতে সমস্যা হয়েছে: ${error.message}`,
+        });
+    }
   };
 
   const handleOpenDialog = (teacher: Teacher | null) => {
