@@ -12,11 +12,12 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Save } from 'lucide-react';
-import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { Save, Loader2 } from 'lucide-react';
+import { useFirebaseApp, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 type InstitutionSettings = {
     institutionName?: string;
@@ -24,10 +25,13 @@ type InstitutionSettings = {
 };
 
 export default function SettingsPage() {
+  const firebaseApp = useFirebaseApp();
   const firestore = useFirestore();
   const { toast } = useToast();
   const [institutionName, setInstitutionName] = useState('টপ গ্রেড টিউটোরিয়ালস');
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
 
   const settingsRef = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -51,31 +55,50 @@ export default function SettingsPage() {
   const handleLogoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
+      setLogoFile(file);
       setLogoPreview(URL.createObjectURL(file));
-      // In a real app, you would upload this file to Firebase Storage 
-      // and get the URL to save in Firestore.
     }
   };
 
-  const handleSave = () => {
-    if (!settingsRef) return;
-    
-    // For now, we only save the institution name.
-    // Logo saving requires file upload to storage which is a more complex setup.
-    const settingsData = {
-        institutionName: institutionName,
-        lastUpdated: new Date().toISOString(),
-        // In a real app, you'd get this from your storage service after upload
-        // We save the current logoPreview if it's not a blob url
-        logoUrl: logoPreview && !logoPreview.startsWith('blob:') ? logoPreview : settings?.logoUrl || null
-    };
+  const handleSave = async () => {
+    if (!settingsRef || !firebaseApp) return;
 
-    setDocumentNonBlocking(settingsRef, settingsData, { merge: true });
+    setIsSaving(true);
 
-    toast({
-        title: 'সফল',
-        description: 'সেটিংস সফলভাবে সেভ করা হয়েছে।',
-    });
+    try {
+        let newLogoUrl = settings?.logoUrl || null;
+
+        // If a new file is selected, upload it to Firebase Storage
+        if (logoFile) {
+            const storage = getStorage(firebaseApp);
+            const storageRef = ref(storage, `institution_assets/logo_${Date.now()}`);
+            const uploadResult = await uploadBytes(storageRef, logoFile);
+            newLogoUrl = await getDownloadURL(uploadResult.ref);
+        }
+
+        const settingsData = {
+            institutionName: institutionName,
+            lastUpdated: new Date().toISOString(),
+            logoUrl: newLogoUrl
+        };
+
+        setDocumentNonBlocking(settingsRef, settingsData, { merge: true });
+
+        toast({
+            title: 'সফল',
+            description: 'সেটিংস সফলভাবে সেভ করা হয়েছে।',
+        });
+        setLogoFile(null); // Reset after successful save
+    } catch (error) {
+        console.error("Error saving settings:", error);
+        toast({
+            variant: "destructive",
+            title: "ত্রুটি",
+            description: "সেটিংস সেভ করতে সমস্যা হয়েছে।",
+        });
+    } finally {
+        setIsSaving(false);
+    }
   };
 
   return (
@@ -101,6 +124,7 @@ export default function SettingsPage() {
               id="institution-name"
               value={institutionName}
               onChange={(e) => setInstitutionName(e.target.value)}
+              disabled={isSaving}
             />
           </div>
           <div className="space-y-2">
@@ -123,18 +147,16 @@ export default function SettingsPage() {
                   accept="image/*"
                   onChange={handleLogoChange}
                   className="max-w-xs"
+                  disabled={isSaving}
                 />
-                 <p className="text-sm text-muted-foreground mt-2">
-                    লোগো আপলোড এখনো পরীক্ষামূলক পর্যায়ে আছে। প্রিভিউ দেখা গেলেও এটি স্থায়ীভাবে সেভ হবে না।
-                </p>
               </div>
             </div>
           </div>
         </CardContent>
         <CardFooter>
-          <Button onClick={handleSave}>
-            <Save className="mr-2 h-4 w-4" />
-            সেভ করুন
+          <Button onClick={handleSave} disabled={isSaving || isLoading}>
+            {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+            {isSaving ? 'সেভ হচ্ছে...' : 'সেভ করুন'}
           </Button>
         </CardFooter>
       </Card>
