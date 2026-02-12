@@ -35,7 +35,7 @@ import {
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { classNames, type Student } from '@/lib/data';
-import { PlusCircle, Search, MoreHorizontal, Pencil, Trash2, Loader2 } from 'lucide-react';
+import { PlusCircle, Search, MoreHorizontal, Pencil, Trash2, Loader2, Save } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   DropdownMenu,
@@ -43,10 +43,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useFirebaseApp, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, doc } from 'firebase/firestore';
 import { addDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { useToast } from '@/hooks/use-toast';
+import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 // Default student state for the form
 const defaultStudentState: Omit<Student, 'id' | 'dateAdded'> = {
@@ -57,18 +58,21 @@ const defaultStudentState: Omit<Student, 'id' | 'dateAdded'> = {
   mobileNumber: '',
   monthlyFee: 0,
   imageUrl: '',
-  imageHint: '',
+  imageHint: 'student person',
 };
 
 export default function StudentsPage() {
+  const firebaseApp = useFirebaseApp();
   const firestore = useFirestore();
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [classFilter, setClassFilter] = useState('');
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
   const [formData, setFormData] = useState(defaultStudentState);
   const [editingStudent, setEditingStudent] = useState<Student | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   // Memoize the collection query
   const studentsQuery = useMemoFirebase(() => {
@@ -88,15 +92,14 @@ export default function StudentsPage() {
         setFormData(defaultStudentState);
         setImagePreview(null);
     }
+    setImageFile(null); // Reset file on change
   }, [editingStudent]);
 
   const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      const previewUrl = URL.createObjectURL(file);
-      setImagePreview(previewUrl);
-      // NOTE: We are not uploading the file here. The preview is local.
-      // The save logic will assign a placeholder image if imageUrl is not already set.
+      setImageFile(file);
+      setImagePreview(URL.createObjectURL(file));
     }
   };
 
@@ -109,10 +112,9 @@ export default function StudentsPage() {
     setFormData(prev => ({ ...prev, classGrade: value }));
   };
   
-  const handleSaveStudent = () => {
-    if (!firestore) return;
+  const handleSaveStudent = async () => {
+    if (!firestore || !firebaseApp) return;
 
-    // Basic validation
     if (!formData.name || !formData.classGrade || !formData.rollNumber) {
         toast({
             variant: "destructive",
@@ -122,41 +124,56 @@ export default function StudentsPage() {
         return;
     }
 
-    if (editingStudent) {
-        // Update existing student
-        const studentRef = doc(firestore, 'students', editingStudent.id);
-        const updatedData: Partial<Student> = {
-            ...formData,
-            monthlyFee: Number(formData.monthlyFee) || 0,
-        };
-        // Ensure image URL exists if it didn't before
-        if (!updatedData.imageUrl) {
-            updatedData.imageUrl = `https://picsum.photos/seed/${formData.rollNumber}/200/200`;
-            updatedData.imageHint = 'student person';
+    setIsSaving(true);
+
+    try {
+        let imageUrl = editingStudent?.imageUrl || '';
+        let imageHint = formData.imageHint || 'student person';
+
+        if (imageFile) {
+            const storage = getStorage(firebaseApp);
+            const storageRef = ref(storage, `student_images/${Date.now()}_${imageFile.name}`);
+            const uploadResult = await uploadBytes(storageRef, imageFile);
+            imageUrl = await getDownloadURL(uploadResult.ref);
+        } else if (!imageUrl && !editingStudent) {
+            imageUrl = `https://picsum.photos/seed/${formData.rollNumber}/200/200`;
         }
-        updateDocumentNonBlocking(studentRef, updatedData);
-        toast({
-            title: "সফল",
-            description: `${formData.name}-এর তথ্য আপডেট করা হয়েছে।`,
-        });
-    } else {
-        // Add new student
+
         const studentData = {
             ...formData,
             monthlyFee: Number(formData.monthlyFee) || 0,
-            dateAdded: new Date().toISOString(),
-            // Use a placeholder image if no image was selected
-            imageUrl: `https://picsum.photos/seed/${formData.rollNumber}/200/200`,
-            imageHint: 'student person'
+            imageUrl,
+            imageHint,
         };
-        addDocumentNonBlocking(collection(firestore, 'students'), studentData);
+
+        if (editingStudent) {
+            const studentRef = doc(firestore, 'students', editingStudent.id);
+            updateDocumentNonBlocking(studentRef, studentData);
+            toast({
+                title: "সফল",
+                description: `${formData.name}-এর তথ্য আপডেট করা হয়েছে।`,
+            });
+        } else {
+            const finalData = { ...studentData, dateAdded: new Date().toISOString() };
+            addDocumentNonBlocking(collection(firestore, 'students'), finalData);
+            toast({
+                title: "সফল",
+                description: `${formData.name} কে শিক্ষার্থী হিসেবে যোগ করা হয়েছে।`,
+            });
+        }
+        
+        handleCloseDialog();
+
+    } catch (error: any) {
+        console.error("Error saving student:", error);
         toast({
-            title: "সফল",
-            description: `${formData.name} কে শিক্ষার্থী হিসেবে যোগ করা হয়েছে।`,
+            variant: "destructive",
+            title: "ত্রুটি",
+            description: `শিক্ষার্থীর তথ্য সেভ করতে সমস্যা হয়েছে: ${error.message}`,
         });
+    } finally {
+        setIsSaving(false);
     }
-    
-    setIsDialogOpen(false);
   };
 
   const handleDeleteStudent = (studentId: string, studentName: string) => {
@@ -178,6 +195,7 @@ export default function StudentsPage() {
     setEditingStudent(null);
     setFormData(defaultStudentState);
     setImagePreview(null);
+    setImageFile(null);
   }
 
   const filteredStudents = useMemo(() => students?.filter(
@@ -201,9 +219,9 @@ export default function StudentsPage() {
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle>শিক্ষার্থীদের তালিকা</CardTitle>
+              <CardTitle>শিক্ষার্থী ম্যানেজমেন্ট</CardTitle>
               <CardDescription>
-                এখানে সকল শিক্ষার্থীর তালিকা দেখুন।
+                নতুন শিক্ষার্থী যোগ করুন, তথ্য সম্পাদনা করুন বা তালিকা থেকে খুঁজুন।
               </CardDescription>
             </div>
             <Dialog open={isDialogOpen} onOpenChange={(open) => !open && handleCloseDialog()}>
@@ -220,15 +238,15 @@ export default function StudentsPage() {
                 <div className="grid gap-4 py-4">
                   <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="name" className="text-right">নাম</Label>
-                    <Input id="name" value={formData.name} onChange={handleInputChange} placeholder="শিক্ষার্থীর নাম" className="col-span-3" />
+                    <Input id="name" value={formData.name} onChange={handleInputChange} placeholder="শিক্ষার্থীর নাম" className="col-span-3" disabled={isSaving} />
                   </div>
                    <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="rollNumber" className="text-right">রোল</Label>
-                    <Input id="rollNumber" value={formData.rollNumber} onChange={handleInputChange} placeholder="রোল নম্বর" className="col-span-3" />
+                    <Input id="rollNumber" value={formData.rollNumber} onChange={handleInputChange} placeholder="রোল নম্বর" className="col-span-3" disabled={isSaving} />
                   </div>
                   <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="classGrade" className="text-right">শ্রেণি</Label>
-                    <Select value={formData.classGrade} onValueChange={handleSelectChange}>
+                    <Select value={formData.classGrade} onValueChange={handleSelectChange} disabled={isSaving}>
                       <SelectTrigger className="col-span-3">
                         <SelectValue placeholder="শ্রেণি নির্বাচন করুন" />
                       </SelectTrigger>
@@ -241,19 +259,19 @@ export default function StudentsPage() {
                   </div>
                   <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="fatherName" className="text-right">পিতার নাম</Label>
-                    <Input id="fatherName" value={formData.fatherName} onChange={handleInputChange} placeholder="পিতার নাম" className="col-span-3" />
+                    <Input id="fatherName" value={formData.fatherName} onChange={handleInputChange} placeholder="পিতার নাম" className="col-span-3" disabled={isSaving} />
                   </div>
                   <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="mobileNumber" className="text-right">মোবাইল</Label>
-                    <Input id="mobileNumber" value={formData.mobileNumber} onChange={handleInputChange} placeholder="মোবাইল নম্বর" className="col-span-3" />
+                    <Input id="mobileNumber" value={formData.mobileNumber} onChange={handleInputChange} placeholder="মোবাইল নম্বর" className="col-span-3" disabled={isSaving} />
                   </div>
                   <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="monthlyFee" className="text-right">মাসিক বেতন</Label>
-                    <Input id="monthlyFee" type="number" value={formData.monthlyFee} onChange={handleInputChange} placeholder="মাসিক বেতন" className="col-span-3" />
+                    <Input id="monthlyFee" type="number" value={formData.monthlyFee} onChange={handleInputChange} placeholder="মাসিক বেতন" className="col-span-3" disabled={isSaving} />
                   </div>
                   <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="picture" className="text-right">ছবি</Label>
-                    <Input id="picture" type="file" accept="image/*" onChange={handleImageChange} className="col-span-3" />
+                    <Input id="picture" type="file" accept="image/*" onChange={handleImageChange} className="col-span-3" disabled={isSaving} />
                   </div>
                   {imagePreview && (
                     <div className="grid grid-cols-4 items-center gap-4">
@@ -264,12 +282,15 @@ export default function StudentsPage() {
                   )}
                 </div>
                 <DialogFooter>
-                    <Button onClick={handleSaveStudent}>সেভ করুন</Button>
+                    <Button onClick={handleSaveStudent} disabled={isSaving}>
+                        {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                        {isSaving ? 'সেভ হচ্ছে...' : 'সেভ করুন'}
+                    </Button>
                 </DialogFooter>
               </DialogContent>
             </Dialog>
           </div>
-          <div className="flex flex-col sm:flex-row gap-4 mt-4">
+          <div className="flex flex-col sm:flex-row gap-4 pt-4">
             <div className="relative flex-1">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
