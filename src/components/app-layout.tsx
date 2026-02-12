@@ -23,11 +23,13 @@ import {
   BrainCircuit,
   Settings,
   MoreVertical,
-  LogOut
+  LogOut,
+  Loader2,
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
+import { useUser } from '@/firebase';
 
 const menuItems = [
   { href: '/', label: 'ড্যাসবোর্ড', icon: LayoutDashboard },
@@ -42,6 +44,7 @@ const adminAvatar = PlaceHolderImages.find(p => p.id === 'admin-avatar');
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const { user, isUserLoading } = useUser();
 
   return (
     <SidebarProvider>
@@ -78,11 +81,11 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           <div className="flex items-center gap-3 p-2">
             <Avatar>
               <AvatarImage src={adminAvatar?.imageUrl} data-ai-hint={adminAvatar?.imageHint} />
-              <AvatarFallback>A</AvatarFallback>
+              <AvatarFallback>{isUserLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : (user ? user.uid.charAt(0).toUpperCase() : 'A')}</AvatarFallback>
             </Avatar>
             <div className="flex-1 overflow-hidden">
-                <p className="text-sm font-medium truncate">Admin User</p>
-                <p className="text-xs text-muted-foreground truncate">admin@topgrade.com</p>
+                <p className="text-sm font-medium truncate">{isUserLoading ? 'Loading...' : (user ? 'Anonymous User' : 'Not Signed In')}</p>
+                <p className="text-xs text-muted-foreground truncate">{user?.uid}</p>
             </div>
             <Button variant="ghost" size="icon" className="shrink-0 group-data-[collapsible=icon]:hidden">
                 <LogOut className="w-4 h-4"/>
