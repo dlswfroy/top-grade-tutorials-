@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import Image from 'next/image';
 import {
   Card,
@@ -25,11 +25,10 @@ import {
   DialogTitle,
   DialogTrigger,
   DialogFooter,
-  DialogClose,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { teachers as initialTeachers } from '@/lib/data';
-import { PlusCircle, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
+import { type Teacher } from '@/lib/data';
+import { PlusCircle, MoreHorizontal, Pencil, Trash2, Loader2 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   DropdownMenu,
@@ -37,16 +36,80 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { collection, doc } from 'firebase/firestore';
+import { addDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { useToast } from '@/hooks/use-toast';
+
+const defaultNewTeacher = {
+    name: '',
+    mobileNumber: '',
+};
 
 export default function TeachersPage() {
-  const [teachers, setTeachers] = useState(initialTeachers);
+  const firestore = useFirestore();
+  const { toast } = useToast();
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [newTeacher, setNewTeacher] = useState(defaultNewTeacher);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+
+  const teachersQuery = useMemoFirebase(() => {
+      if (!firestore) return null;
+      return collection(firestore, 'teachers');
+  }, [firestore]);
+
+  const { data: teachers, isLoading } = useCollection<Teacher>(teachersQuery);
 
   const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
       setImagePreview(URL.createObjectURL(file));
+      // In a real app, you'd upload this to Firebase Storage
     }
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { id, value } = e.target;
+    setNewTeacher(prev => ({ ...prev, [id]: value }));
+  };
+
+  const handleAddTeacher = () => {
+    if (!firestore) return;
+
+    if (!newTeacher.name || !newTeacher.mobileNumber) {
+        toast({
+            variant: "destructive",
+            title: "ত্রুটি",
+            description: "অনুগ্রহ করে শিক্ষকের নাম এবং মোবাইল নম্বর দিন।",
+        });
+        return;
+    }
+
+    const teacherData = {
+        ...newTeacher,
+        dateAdded: new Date().toISOString(),
+        // imageUrl: '...' // from storage upload
+    };
+    
+    addDocumentNonBlocking(collection(firestore, 'teachers'), teacherData);
+
+    toast({
+        title: "সফল",
+        description: `${newTeacher.name} কে শিক্ষক হিসেবে যোগ করা হয়েছে।`,
+    });
+
+    setIsDialogOpen(false);
+    setNewTeacher(defaultNewTeacher);
+    setImagePreview(null);
+  };
+
+  const handleDeleteTeacher = (teacherId: string, teacherName: string) => {
+    if (!firestore) return;
+    deleteDocumentNonBlocking(doc(firestore, 'teachers', teacherId));
+    toast({
+        title: "সফল",
+        description: `${teacherName} কে তালিকা থেকে মুছে ফেলা হয়েছে।`,
+    });
   };
 
   return (
@@ -67,7 +130,13 @@ export default function TeachersPage() {
                 এখানে সকল নিবন্ধিত শিক্ষকের তালিকা দেখুন।
               </CardDescription>
             </div>
-            <Dialog onOpenChange={() => setImagePreview(null)}>
+            <Dialog open={isDialogOpen} onOpenChange={(open) => {
+                setIsDialogOpen(open);
+                if (!open) {
+                    setNewTeacher(defaultNewTeacher);
+                    setImagePreview(null);
+                }
+            }}>
               <DialogTrigger asChild>
                 <Button>
                   <PlusCircle className="mr-2 h-4 w-4" />
@@ -81,11 +150,11 @@ export default function TeachersPage() {
                 <div className="grid gap-4 py-4">
                   <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="name" className="text-right">নাম</Label>
-                    <Input id="name" placeholder="শিক্ষকের নাম" className="col-span-3" />
+                    <Input id="name" value={newTeacher.name} onChange={handleInputChange} placeholder="শিক্ষকের নাম" className="col-span-3" />
                   </div>
                   <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="mobile" className="text-right">মোবাইল</Label>
-                    <Input id="mobile" placeholder="মোবাইল নম্বর" className="col-span-3" />
+                    <Label htmlFor="mobileNumber" className="text-right">মোবাইল</Label>
+                    <Input id="mobileNumber" value={newTeacher.mobileNumber} onChange={handleInputChange} placeholder="মোবাইল নম্বর" className="col-span-3" />
                   </div>
                   <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="picture" className="text-right">ছবি</Label>
@@ -100,59 +169,63 @@ export default function TeachersPage() {
                   )}
                 </div>
                 <DialogFooter>
-                  <DialogClose asChild>
-                    <Button type="submit">সেভ করুন</Button>
-                  </DialogClose>
+                  <Button onClick={handleAddTeacher}>সেভ করুন</Button>
                 </DialogFooter>
               </DialogContent>
             </Dialog>
           </div>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>ছবি</TableHead>
-                <TableHead>নাম</TableHead>
-                <TableHead>মোবাইল নম্বর</TableHead>
-                <TableHead className="text-center">একশন</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {teachers.map((teacher) => (
-                <TableRow key={teacher.id}>
-                  <TableCell>
-                    <Avatar>
-                      <AvatarImage src={teacher.image} data-ai-hint={teacher.imageHint} alt={teacher.name} />
-                      <AvatarFallback>{teacher.name.charAt(0)}</AvatarFallback>
-                    </Avatar>
-                  </TableCell>
-                  <TableCell className="font-medium">{teacher.name}</TableCell>
-                  <TableCell>{teacher.mobile}</TableCell>
-                  <TableCell className="text-center">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="h-8 w-8 p-0">
-                          <span className="sr-only">Open menu</span>
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem>
-                          <Pencil className="mr-2 h-4 w-4" />
-                          <span>এডিট</span>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem className="text-destructive">
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          <span>ডিলিট</span>
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+            {isLoading ? (
+                <div className="flex justify-center items-center h-64">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </div>
+            ) : (
+                <Table>
+                    <TableHeader>
+                    <TableRow>
+                        <TableHead>ছবি</TableHead>
+                        <TableHead>নাম</TableHead>
+                        <TableHead>মোবাইল নম্বর</TableHead>
+                        <TableHead className="text-center">একশন</TableHead>
+                    </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                    {teachers?.map((teacher) => (
+                        <TableRow key={teacher.id}>
+                        <TableCell>
+                            <Avatar>
+                            <AvatarImage src={teacher.imageUrl} data-ai-hint={teacher.imageHint} alt={teacher.name} />
+                            <AvatarFallback>{teacher.name.charAt(0)}</AvatarFallback>
+                            </Avatar>
+                        </TableCell>
+                        <TableCell className="font-medium">{teacher.name}</TableCell>
+                        <TableCell>{teacher.mobileNumber}</TableCell>
+                        <TableCell className="text-center">
+                            <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" className="h-8 w-8 p-0">
+                                <span className="sr-only">Open menu</span>
+                                <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                                <DropdownMenuItem disabled>
+                                <Pencil className="mr-2 h-4 w-4" />
+                                <span>এডিট</span>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem className="text-destructive" onClick={() => handleDeleteTeacher(teacher.id, teacher.name)}>
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                <span>ডিলিট</span>
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                            </DropdownMenu>
+                        </TableCell>
+                        </TableRow>
+                    ))}
+                    </TableBody>
+                </Table>
+            )}
         </CardContent>
       </Card>
     </div>

@@ -1,18 +1,31 @@
+'use client';
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { Users, UserCheck, UserX } from 'lucide-react';
-import { students } from '@/lib/data';
+import { Users, UserCheck, UserX, Loader2 } from 'lucide-react';
+import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { collection } from 'firebase/firestore';
 import { DashboardChart } from './dashboard-chart';
-
-const totalStudents = students.length;
-const presentStudents = Math.floor(totalStudents * 0.9); // Mock data
-const absentStudents = totalStudents - presentStudents; // Mock data
+import type { Student } from '@/lib/data';
 
 export default function DashboardPage() {
+  const firestore = useFirestore();
+  const studentsQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return collection(firestore, 'students');
+  }, [firestore]);
+  const { data: students, isLoading: isLoadingStudents } = useCollection<Student>(studentsQuery);
+  
+  // Note: Payments and attendance are not yet fully implemented with Firestore.
+  // These are mock values for now.
+  const totalStudents = students?.length ?? 0;
+  const presentStudents = Math.floor(totalStudents * 0.9);
+  const absentStudents = totalStudents - presentStudents;
+  const monthlyIncome = 125000; // Mocked for now
+
   return (
     <div className="space-y-8">
       <div>
@@ -29,7 +42,7 @@ export default function DashboardPage() {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{totalStudents}</div>
+            {isLoadingStudents ? <Loader2 className="h-6 w-6 animate-spin" /> : <div className="text-2xl font-bold">{totalStudents}</div>}
             <p className="text-xs text-muted-foreground">
               সকল শ্রেণির শিক্ষার্থী
             </p>
@@ -41,12 +54,14 @@ export default function DashboardPage() {
             <UserCheck className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold flex items-center gap-4">
-              <span>উপস্থিত: {presentStudents}</span>
-              <span className="text-destructive flex items-center gap-1">
-                <UserX className="h-5 w-5" /> {absentStudents}
-              </span>
-            </div>
+             {isLoadingStudents ? <Loader2 className="h-6 w-6 animate-spin" /> : (
+                <div className="text-2xl font-bold flex items-center gap-4">
+                    <span>উপস্থিত: {presentStudents}</span>
+                    <span className="text-destructive flex items-center gap-1">
+                        <UserX className="h-5 w-5" /> {absentStudents}
+                    </span>
+                </div>
+             )}
             <p className="text-xs text-muted-foreground">
               আজকের উপস্থিত ও অনুপস্থিত শিক্ষার্থী
             </p>
@@ -59,7 +74,7 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {new Intl.NumberFormat('bn-BD').format(125000)}
+              {new Intl.NumberFormat('bn-BD').format(monthlyIncome)}
             </div>
             <p className="text-xs text-muted-foreground">
               চলতি মাসের মোট আদায়
@@ -73,7 +88,7 @@ export default function DashboardPage() {
           <CardTitle>শ্রেণিভিত্তিক শিক্ষার্থী</CardTitle>
         </CardHeader>
         <CardContent className="pl-2">
-          <DashboardChart />
+          <DashboardChart students={students} isLoading={isLoadingStudents} />
         </CardContent>
       </Card>
     </div>
