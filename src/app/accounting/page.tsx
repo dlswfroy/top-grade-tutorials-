@@ -234,7 +234,7 @@ function PaymentRecord({ student }: { student: Student }) {
             toast({
                 variant: 'destructive',
                 title: 'ত্রুটি',
-                description: `বেতন আদায় করতে সমস্যা হয়েছে: ${error.message}`
+                description: `বেতন আদায় করতে সমস্যা হয়েছে: ${error.message}`,
             });
         } finally {
             setIsSaving(false);
@@ -689,6 +689,17 @@ function Expenses() {
             setIsSaving(false);
         }
     }
+    
+    const handleDeleteExpense = async (expenseId: string) => {
+        if (!firestore) return;
+        try {
+            await deleteDoc(doc(firestore, 'expenses', expenseId));
+            toast({ title: 'সফল', description: 'খরচ মুছে ফেলা হয়েছে।' });
+        } catch (error: any) {
+            toast({ variant: 'destructive', title: 'ত্রুটি', description: `খরচ মুছে ফেলতে সমস্যা হয়েছে: ${error.message}` });
+        }
+    };
+
 
     return (
          <div className="space-y-6">
@@ -743,6 +754,7 @@ function Expenses() {
                                     <TableHead>পরিমাণ</TableHead>
                                     <TableHead>খরচের তারিখ</TableHead>
                                     <TableHead>খরচ করেছেন</TableHead>
+                                    <TableHead className="text-right">একশন</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -752,6 +764,22 @@ function Expenses() {
                                         <TableCell>৳{e.amount}</TableCell>
                                         <TableCell>{format(parseISO(e.expenseDate), 'PP', {locale: bn})}</TableCell>
                                         <TableCell>{getTeacherName(e.spentByTeacherId)}</TableCell>
+                                        <TableCell className="text-right">
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger asChild>
+                                                    <Button variant="ghost" className="h-8 w-8 p-0">
+                                                        <span className="sr-only">Open menu</span>
+                                                        <MoreHorizontal className="h-4 w-4" />
+                                                    </Button>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent align="end">
+                                                    <DropdownMenuItem className="text-destructive" onClick={() => handleDeleteExpense(e.id)}>
+                                                        <Trash2 className="mr-2 h-4 w-4" />
+                                                        <span>ডিলিট</span>
+                                                    </DropdownMenuItem>
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
+                                        </TableCell>
                                     </TableRow>
                                 ))}
                             </TableBody>
