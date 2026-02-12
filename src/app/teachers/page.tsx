@@ -102,7 +102,12 @@ export default function TeachersPage() {
 
     if (editingTeacher) {
         const teacherRef = doc(firestore, 'teachers', editingTeacher.id);
-        updateDocumentNonBlocking(teacherRef, formData);
+        const updatedData: Partial<Teacher> = { ...formData };
+        if (!updatedData.imageUrl) {
+            updatedData.imageUrl = `https://picsum.photos/seed/${formData.mobileNumber}/200/200`;
+            updatedData.imageHint = 'teacher person';
+        }
+        updateDocumentNonBlocking(teacherRef, updatedData);
         toast({
             title: "সফল",
             description: `${formData.name}-এর তথ্য আপডেট করা হয়েছে।`,

@@ -64,6 +64,7 @@ export default function StudentsPage() {
   const firestore = useFirestore();
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
+  const [classFilter, setClassFilter] = useState('');
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [formData, setFormData] = useState(defaultStudentState);
   const [editingStudent, setEditingStudent] = useState<Student | null>(null);
@@ -92,8 +93,10 @@ export default function StudentsPage() {
   const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      setImagePreview(URL.createObjectURL(file));
-      // In a real app, upload this and set `formData.imageUrl` to the returned URL
+      const previewUrl = URL.createObjectURL(file);
+      setImagePreview(previewUrl);
+      // NOTE: We are not uploading the file here. The preview is local.
+      // The save logic will assign a placeholder image if imageUrl is not already set.
     }
   };
 
@@ -122,11 +125,15 @@ export default function StudentsPage() {
     if (editingStudent) {
         // Update existing student
         const studentRef = doc(firestore, 'students', editingStudent.id);
-        const updatedData = {
+        const updatedData: Partial<Student> = {
             ...formData,
             monthlyFee: Number(formData.monthlyFee) || 0,
-            // imageUrl would be updated if a new file was uploaded and its URL obtained
         };
+        // Ensure image URL exists if it didn't before
+        if (!updatedData.imageUrl) {
+            updatedData.imageUrl = `https://picsum.photos/seed/${formData.rollNumber}/200/200`;
+            updatedData.imageHint = 'student person';
+        }
         updateDocumentNonBlocking(studentRef, updatedData);
         toast({
             title: "সফল",
@@ -175,9 +182,11 @@ export default function StudentsPage() {
 
   const filteredStudents = useMemo(() => students?.filter(
     (student) =>
-      student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      student.rollNumber.toString().includes(searchTerm)
-  ), [students, searchTerm]);
+      (!classFilter || student.classGrade === classFilter) &&
+      (searchTerm === '' ||
+       student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+       student.rollNumber.toString().includes(searchTerm))
+  ), [students, searchTerm, classFilter]);
 
   return (
     <div className="space-y-8">
@@ -260,14 +269,27 @@ export default function StudentsPage() {
               </DialogContent>
             </Dialog>
           </div>
-          <div className="relative mt-4">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              type="search"
-              placeholder="রোল বা নাম দিয়ে খুঁজুন..."
-              className="w-full rounded-lg bg-background pl-8"
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
+          <div className="flex flex-col sm:flex-row gap-4 mt-4">
+            <div className="relative flex-1">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                type="search"
+                placeholder="রোল বা নাম দিয়ে খুঁজুন..."
+                className="w-full rounded-lg bg-background pl-8"
+                onChange={(e) => setSearchTerm(e.target.value)}
+                />
+            </div>
+            <Select value={classFilter} onValueChange={(value) => setClassFilter(value === "all" ? "" : value)}>
+                <SelectTrigger className="w-full sm:w-[180px]">
+                    <SelectValue placeholder="শ্রেণি নির্বাচন করুন" />
+                </SelectTrigger>
+                <SelectContent>
+                    <SelectItem value="all">সকল শ্রেণি</SelectItem>
+                    {classNames.map((c) => (
+                        <SelectItem key={c} value={c}>{c}</SelectItem>
+                    ))}
+                </SelectContent>
+            </Select>
           </div>
         </CardHeader>
         <CardContent>

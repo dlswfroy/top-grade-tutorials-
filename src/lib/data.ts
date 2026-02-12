@@ -20,4 +20,15 @@ export type Teacher = {
   dateAdded: string;
 };
 
+export type Payment = {
+  id: string;
+  studentId: string;
+  teacherId: string;
+  amount: number;
+  paymentDate: string;
+  paymentMonth: string;
+  receiptNumber: string;
+};
+
+
 export const classNames = ["ষষ্ঠ", "সপ্তম", "অষ্টম", "নবম", "দশম"];

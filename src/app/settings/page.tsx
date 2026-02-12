@@ -66,7 +66,8 @@ export default function SettingsPage() {
         institutionName: institutionName,
         lastUpdated: new Date().toISOString(),
         // In a real app, you'd get this from your storage service after upload
-        // logoUrl: logoPreview 
+        // We save the current logoPreview if it's not a blob url
+        logoUrl: logoPreview && !logoPreview.startsWith('blob:') ? logoPreview : settings?.logoUrl || null
     };
 
     setDocumentNonBlocking(settingsRef, settingsData, { merge: true });
@@ -115,13 +116,18 @@ export default function SettingsPage() {
                   data-ai-hint="education logo"
                 />
               )}
-              <Input
-                id="logo"
-                type="file"
-                accept="image/*"
-                onChange={handleLogoChange}
-                className="max-w-xs"
-              />
+              <div className="flex-1">
+                <Input
+                  id="logo"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleLogoChange}
+                  className="max-w-xs"
+                />
+                 <p className="text-sm text-muted-foreground mt-2">
+                    লোগো আপলোড এখনো পরীক্ষামূলক পর্যায়ে আছে। প্রিভিউ দেখা গেলেও এটি স্থায়ীভাবে সেভ হবে না।
+                </p>
+              </div>
             </div>
           </div>
         </CardContent>
