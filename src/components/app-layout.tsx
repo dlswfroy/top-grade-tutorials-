@@ -67,7 +67,7 @@ function Logo({ settings, isLoading, className, iconClassName, titleClassName }:
                   <path d="M2 12l10 5 10-5"></path>
                 </svg>
             )}
-            <h1 className={cn("text-3xl font-headline font-bold", titleClassName || 'text-inherit')}>{institutionName}</h1>
+            <h1 className={cn("text-3xl font-headline font-bold text-white", titleClassName || 'text-inherit')}>{institutionName}</h1>
         </Link>
     );
 }
@@ -78,18 +78,23 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const auth = useAuth();
   const router = useRouter();
   const { toast } = useToast();
-  const [user, setUser] = useState<User | null | undefined>(undefined);
+  const [user, setUser] = useState<User | null>(null);
+  const [isLoadingAuth, setIsLoadingAuth] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
-      if (!currentUser && pathname !== '/login') {
-        router.push('/login');
-      }
+      setIsLoadingAuth(false);
     });
     return () => unsubscribe();
-  }, [auth, pathname, router]);
+  }, [auth]);
+
+  useEffect(() => {
+    if (!isLoadingAuth && !user && pathname !== '/login') {
+      router.push('/login');
+    }
+  }, [isLoadingAuth, user, pathname, router]);
 
   const settingsRef = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -112,17 +117,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     return <>{children}</>;
   }
 
-  // While checking auth state, show a loader
-  if (user === undefined) {
-    return (
-        <div className="flex h-screen items-center justify-center bg-background">
-            <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        </div>
-    );
-  }
-
-  // If user is not logged in, useEffect will redirect. Show loader in the meantime.
-  if (!user) {
+  // While checking auth state, or if we need to redirect, show a loader.
+  if (isLoadingAuth || !user) {
     return (
         <div className="flex h-screen items-center justify-center bg-background">
             <Loader2 className="h-12 w-12 animate-spin text-primary" />
