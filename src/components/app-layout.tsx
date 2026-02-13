@@ -45,29 +45,29 @@ type InstitutionSettings = {
     logoUrl?: string;
 };
 
-function Logo({ settings, isLoading, className, iconClassName }: { settings: InstitutionSettings | null, isLoading: boolean, className?: string, iconClassName?: string }) {
+function Logo({ settings, isLoading, className, iconClassName, titleClassName }: { settings: InstitutionSettings | null, isLoading: boolean, className?: string, iconClassName?: string, titleClassName?: string }) {
     const institutionName = settings?.institutionName || 'টপ গ্রেড টিউটোরিয়ালস';
     const logoUrl = settings?.logoUrl;
 
     return (
-        <Link href="/" className={cn("flex items-center gap-3", className)}>
+        <Link href="/" className={cn("flex items-center gap-4 ml-2", className)}>
             {isLoading ? (
-                <Loader2 className={cn("h-10 w-10 animate-spin", iconClassName || "text-inherit")} />
+                <Loader2 className={cn("h-12 w-12 animate-spin", iconClassName || "text-inherit")} />
             ) : logoUrl ? (
-                <div className="w-10 h-10 relative">
-                    <Avatar className="h-10 w-10">
+                <div className="w-12 h-12 relative">
+                    <Avatar className="h-12 w-12">
                         <AvatarImage src={logoUrl} alt={institutionName} className="object-cover" />
                         <AvatarFallback>{institutionName.charAt(0)}</AvatarFallback>
                     </Avatar>
                 </div>
             ) : (
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={cn("w-10 h-10", iconClassName || "text-inherit")}>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={cn("w-12 h-12", iconClassName || "text-inherit")}>
                   <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
                   <path d="M2 17l10 5 10-5"></path>
                   <path d="M2 12l10 5 10-5"></path>
                 </svg>
             )}
-            <h1 className="text-2xl font-headline font-bold text-inherit">{institutionName}</h1>
+            <h1 className={cn("text-3xl font-headline font-bold", titleClassName || 'text-inherit')}>{institutionName}</h1>
         </Link>
     );
 }
@@ -143,7 +143,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                             </Button>
                         </SheetTrigger>
                         <SheetContent side="left" className="w-[300px] sm:w-[400px]">
-                            <Logo settings={settings} isLoading={isLoadingSettings} className="mb-8 text-foreground" iconClassName="text-primary" />
+                            <Logo settings={settings} isLoading={isLoadingSettings} className="mb-8" iconClassName="text-primary" titleClassName="text-slate-900 dark:text-slate-100" />
                             <div className="flex flex-col space-y-2">
                                 {menuItems.map((item) => (
                                     <Link
@@ -165,7 +165,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                   </div>
                   
                   <div className="hidden md:flex items-center">
-                     <Logo settings={settings} isLoading={isLoadingSettings} className="mr-6" iconClassName="text-inherit"/>
+                     <Logo settings={settings} isLoading={isLoadingSettings} className="mr-6" iconClassName="text-inherit" titleClassName="text-yellow-300"/>
                       <nav className="flex items-center space-x-6 text-sm font-medium">
                           {menuItems.map((item) => (
                               <Link
