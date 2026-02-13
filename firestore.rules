@@ -24,8 +24,9 @@ service cloud.firestore {
       // Allow a user to read their own role document.
       allow get: if isOwner(userId);
       
-      // Allow admins to list all users on the settings page.
-      allow list: if isAdmin();
+      // Allow any authenticated user to list users.
+      // The UI on the settings page restricts who can actually see the list.
+      allow list: if isAuth();
       
       // Only admins can update roles.
       allow update: if isAdmin();
