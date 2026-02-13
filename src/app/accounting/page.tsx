@@ -550,6 +550,15 @@ function PaymentList() {
     }, [firestore]);
     const { data: students } = useCollection<Student>(studentsQuery);
     
+    const settingsRef = useMemoFirebase(() => {
+        if (!firestore) return null;
+        return doc(firestore, 'institution_settings', 'default');
+    }, [firestore]);
+    const { data: settings } = useDoc<InstitutionSettings>(settingsRef);
+    
+    const [receiptPayment, setReceiptPayment] = useState<Payment | null>(null);
+    const [isReceiptOpen, setIsReceiptOpen] = useState(false);
+    
     const [editingPayment, setEditingPayment] = useState<Payment | null>(null);
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
@@ -568,6 +577,16 @@ function PaymentList() {
         }, { dailyTotal: 0, monthlyTotal: 0, yearlyTotal: 0 });
     }, [payments]);
     
+    const studentForReceipt = useMemo(() => {
+        if (!receiptPayment || !students) return null;
+        return students.find(s => s.id === receiptPayment.studentId) || null;
+    }, [receiptPayment, students]);
+    
+    const handleOpenReceiptDialog = (payment: Payment) => {
+        setReceiptPayment(payment);
+        setIsReceiptOpen(true);
+    };
+
     const handleOpenEditDialog = (payment: Payment) => {
         setEditingPayment(payment);
         setEditAmount(payment.amount);
@@ -687,6 +706,10 @@ function PaymentList() {
                                                 </Button>
                                             </DropdownMenuTrigger>
                                             <DropdownMenuContent align="end">
+                                                <DropdownMenuItem onClick={() => handleOpenReceiptDialog(p)}>
+                                                    <Printer className="mr-2 h-4 w-4" />
+                                                    <span>রসিদ প্রিন্ট</span>
+                                                </DropdownMenuItem>
                                                 <DropdownMenuItem onClick={() => handleOpenEditDialog(p)}>
                                                     <Pencil className="mr-2 h-4 w-4" />
                                                     <span>এডিট</span>
@@ -743,6 +766,16 @@ function PaymentList() {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
+            {receiptPayment && studentForReceipt && (
+                <ReceiptDialog
+                    isOpen={isReceiptOpen}
+                    setIsOpen={setIsReceiptOpen}
+                    payment={receiptPayment}
+                    student={studentForReceipt}
+                    settings={settings}
+                />
+            )}
         </div>
     )
 }
