@@ -54,7 +54,7 @@ function Logo({ settings, isLoading, className, iconClassName }: { settings: Ins
     return (
         <Link href="/" className={cn("flex items-center gap-3", className)}>
             {isLoading ? (
-                <Loader2 className={cn("w-8 h-8 animate-spin", iconClassName || "text-primary")} />
+                <Loader2 className={cn("h-10 w-10 animate-spin", iconClassName || "text-primary")} />
             ) : logoUrl ? (
                 <Image src={logoUrl} alt={institutionName} width={40} height={40} className="rounded-md object-cover" />
             ) : (
@@ -111,7 +111,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       <div className="min-h-screen flex flex-col">
           <header className="sticky top-0 z-40 w-full border-b bg-primary text-primary-foreground">
               <div className="container flex h-20 items-center">
-                  <Logo settings={settings} isLoading={isLoadingSettings} className="mr-6" iconClassName="text-primary-foreground"/>
+                  <Logo settings={settings} isLoading={isLoadingSettings} className="ml-2 mr-6" iconClassName="text-primary-foreground"/>
                   
                   <nav className="hidden md:flex items-center space-x-6 text-sm font-medium">
                       {menuItems.map((item) => (
