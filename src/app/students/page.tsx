@@ -250,9 +250,6 @@ function StudentsPage() {
     <div className="space-y-8 p-6 rounded-lg bg-green-50 dark:bg-green-950/30">
       <div>
         <h1 className="text-3xl font-bold font-headline">শিক্ষার্থী ম্যানেজমেন্ট</h1>
-        <p className="text-slate-600 dark:text-slate-400">
-          নতুন শিক্ষার্থী যোগ করুন এবং বিদ্যমানদের তথ্য দেখুন ও সম্পাদনা করুন।
-        </p>
       </div>
 
       <Card>

@@ -143,9 +143,6 @@ function SettingsPage() {
         <div className="space-y-8 p-6 rounded-lg bg-slate-50 dark:bg-slate-800/20">
             <div>
                 <h1 className="text-3xl font-bold font-headline">সেটিংস</h1>
-                <p className="text-slate-600 dark:text-slate-400">
-                প্রতিষ্ঠানের সাধারণ তথ্য পরিচালনা করুন।
-                </p>
             </div>
             <InstitutionSettingsCard />
         </div>

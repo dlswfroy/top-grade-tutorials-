@@ -1167,7 +1167,6 @@ function AccountingPage() {
     <div className="space-y-8 p-6 rounded-lg bg-amber-50 dark:bg-amber-950/30">
       <div>
         <h1 className="text-3xl font-bold font-headline">হিসাবরক্ষণ</h1>
-        <p className="text-slate-600 dark:text-slate-400">শিক্ষার্থীদের মাসিক বেতন আদায়, খরচ এবং আয়-ব্যয়ের রিপোর্ট দেখুন।</p>
       </div>
 
       <Tabs defaultValue="collection" className="space-y-4">
