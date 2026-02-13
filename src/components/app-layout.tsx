@@ -51,24 +51,24 @@ function Logo({ settings, isLoading, className, iconClassName, titleClassName }:
     const logoUrl = settings?.logoUrl;
 
     return (
-        <Link href="/" className={cn("flex items-center gap-4 ml-2", className)}>
+        <Link href="/" className={cn("flex items-center gap-4 ml-4", className)}>
             {isLoading ? (
-                <Loader2 className={cn("h-14 w-14 animate-spin", iconClassName || "text-inherit")} />
+                <Loader2 className={cn("h-16 w-16 animate-spin", iconClassName || "text-inherit")} />
             ) : logoUrl ? (
-                <div className="w-14 h-14 relative">
-                    <Avatar className="h-14 w-14">
+                <div className="w-16 h-16 relative">
+                    <Avatar className="h-16 w-16">
                         <AvatarImage src={logoUrl} alt={institutionName} className="object-cover" />
                         <AvatarFallback>{institutionName.charAt(0)}</AvatarFallback>
                     </Avatar>
                 </div>
             ) : (
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={cn("w-14 h-14", iconClassName || "text-inherit")}>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={cn("w-16 h-16", iconClassName || "text-inherit")}>
                   <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
                   <path d="M2 17l10 5 10-5"></path>
                   <path d="M2 12l10 5 10-5"></path>
                 </svg>
             )}
-            <h1 className={cn("text-3xl font-headline font-bold", titleClassName || 'text-white')}>{institutionName}</h1>
+            <h1 className={cn("text-3xl font-headline font-bold text-white", titleClassName)}>{institutionName}</h1>
         </Link>
     );
 }
