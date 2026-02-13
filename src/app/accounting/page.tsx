@@ -156,8 +156,8 @@ function FeeCollection() {
     );
 }
 
-function ReceiptDialog({ isOpen, setIsOpen, payment, student, settings }: { isOpen: boolean, setIsOpen: (open: boolean) => void, payment: Payment | null, student: Student, settings: InstitutionSettings | null }) {
-    if (!payment) return null;
+function ReceiptDialog({ isOpen, setIsOpen, payment, student, settings }: { isOpen: boolean, setIsOpen: (open: boolean) => void, payment: Payment | null, student: Student | null, settings: InstitutionSettings | null }) {
+    if (!payment || !student) return null;
 
     const handlePrintReceipt = () => {
         const printContent = `
@@ -165,17 +165,19 @@ function ReceiptDialog({ isOpen, setIsOpen, payment, student, settings }: { isOp
             <head>
                 <title>Money Receipt</title>
                 <style>
-                    body { font-family: 'sans-serif'; margin: 0; padding: 20px; width: 300px; }
-                    .receipt-container { border: 1px solid #000; padding: 15px; }
-                    .header { text-align: center; border-bottom: 1px dashed #000; padding-bottom: 10px; margin-bottom: 10px; }
-                    .header img { max-width: 60px; max-height: 60px; margin-bottom: 5px; }
-                    .header h2 { font-size: 16px; margin: 0; }
-                    .header p { margin: 0; font-size: 12px; }
-                    .details-table { width: 100%; font-size: 12px; }
-                    .details-table td { padding: 2px 0; }
-                    .details-table .label { font-weight: bold; }
+                    body { font-family: 'sans-serif'; margin: 0; padding: 20px; width: 450px; }
+                    .receipt-container { border: 1px solid #000; padding: 20px; }
+                    .header { text-align: center; border-bottom: 1px dashed #000; padding-bottom: 15px; margin-bottom: 15px; }
+                    .header img { max-width: 80px; max-height: 80px; margin-bottom: 10px; }
+                    .header h2 { font-size: 20px; font-weight: bold; margin: 0; }
+                    .header p { margin: 5px 0 0; font-size: 14px; }
+                    .details-table { width: 100%; font-size: 14px; border-collapse: collapse; margin-top: 20px;}
+                    .details-table td { padding: 5px 0; }
+                    .details-table .label { font-weight: bold; padding-right: 15px; }
                     .details-table .value { text-align: right; }
-                    .footer { text-align: center; margin-top: 20px; font-size: 10px; }
+                    .total-amount-row td { border-top: 1px solid #000; padding-top: 10px; font-weight: bold; font-size: 16px; }
+                    .collected-by { font-size: 14px; margin-top: 25px; }
+                    .footer { text-align: center; margin-top: 30px; font-size: 12px; }
                 </style>
             </head>
             <body>
@@ -210,12 +212,12 @@ function ReceiptDialog({ isOpen, setIsOpen, payment, student, settings }: { isOp
                             <td class="label">Fee for Month:</td>
                             <td class="value">${format(parseISO(payment.paymentMonth), 'MMMM, yyyy')}</td>
                         </tr>
-                        <tr>
+                        <tr class="total-amount-row">
                             <td class="label">Amount Paid:</td>
                             <td class="value">BDT ${payment.amount}</td>
                         </tr>
                     </table>
-                     <p style="font-size: 12px; margin-top: 20px;"><strong>Collected By:</strong> ${payment.collectorName}</p>
+                     <p class="collected-by"><strong>Collected By:</strong> ${payment.collectorName}</p>
                     <div class="footer">
                         Thank you!
                     </div>
