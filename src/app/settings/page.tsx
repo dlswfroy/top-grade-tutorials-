@@ -23,7 +23,7 @@ type InstitutionSettings = {
     logoUrl?: string;
 };
 
-const compressImage = (file: File): Promise<string> => {
+const compressImage = (file: File, options: { maxWidth: number; maxHeight: number; quality: number }): Promise<string> => {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.readAsDataURL(file);
@@ -32,8 +32,8 @@ const compressImage = (file: File): Promise<string> => {
             img.src = event.target?.result as string;
             img.onload = () => {
                 const canvas = document.createElement('canvas');
-                const MAX_WIDTH = 256;
-                const MAX_HEIGHT = 256;
+                const MAX_WIDTH = options.maxWidth;
+                const MAX_HEIGHT = options.maxHeight;
                 let width = img.width;
                 let height = img.height;
 
@@ -55,7 +55,7 @@ const compressImage = (file: File): Promise<string> => {
                     return reject(new Error('Could not get canvas context'));
                 }
                 ctx.drawImage(img, 0, 0, width, height);
-                resolve(canvas.toDataURL('image/jpeg', 0.9));
+                resolve(canvas.toDataURL('image/jpeg', options.quality));
             };
             img.onerror = error => reject(error);
         };
@@ -87,7 +87,7 @@ function UserProfileCard() {
         if (file) {
             try {
               toast({ title: 'ছবি প্রসেস করা হচ্ছে...', description: 'ছবি সংকুচিত করতে কয়েক মুহূর্ত সময় লাগতে পারে।' });
-              const compressedDataUrl = await compressImage(file);
+              const compressedDataUrl = await compressImage(file, { maxWidth: 128, maxHeight: 128, quality: 0.8 });
               setImagePreview(compressedDataUrl);
             } catch (error) {
               console.error("Image compression failed:", error);
@@ -194,16 +194,21 @@ function InstitutionSettingsCard() {
         }
     }, [settings]);
 
-    const handleLogoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const handleLogoChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
         if (file) {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                if (typeof reader.result === 'string') {
-                    setLogoUrl(reader.result);
-                }
-            };
-            reader.readAsDataURL(file);
+            try {
+              toast({ title: 'ছবি প্রসেস করা হচ্ছে...', description: 'লোগো সংকুচিত করতে কয়েক মুহূর্ত সময় লাগতে পারে।' });
+              const compressedDataUrl = await compressImage(file, { maxWidth: 256, maxHeight: 256, quality: 0.9 });
+              setLogoUrl(compressedDataUrl);
+            } catch (error) {
+              console.error("Logo compression failed:", error);
+              toast({
+                variant: "destructive",
+                title: "ত্রুটি",
+                description: "লোগো সংকুচিত করতে সমস্যা হয়েছে।",
+              });
+            }
         }
     };
 
