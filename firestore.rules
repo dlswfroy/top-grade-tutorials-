@@ -2,8 +2,53 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /{document=**} {
-      allow read, write: if true;
+    // --- Helper Functions ---
+    function isAuth() {
+      return request.auth != null;
     }
+
+    function isOwner(userId) {
+      return isAuth() && request.auth.uid == userId;
+    }
+
+    function getRole(userId) {
+      // Use exists() to prevent errors on non-existent docs
+      return exists(/databases/$(database)/documents/user_roles/$(userId)) ? 
+             get(/databases/$(database)/documents/user_roles/$(userId)).data.role : 
+             '';
+    }
+
+    function isAdmin() {
+      return isAuth() && getRole(request.auth.uid) == 'admin';
+    }
+
+    // --- Rules ---
+
+    // user_roles collection
+    match /user_roles/{userId} {
+      // An admin can see all roles. A user can see their own role.
+      allow read: if isAdmin() || isOwner(userId);
+      // Only admins can change roles.
+      allow write: if isAdmin();
+      // A user can create their own role document during signup.
+      allow create: if isOwner(userId);
+      // Allow authenticated users to list roles for signup logic.
+      allow list: if isAuth();
+    }
+    
+    // institution_settings collection
+    match /institution_settings/{settingsId} {
+      // Any authenticated user can read the settings (for logo/name in header).
+      allow read: if isAuth();
+      // Only admins can change settings.
+      allow write: if isAdmin();
+    }
+    
+    // All other collections are accessible by any authenticated user for simplicity.
+    match /students/{studentId} { allow read, write: if isAuth(); }
+    match /payments/{paymentId} { allow read, write: if isAuth(); }
+    match /expenses/{expenseId} { allow read, write: if isAuth(); }
+    match /attendance/{attendanceId} { allow read, write: if isAuth(); }
+    match /question_papers/{paperId} { allow read, write: if isAuth(); }
   }
 }

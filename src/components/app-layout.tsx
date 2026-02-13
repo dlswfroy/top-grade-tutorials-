@@ -1,8 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { useState, useMemo } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
+import { useState, useMemo, useEffect } from 'react';
 import {
   LayoutDashboard,
   Users,
@@ -12,22 +12,33 @@ import {
   Loader2,
   CalendarCheck,
   Menu,
+  LogOut,
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { useFirestore, useDoc, useMemoFirebase, useAuth } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { useUser } from '@/hooks/use-user';
+import { signOut } from 'firebase/auth';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+
 
 const allMenuItems = [
-  { href: '/', label: 'ড্যাসবোর্ড', icon: LayoutDashboard },
-  { href: '/students', label: 'শিক্ষার্থী', icon: Users },
-  { href: '/accounting', label: 'হিসাব', icon: Calculator },
-  { href: '/attendance', label: 'হাজিরা', icon: CalendarCheck },
-  { href: '/questions', label: 'প্রশ্ন তৈরি', icon: BrainCircuit },
-  { href: '/settings', label: 'সেটিংস', icon: Settings },
+  { href: '/', label: 'ড্যাসবোর্ড', icon: LayoutDashboard, requiredRole: ['admin', 'teacher'] },
+  { href: '/students', label: 'শিক্ষার্থী', icon: Users, requiredRole: ['admin', 'teacher'] },
+  { href: '/accounting', label: 'হিসাব', icon: Calculator, requiredRole: ['admin', 'teacher'] },
+  { href: '/attendance', label: 'হাজিরা', icon: CalendarCheck, requiredRole: ['admin', 'teacher'] },
+  { href: '/questions', label: 'প্রশ্ন তৈরি', icon: BrainCircuit, requiredRole: ['admin', 'teacher'] },
+  { href: '/settings', label: 'সেটিংস', icon: Settings, requiredRole: ['admin'] },
 ];
 
 type InstitutionSettings = {
@@ -65,7 +76,14 @@ function Logo({ settings, isLoading, className, iconClassName }: { settings: Ins
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const firestore = useFirestore();
+  const auth = useAuth();
+  const { user, role } = useUser();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  const menuItems = useMemo(() => {
+    if (!role) return [];
+    return allMenuItems.filter(item => item.requiredRole.includes(role));
+  }, [role]);
 
   const settingsRef = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -73,6 +91,10 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   }, [firestore]);
 
   const { data: settings, isLoading: isLoadingSettings } = useDoc<InstitutionSettings>(settingsRef);
+  
+  const handleLogout = async () => {
+    await signOut(auth);
+  };
 
   return (
       <div className="min-h-screen flex flex-col">
@@ -81,7 +103,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                   <Logo settings={settings} isLoading={isLoadingSettings} className="ml-2 mr-6" iconClassName="text-primary-foreground"/>
                   
                   <nav className="hidden md:flex items-center space-x-6 text-sm font-medium">
-                      {allMenuItems.map((item) => (
+                      {menuItems.map((item) => (
                           <Link
                               key={item.href}
                               href={item.href}
@@ -95,7 +117,32 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                       ))}
                   </nav>
 
-                  <div className="flex flex-1 items-center justify-end space-x-2">
+                  <div className="flex flex-1 items-center justify-end space-x-4">
+                      {user && (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" className="relative h-10 w-10 rounded-full">
+                               <Avatar className="h-10 w-10">
+                                <AvatarImage src={user.photoURL || `https://avatar.vercel.sh/${user.uid}.png`} alt={user.displayName || 'User'} />
+                                <AvatarFallback>{user.displayName?.charAt(0) || user.email?.charAt(0)}</AvatarFallback>
+                               </Avatar>
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent className="w-56" align="end" forceMount>
+                            <DropdownMenuLabel className="font-normal">
+                              <div className="flex flex-col space-y-1">
+                                <p className="text-sm font-medium leading-none">{user.displayName}</p>
+                                <p className="text-xs leading-none text-muted-foreground">{user.email}</p>
+                              </div>
+                            </DropdownMenuLabel>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={handleLogout}>
+                              <LogOut className="mr-2 h-4 w-4" />
+                              <span>লগ আউট</span>
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      )}
                       <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
                           <SheetTrigger asChild>
                               <Button variant="ghost" size="icon" className="md:hidden">
@@ -106,7 +153,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                           <SheetContent side="left" className="w-[300px] sm:w-[400px]">
                               <Logo settings={settings} isLoading={isLoadingSettings} className="mb-8" />
                               <div className="flex flex-col space-y-2">
-                                  {allMenuItems.map((item) => (
+                                  {menuItems.map((item) => (
                                       <Link
                                           key={item.href}
                                           href={item.href}

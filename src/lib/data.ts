@@ -37,4 +37,12 @@ export type Attendance = {
     status: 'present' | 'absent';
 }
 
+export type UserRole = {
+  id: string;
+  email: string;
+  name: string;
+  role: 'admin' | 'teacher';
+};
+
+
 export const classNames = ["ষষ্ঠ", "সপ্তম", "অষ্টম", "নবম", "দশম"];

@@ -1,5 +1,31 @@
 {
   "entities": {
+    "UserRole": {
+      "title": "User Role",
+      "type": "object",
+      "description": "Defines the role of a user, which can be either 'admin' or 'teacher'.",
+      "properties": {
+        "role": {
+          "type": "string",
+          "enum": [
+            "admin",
+            "teacher"
+          ]
+        },
+        "email": {
+          "type": "string",
+          "format": "email"
+        },
+        "name": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "role",
+        "email",
+        "name"
+      ]
+    },
     "Student": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Student",
@@ -196,38 +222,94 @@
         "lastUpdated"
       ]
     },
-     "Expense": {
+    "Expense": {
       "title": "Expense",
       "type": "object",
       "description": "Records an expense made by the institution.",
       "properties": {
-        "id": { "type": "string" },
-        "description": { "type": "string" },
-        "amount": { "type": "number" },
-        "expenseDate": { "type": "string", "format": "date-time" },
-        "spentByName": { "type": "string" }
+        "id": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "amount": {
+          "type": "number"
+        },
+        "expenseDate": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "spentByName": {
+          "type": "string"
+        }
       },
-      "required": ["id", "description", "amount", "expenseDate", "spentByName"]
+      "required": [
+        "id",
+        "description",
+        "amount",
+        "expenseDate",
+        "spentByName"
+      ]
     },
     "Attendance": {
       "title": "Attendance",
       "type": "object",
       "description": "Records student attendance for a specific date.",
       "properties": {
-        "id": { "type": "string" },
-        "studentId": { "type": "string" },
-        "classGrade": { "type": "string" },
-        "date": { "type": "string", "format": "date" },
-        "status": { "type": "string", "enum": ["present", "absent"] }
+        "id": {
+          "type": "string"
+        },
+        "studentId": {
+          "type": "string"
+        },
+        "classGrade": {
+          "type": "string"
+        },
+        "date": {
+          "type": "string",
+          "format": "date"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "present",
+            "absent"
+          ]
+        }
       },
-      "required": ["id", "studentId", "classGrade", "date", "status"]
+      "required": [
+        "id",
+        "studentId",
+        "classGrade",
+        "date",
+        "status"
+      ]
     }
   },
   "auth": {
-    "providers": []
+    "providers": [
+      "password"
+    ]
   },
   "firestore": {
     "structure": [
+      {
+        "path": "/user_roles/{userId}",
+        "definition": {
+          "entityName": "UserRole",
+          "schema": {
+            "$ref": "#/backend/entities/UserRole"
+          },
+          "description": "Stores the role for each user.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The user's unique ID."
+            }
+          ]
+        }
+      },
       {
         "path": "/students/{studentId}",
         "definition": {
