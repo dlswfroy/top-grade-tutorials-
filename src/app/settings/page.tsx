@@ -12,11 +12,12 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Progress } from '@/components/ui/progress';
 import { Save, Loader2 } from 'lucide-react';
 import { useFirebaseApp, useFirestore, useDoc, useMemoFirebase, useUser } from '@/firebase';
 import { doc, setDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
-import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { getStorage, ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 
 type InstitutionSettings = {
     institutionName?: string;
@@ -32,6 +33,7 @@ export default function SettingsPage() {
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
 
   const settingsRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
@@ -61,9 +63,10 @@ export default function SettingsPage() {
   };
 
   const handleSave = async () => {
-    if (!settingsRef || !firebaseApp) return;
+    if (!settingsRef || !firebaseApp || !user) return;
 
     setIsSaving(true);
+    setUploadProgress(0);
 
     try {
         let newLogoUrl = settings?.logoUrl || null;
@@ -71,8 +74,30 @@ export default function SettingsPage() {
         if (logoFile) {
             const storage = getStorage(firebaseApp);
             const storageRef = ref(storage, `institution_assets/logo_${Date.now()}`);
-            const uploadResult = await uploadBytes(storageRef, logoFile);
-            newLogoUrl = await getDownloadURL(uploadResult.ref);
+            const uploadTask = uploadBytesResumable(storageRef, logoFile);
+
+            await new Promise<void>((resolve, reject) => {
+                uploadTask.on(
+                    'state_changed',
+                    (snapshot) => {
+                        const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                        setUploadProgress(progress);
+                    },
+                    (error) => {
+                        console.error('Upload failed:', error);
+                        reject(error);
+                    },
+                    async () => {
+                        try {
+                            const url = await getDownloadURL(uploadTask.snapshot.ref);
+                            newLogoUrl = url;
+                            resolve();
+                        } catch (error) {
+                            reject(error);
+                        }
+                    }
+                );
+            });
         }
 
         const settingsData = {
@@ -97,6 +122,7 @@ export default function SettingsPage() {
         });
     } finally {
         setIsSaving(false);
+        setUploadProgress(0);
     }
   };
 
@@ -152,11 +178,19 @@ export default function SettingsPage() {
             </div>
           </div>
         </CardContent>
-        <CardFooter>
-          <Button onClick={handleSave} disabled={isSaving || isLoading}>
-            {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-            {isSaving ? 'সেভ হচ্ছে...' : 'সেভ করুন'}
-          </Button>
+        <CardFooter className="flex-col items-start gap-2">
+            {isSaving && logoFile && (
+                <div className="w-full text-left">
+                    <Progress value={uploadProgress} className="w-full max-w-sm" />
+                    <p className="text-xs text-muted-foreground mt-1">
+                    {uploadProgress < 100 ? `লোগো আপলোড হচ্ছে... ${Math.round(uploadProgress)}%` : 'সেটিংস সেভ হচ্ছে...'}
+                    </p>
+                </div>
+            )}
+            <Button onClick={handleSave} disabled={isSaving || isLoading}>
+                {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                {isSaving ? 'সেভ হচ্ছে...' : 'সেভ করুন'}
+            </Button>
         </CardFooter>
       </Card>
     </div>

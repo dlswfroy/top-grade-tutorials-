@@ -4,9 +4,7 @@ import Image from 'next/image';
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
-  CardTitle,
 } from '@/components/ui/card';
 import {
   Table,
@@ -34,6 +32,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
+import { Progress } from '@/components/ui/progress';
 import { classNames, type Student } from '@/lib/data';
 import { PlusCircle, Search, MoreHorizontal, Pencil, Trash2, Loader2, Save } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -46,9 +45,8 @@ import {
 import { useFirebaseApp, useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
 import { collection, doc, addDoc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
-import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { getStorage, ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 
-// Default student state for the form
 const defaultStudentState: Omit<Student, 'id' | 'dateAdded'> = {
   name: '',
   classGrade: '',
@@ -75,8 +73,8 @@ export default function StudentsPage() {
   const [editingStudent, setEditingStudent] = useState<Student | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
 
-  // Memoize the collection query
   const studentsQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return collection(firestore, 'students');
@@ -94,7 +92,7 @@ export default function StudentsPage() {
         setFormData(defaultStudentState);
         setImagePreview(null);
     }
-    setImageFile(null); // Reset file on change
+    setImageFile(null);
   }, [editingStudent]);
 
   const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -115,7 +113,7 @@ export default function StudentsPage() {
   };
   
   const handleSaveStudent = async () => {
-    if (!firestore || !firebaseApp) return;
+    if (!firestore || !firebaseApp || !user) return;
 
     if (!formData.name || !formData.classGrade || !formData.rollNumber) {
         toast({
@@ -127,6 +125,7 @@ export default function StudentsPage() {
     }
 
     setIsSaving(true);
+    setUploadProgress(0);
 
     try {
         let imageUrl = editingStudent?.imageUrl || '';
@@ -135,8 +134,29 @@ export default function StudentsPage() {
         if (imageFile) {
             const storage = getStorage(firebaseApp);
             const storageRef = ref(storage, `student_images/${Date.now()}_${imageFile.name}`);
-            const uploadResult = await uploadBytes(storageRef, imageFile);
-            imageUrl = await getDownloadURL(uploadResult.ref);
+            const uploadTask = uploadBytesResumable(storageRef, imageFile);
+            
+            await new Promise<void>((resolve, reject) => {
+                uploadTask.on('state_changed',
+                    (snapshot) => {
+                        const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                        setUploadProgress(progress);
+                    },
+                    (error) => {
+                        console.error('Upload failed:', error);
+                        reject(error);
+                    },
+                    async () => {
+                        try {
+                            const url = await getDownloadURL(uploadTask.snapshot.ref);
+                            imageUrl = url;
+                            resolve();
+                        } catch (error) {
+                            reject(error);
+                        }
+                    }
+                );
+            });
         } else if (!imageUrl && !editingStudent) {
             imageUrl = `https://picsum.photos/seed/${formData.rollNumber}/200/200`;
         }
@@ -151,17 +171,11 @@ export default function StudentsPage() {
         if (editingStudent) {
             const studentRef = doc(firestore, 'students', editingStudent.id);
             await updateDoc(studentRef, studentData);
-            toast({
-                title: "সফল",
-                description: `${formData.name}-এর তথ্য আপডেট করা হয়েছে।`,
-            });
+            toast({ title: "সফল", description: `${formData.name}-এর তথ্য আপডেট করা হয়েছে।` });
         } else {
             const finalData = { ...studentData, dateAdded: new Date().toISOString() };
             await addDoc(collection(firestore, 'students'), finalData);
-            toast({
-                title: "সফল",
-                description: `${formData.name} কে শিক্ষার্থী হিসেবে যোগ করা হয়েছে।`,
-            });
+            toast({ title: "সফল", description: `${formData.name} কে শিক্ষার্থী হিসেবে যোগ করা হয়েছে।` });
         }
         
         handleCloseDialog();
@@ -175,6 +189,7 @@ export default function StudentsPage() {
         });
     } finally {
         setIsSaving(false);
+        setUploadProgress(0);
     }
   };
 
@@ -182,17 +197,10 @@ export default function StudentsPage() {
     if (!firestore) return;
     try {
         await deleteDoc(doc(firestore, 'students', studentId));
-        toast({
-            title: "সফল",
-            description: `${studentName} কে তালিকা থেকে মুছে ফেলা হয়েছে।`,
-        });
+        toast({ title: "সফল", description: `${studentName} কে তালিকা থেকে মুছে ফেলা হয়েছে।` });
     } catch(error: any) {
         console.error("Error deleting student:", error);
-        toast({
-            variant: "destructive",
-            title: "ত্রুটি",
-            description: `শিক্ষার্থীকে মুছে ফেলতে সমস্যা হয়েছে: ${error.message}`,
-        });
+        toast({ variant: "destructive", title: "ত্রুটি", description: `শিক্ষার্থীকে মুছে ফেলতে সমস্যা হয়েছে: ${error.message}` });
     }
   };
 
@@ -207,6 +215,7 @@ export default function StudentsPage() {
     setFormData(defaultStudentState);
     setImagePreview(null);
     setImageFile(null);
+    setUploadProgress(0);
   }
 
   const handleSearch = () => {
@@ -274,6 +283,7 @@ export default function StudentsPage() {
                   <DialogTitle>{editingStudent ? 'শিক্ষার্থীর তথ্য এডিট করুন' : 'নতুন শিক্ষার্থী যোগ করুন'}</DialogTitle>
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
+                  {/* Form Inputs */}
                   <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="name" className="text-right">নাম</Label>
                     <Input id="name" value={formData.name} onChange={handleInputChange} placeholder="শিক্ষার্থীর নাম" className="col-span-3" disabled={isSaving} />
@@ -289,9 +299,7 @@ export default function StudentsPage() {
                         <SelectValue placeholder="শ্রেণি নির্বাচন করুন" />
                       </SelectTrigger>
                       <SelectContent>
-                        {classNames.map((c) => (
-                          <SelectItem key={c} value={c}>{c}</SelectItem>
-                        ))}
+                        {classNames.map((c) => ( <SelectItem key={c} value={c}>{c}</SelectItem> ))}
                       </SelectContent>
                     </Select>
                   </div>
@@ -320,10 +328,20 @@ export default function StudentsPage() {
                   )}
                 </div>
                 <DialogFooter>
-                    <Button onClick={handleSaveStudent} disabled={isSaving}>
-                        {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                        {isSaving ? 'সেভ হচ্ছে...' : 'সেভ করুন'}
-                    </Button>
+                    <div className="w-full flex flex-col gap-2">
+                         {isSaving && imageFile && (
+                            <div className="w-full text-center">
+                                <Progress value={uploadProgress} className="w-full" />
+                                <p className="text-xs text-muted-foreground mt-1">
+                                {uploadProgress < 100 ? `ছবি আপলোড হচ্ছে... ${Math.round(uploadProgress)}%` : 'তথ্য সেভ হচ্ছে...'}
+                                </p>
+                            </div>
+                        )}
+                        <Button onClick={handleSaveStudent} disabled={isSaving}>
+                            {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                            {isSaving ? 'সেভ হচ্ছে...' : 'সেভ করুন'}
+                        </Button>
+                    </div>
                 </DialogFooter>
               </DialogContent>
             </Dialog>

@@ -27,6 +27,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
+import { Progress } from '@/components/ui/progress';
 import { type Teacher } from '@/lib/data';
 import { PlusCircle, MoreHorizontal, Pencil, Trash2, Loader2, Save } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -39,7 +40,7 @@ import {
 import { useFirebaseApp, useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
 import { collection, doc, addDoc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
-import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { getStorage, ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 
 const defaultTeacherState: Omit<Teacher, 'id' | 'dateAdded'> = {
     name: '',
@@ -59,6 +60,7 @@ export default function TeachersPage() {
   const [editingTeacher, setEditingTeacher] = useState<Teacher | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
 
   const teachersQuery = useMemoFirebase(() => {
       if (!firestore || !user) return null;
@@ -94,7 +96,7 @@ export default function TeachersPage() {
   };
 
   const handleSaveTeacher = async () => {
-    if (!firestore || !firebaseApp) return;
+    if (!firestore || !firebaseApp || !user) return;
 
     if (!formData.name || !formData.mobileNumber) {
         toast({
@@ -106,6 +108,7 @@ export default function TeachersPage() {
     }
 
     setIsSaving(true);
+    setUploadProgress(0);
 
     try {
         let imageUrl = editingTeacher?.imageUrl || '';
@@ -114,8 +117,29 @@ export default function TeachersPage() {
         if (imageFile) {
             const storage = getStorage(firebaseApp);
             const storageRef = ref(storage, `teacher_images/${Date.now()}_${imageFile.name}`);
-            const uploadResult = await uploadBytes(storageRef, imageFile);
-            imageUrl = await getDownloadURL(uploadResult.ref);
+            const uploadTask = uploadBytesResumable(storageRef, imageFile);
+
+            await new Promise<void>((resolve, reject) => {
+                uploadTask.on('state_changed',
+                    (snapshot) => {
+                        const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                        setUploadProgress(progress);
+                    },
+                    (error) => {
+                        console.error('Upload failed:', error);
+                        reject(error);
+                    },
+                    async () => {
+                        try {
+                            const url = await getDownloadURL(uploadTask.snapshot.ref);
+                            imageUrl = url;
+                            resolve();
+                        } catch (error) {
+                            reject(error);
+                        }
+                    }
+                );
+            });
         } else if (!imageUrl && !editingTeacher) {
             imageUrl = `https://picsum.photos/seed/${formData.mobileNumber}/200/200`;
         }
@@ -124,10 +148,7 @@ export default function TeachersPage() {
             const teacherRef = doc(firestore, 'teachers', editingTeacher.id);
             const updatedData: Partial<Teacher> = { ...formData, imageUrl, imageHint };
             await updateDoc(teacherRef, updatedData);
-            toast({
-                title: "সফল",
-                description: `${formData.name}-এর তথ্য আপডেট করা হয়েছে।`,
-            });
+            toast({ title: "সফল", description: `${formData.name}-এর তথ্য আপডেট করা হয়েছে।` });
         } else {
             const teacherData = {
                 ...formData,
@@ -136,10 +157,7 @@ export default function TeachersPage() {
                 dateAdded: new Date().toISOString(),
             };
             await addDoc(collection(firestore, 'teachers'), teacherData);
-            toast({
-                title: "সফল",
-                description: `${formData.name} কে শিক্ষক হিসেবে যোগ করা হয়েছে।`,
-            });
+            toast({ title: "সফল", description: `${formData.name} কে শিক্ষক হিসেবে যোগ করা হয়েছে।` });
         }
 
         handleCloseDialog();
@@ -152,6 +170,7 @@ export default function TeachersPage() {
         });
     } finally {
         setIsSaving(false);
+        setUploadProgress(0);
     }
   };
 
@@ -159,17 +178,10 @@ export default function TeachersPage() {
     if (!firestore) return;
     try {
         await deleteDoc(doc(firestore, 'teachers', teacherId));
-        toast({
-            title: "সফল",
-            description: `${teacherName} কে তালিকা থেকে মুছে ফেলা হয়েছে।`,
-        });
+        toast({ title: "সফল", description: `${teacherName} কে তালিকা থেকে মুছে ফেলা হয়েছে।` });
     } catch (error: any) {
         console.error("Error deleting teacher:", error);
-        toast({
-            variant: "destructive",
-            title: "ত্রুটি",
-            description: `শিক্ষককে মুছে ফেলতে সমস্যা হয়েছে: ${error.message}`,
-        });
+        toast({ variant: "destructive", title: "ত্রুটি", description: `শিক্ষককে মুছে ফেলতে সমস্যা হয়েছে: ${error.message}` });
     }
   };
 
@@ -184,6 +196,7 @@ export default function TeachersPage() {
     setFormData(defaultTeacherState);
     setImagePreview(null);
     setImageFile(null);
+    setUploadProgress(0);
   }
 
   return (
@@ -237,10 +250,20 @@ export default function TeachersPage() {
                   )}
                 </div>
                 <DialogFooter>
-                  <Button onClick={handleSaveTeacher} disabled={isSaving}>
-                      {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                      {isSaving ? 'সেভ হচ্ছে...' : 'সেভ করুন'}
-                  </Button>
+                    <div className="w-full flex flex-col gap-2">
+                        {isSaving && imageFile && (
+                            <div className="w-full text-center">
+                                <Progress value={uploadProgress} className="w-full" />
+                                <p className="text-xs text-muted-foreground mt-1">
+                                {uploadProgress < 100 ? `ছবি আপলোড হচ্ছে... ${Math.round(uploadProgress)}%` : 'তথ্য সেভ হচ্ছে...'}
+                                </p>
+                            </div>
+                        )}
+                        <Button onClick={handleSaveTeacher} disabled={isSaving}>
+                            {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                            {isSaving ? 'সেভ হচ্ছে...' : 'সেভ করুন'}
+                        </Button>
+                    </div>
                 </DialogFooter>
               </DialogContent>
             </Dialog>
