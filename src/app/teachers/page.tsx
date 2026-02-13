@@ -27,7 +27,6 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { Progress } from '@/components/ui/progress';
 import { type Teacher } from '@/lib/data';
 import { PlusCircle, MoreHorizontal, Pencil, Trash2, Loader2, Save } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -38,7 +37,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useFirebaseApp, useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
-import { collection, doc, addDoc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { collection, doc, addDoc, updateDoc, deleteDoc, DocumentReference, DocumentData } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { getStorage, ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 
@@ -60,7 +59,6 @@ export default function TeachersPage() {
   const [editingTeacher, setEditingTeacher] = useState<Teacher | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
 
   const teachersQuery = useMemoFirebase(() => {
       if (!firestore || !user) return null;
@@ -82,12 +80,68 @@ export default function TeachersPage() {
     setImageFile(null);
   }, [editingTeacher]);
 
+  useEffect(() => {
+    return () => {
+      if (imagePreview && imagePreview.startsWith('blob:')) {
+        URL.revokeObjectURL(imagePreview);
+      }
+    }
+  }, [imagePreview]);
+
   const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
       setImageFile(file);
+      if (imagePreview && imagePreview.startsWith('blob:')) {
+        URL.revokeObjectURL(imagePreview);
+      }
       setImagePreview(URL.createObjectURL(file));
     }
+  };
+  
+  const uploadAndSaveUrl = (file: File, docRef: DocumentReference<DocumentData>) => {
+    if (!firebaseApp) return;
+    const storage = getStorage(firebaseApp);
+    const storageRef = ref(storage, `teacher_images/${Date.now()}_${file.name}`);
+    const uploadTask = uploadBytesResumable(storageRef, file);
+
+    const { id: toastId, update: updateToast, dismiss: dismissToast } = toast({
+      title: "ছবি আপলোড হচ্ছে...",
+      description: `0% সম্পন্ন হয়েছে।`,
+    });
+
+    uploadTask.on('state_changed',
+      (snapshot) => {
+        const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+        updateToast({ description: `${Math.round(progress)}% সম্পন্ন হয়েছে।` });
+      },
+      (error) => {
+        console.error('Upload failed:', error);
+        updateToast({
+          variant: 'destructive',
+          title: 'ছবি আপলোড ব্যর্থ',
+          description: `ছবিটি আপলোড করা যায়নি।`,
+        });
+      },
+      async () => {
+        try {
+          const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+          await updateDoc(docRef, { imageUrl: downloadURL });
+          updateToast({
+            title: 'ছবি আপলোড সফল',
+            description: 'শিক্ষকের ছবিটি সফলভাবে আপলোড হয়েছে।',
+          });
+          setTimeout(() => dismissToast(), 5000);
+        } catch (error: any) {
+          console.error('Failed to update image URL:', error);
+          updateToast({
+            variant: 'destructive',
+            title: 'ত্রুটি',
+            description: `ছবিটির URL সেভ করতে সমস্যা হয়েছে: ${error.message}`,
+          });
+        }
+      }
+    );
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -96,7 +150,7 @@ export default function TeachersPage() {
   };
 
   const handleSaveTeacher = async () => {
-    if (!firestore || !firebaseApp || !user) return;
+    if (!firestore || !user) return;
 
     if (!formData.name || !formData.mobileNumber) {
         toast({
@@ -108,56 +162,30 @@ export default function TeachersPage() {
     }
 
     setIsSaving(true);
-    setUploadProgress(0);
-
+    
     try {
-        let imageUrl = editingTeacher?.imageUrl || '';
-        let imageHint = formData.imageHint || 'teacher person';
-
-        if (imageFile) {
-            const storage = getStorage(firebaseApp);
-            const storageRef = ref(storage, `teacher_images/${Date.now()}_${imageFile.name}`);
-            const uploadTask = uploadBytesResumable(storageRef, imageFile);
-
-            await new Promise<void>((resolve, reject) => {
-                uploadTask.on('state_changed',
-                    (snapshot) => {
-                        const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-                        setUploadProgress(progress);
-                    },
-                    (error) => {
-                        console.error('Upload failed:', error);
-                        reject(error);
-                    },
-                    async () => {
-                        try {
-                            const url = await getDownloadURL(uploadTask.snapshot.ref);
-                            imageUrl = url;
-                            resolve();
-                        } catch (error) {
-                            reject(error);
-                        }
-                    }
-                );
-            });
-        } else if (!imageUrl && !editingTeacher) {
-            imageUrl = `https://picsum.photos/seed/${formData.mobileNumber}/200/200`;
-        }
+        const teacherData = {
+            ...formData,
+            imageUrl: imagePreview || `https://picsum.photos/seed/${formData.mobileNumber}/200/200`,
+            imageHint: formData.imageHint || 'teacher person',
+        };
         
         if (editingTeacher) {
             const teacherRef = doc(firestore, 'teachers', editingTeacher.id);
-            const updatedData: Partial<Teacher> = { ...formData, imageUrl, imageHint };
-            await updateDoc(teacherRef, updatedData);
+            await updateDoc(teacherRef, teacherData);
             toast({ title: "সফল", description: `${formData.name}-এর তথ্য আপডেট করা হয়েছে।` });
+
+            if (imageFile) {
+                uploadAndSaveUrl(imageFile, teacherRef);
+            }
         } else {
-            const teacherData = {
-                ...formData,
-                imageUrl,
-                imageHint,
-                dateAdded: new Date().toISOString(),
-            };
-            await addDoc(collection(firestore, 'teachers'), teacherData);
+            const finalData = { ...teacherData, dateAdded: new Date().toISOString() };
+            const docRef = await addDoc(collection(firestore, 'teachers'), finalData);
             toast({ title: "সফল", description: `${formData.name} কে শিক্ষক হিসেবে যোগ করা হয়েছে।` });
+            
+            if (imageFile) {
+                uploadAndSaveUrl(imageFile, docRef);
+            }
         }
 
         handleCloseDialog();
@@ -170,7 +198,6 @@ export default function TeachersPage() {
         });
     } finally {
         setIsSaving(false);
-        setUploadProgress(0);
     }
   };
 
@@ -193,10 +220,12 @@ export default function TeachersPage() {
   const handleCloseDialog = () => {
     setIsDialogOpen(false);
     setEditingTeacher(null);
+    if (imagePreview && imagePreview.startsWith('blob:')) {
+        URL.revokeObjectURL(imagePreview);
+    }
     setFormData(defaultTeacherState);
     setImagePreview(null);
     setImageFile(null);
-    setUploadProgress(0);
   }
 
   return (
@@ -217,7 +246,7 @@ export default function TeachersPage() {
                 এখানে সকল নিবন্ধিত শিক্ষকের তালিকা দেখুন।
               </CardDescription>
             </div>
-            <Dialog open={isDialogOpen} onOpenChange={(open) => !open && handleCloseDialog()}>
+            <Dialog open={isDialogOpen} onOpenChange={(open) => { if (!open) handleCloseDialog(); else setIsDialogOpen(true); }}>
               <DialogTrigger asChild>
                 <Button onClick={() => handleOpenDialog(null)}>
                   <PlusCircle className="mr-2 h-4 w-4" />
@@ -250,20 +279,10 @@ export default function TeachersPage() {
                   )}
                 </div>
                 <DialogFooter>
-                    <div className="w-full flex flex-col gap-2">
-                        {isSaving && imageFile && (
-                            <div className="w-full text-center">
-                                <Progress value={uploadProgress} className="w-full" />
-                                <p className="text-xs text-muted-foreground mt-1">
-                                {uploadProgress < 100 ? `ছবি আপলোড হচ্ছে... ${Math.round(uploadProgress)}%` : 'তথ্য সেভ হচ্ছে...'}
-                                </p>
-                            </div>
-                        )}
-                        <Button onClick={handleSaveTeacher} disabled={isSaving}>
-                            {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                            {isSaving ? 'সেভ হচ্ছে...' : 'সেভ করুন'}
-                        </Button>
-                    </div>
+                    <Button onClick={handleSaveTeacher} disabled={isSaving} className="w-full">
+                        {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                        {isSaving ? 'সেভ হচ্ছে...' : 'সেভ করুন'}
+                    </Button>
                 </DialogFooter>
               </DialogContent>
             </Dialog>

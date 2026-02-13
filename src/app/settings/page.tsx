@@ -12,10 +12,9 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Progress } from '@/components/ui/progress';
 import { Save, Loader2 } from 'lucide-react';
 import { useFirebaseApp, useFirestore, useDoc, useMemoFirebase, useUser } from '@/firebase';
-import { doc, setDoc } from 'firebase/firestore';
+import { doc, setDoc, DocumentReference, DocumentData, updateDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { getStorage, ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 
@@ -33,8 +32,7 @@ export default function SettingsPage() {
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [isSaving, setIsSaving] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
-
+  
   const settingsRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return doc(firestore, 'institution_settings', 'default');
@@ -53,66 +51,93 @@ export default function SettingsPage() {
     }
   }, [settings]);
 
+  useEffect(() => {
+    return () => {
+      if (logoPreview && logoPreview.startsWith('blob:')) {
+        URL.revokeObjectURL(logoPreview);
+      }
+    }
+  }, [logoPreview]);
 
   const handleLogoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
       setLogoFile(file);
+       if (logoPreview && logoPreview.startsWith('blob:')) {
+        URL.revokeObjectURL(logoPreview);
+      }
       setLogoPreview(URL.createObjectURL(file));
     }
+  };
+
+  const uploadAndSaveUrl = (file: File, docRef: DocumentReference<DocumentData>) => {
+    if (!firebaseApp) return;
+    const storage = getStorage(firebaseApp);
+    const storageRef = ref(storage, `institution_assets/logo_${Date.now()}`);
+    const uploadTask = uploadBytesResumable(storageRef, file);
+
+    const { id: toastId, update: updateToast, dismiss: dismissToast } = toast({
+      title: "লোগো আপলোড হচ্ছে...",
+      description: `0% সম্পন্ন হয়েছে।`,
+    });
+
+    uploadTask.on('state_changed',
+      (snapshot) => {
+        const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+        updateToast({ description: `${Math.round(progress)}% সম্পন্ন হয়েছে।` });
+      },
+      (error) => {
+        console.error('Upload failed:', error);
+        updateToast({
+          variant: 'destructive',
+          title: 'লোগো আপলোড ব্যর্থ',
+          description: `লোগোটি আপলোড করা যায়নি।`,
+        });
+      },
+      async () => {
+        try {
+          const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+          await updateDoc(docRef, { logoUrl: downloadURL });
+          updateToast({
+            title: 'লোগো আপলোড সফল',
+            description: 'প্রতিষ্ঠানের লোগো সফলভাবে আপলোড হয়েছে।',
+          });
+          setTimeout(() => dismissToast(), 5000);
+        } catch (error: any) {
+          console.error('Failed to update logo URL:', error);
+          updateToast({
+            variant: 'destructive',
+            title: 'ত্রুটি',
+            description: `লোগোর URL সেভ করতে সমস্যা হয়েছে: ${error.message}`,
+          });
+        }
+      }
+    );
   };
 
   const handleSave = async () => {
     if (!settingsRef || !firebaseApp || !user) return;
 
     setIsSaving(true);
-    setUploadProgress(0);
-
+    
     try {
-        let newLogoUrl = settings?.logoUrl || null;
-
-        if (logoFile) {
-            const storage = getStorage(firebaseApp);
-            const storageRef = ref(storage, `institution_assets/logo_${Date.now()}`);
-            const uploadTask = uploadBytesResumable(storageRef, logoFile);
-
-            await new Promise<void>((resolve, reject) => {
-                uploadTask.on(
-                    'state_changed',
-                    (snapshot) => {
-                        const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-                        setUploadProgress(progress);
-                    },
-                    (error) => {
-                        console.error('Upload failed:', error);
-                        reject(error);
-                    },
-                    async () => {
-                        try {
-                            const url = await getDownloadURL(uploadTask.snapshot.ref);
-                            newLogoUrl = url;
-                            resolve();
-                        } catch (error) {
-                            reject(error);
-                        }
-                    }
-                );
-            });
-        }
-
         const settingsData = {
             institutionName: institutionName,
             lastUpdated: new Date().toISOString(),
-            logoUrl: newLogoUrl
+            logoUrl: logoPreview,
         };
 
         await setDoc(settingsRef, settingsData, { merge: true });
-
         toast({
             title: 'সফল',
             description: 'সেটিংস সফলভাবে সেভ করা হয়েছে।',
         });
+        
+        if (logoFile) {
+            uploadAndSaveUrl(logoFile, settingsRef);
+        }
         setLogoFile(null);
+
     } catch (error: any) {
         console.error("Error saving settings:", error);
         toast({
@@ -122,7 +147,6 @@ export default function SettingsPage() {
         });
     } finally {
         setIsSaving(false);
-        setUploadProgress(0);
     }
   };
 
@@ -149,7 +173,7 @@ export default function SettingsPage() {
               id="institution-name"
               value={institutionName}
               onChange={(e) => setInstitutionName(e.target.value)}
-              disabled={isSaving}
+              disabled={isSaving || isLoading}
             />
           </div>
           <div className="space-y-2">
@@ -172,21 +196,13 @@ export default function SettingsPage() {
                   accept="image/*"
                   onChange={handleLogoChange}
                   className="max-w-xs"
-                  disabled={isSaving}
+                  disabled={isSaving || isLoading}
                 />
               </div>
             </div>
           </div>
         </CardContent>
         <CardFooter className="flex-col items-start gap-2">
-            {isSaving && logoFile && (
-                <div className="w-full text-left">
-                    <Progress value={uploadProgress} className="w-full max-w-sm" />
-                    <p className="text-xs text-muted-foreground mt-1">
-                    {uploadProgress < 100 ? `লোগো আপলোড হচ্ছে... ${Math.round(uploadProgress)}%` : 'সেটিংস সেভ হচ্ছে...'}
-                    </p>
-                </div>
-            )}
             <Button onClick={handleSave} disabled={isSaving || isLoading}>
                 {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
                 {isSaving ? 'সেভ হচ্ছে...' : 'সেভ করুন'}
