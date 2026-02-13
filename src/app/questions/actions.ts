@@ -16,6 +16,7 @@ const ExamPaperSchema = z.object({
 });
 
 export type FormState = {
+  status: 'success' | 'error' | 'idle';
   message: string;
   examPaper?: string;
   errors?: {
@@ -45,6 +46,7 @@ export async function handleGenerateExam(
 
   if (!validatedFields.success) {
     return {
+      status: 'error',
       message: 'অনুগ্রহ করে ফর্মের ত্রুটিগুলো সংশোধন করুন।',
       errors: validatedFields.error.flatten().fieldErrors,
     };
@@ -53,15 +55,19 @@ export async function handleGenerateExam(
   try {
     const result = await generateExamPaper(validatedFields.data);
      if (!result || !result.examPaperText) {
-        return { message: 'AI একটি খালি প্রশ্নপত্র তৈরি করেছে। অনুগ্রহ করে আপনার ইনপুট পরিবর্তন করে আবার চেষ্টা করুন।' };
+        return { 
+            status: 'error',
+            message: 'AI একটি খালি প্রশ্নপত্র তৈরি করেছে। অনুগ্রহ করে আপনার ইনপুট পরিবর্তন করে আবার চেষ্টা করুন।' 
+        };
     }
     return {
+      status: 'success',
       message: 'প্রশ্নপত্র সফলভাবে তৈরি হয়েছে!',
       examPaper: result.examPaperText,
     };
   } catch (error: any) {
     console.error(error);
-    let errorMessage = 'প্রশ্নপত্র তৈরিতে একটি ত্রুটি হয়েছে। অনুগ্রহ করে আবার চেষ্টা করুন।';
+    let errorMessage = 'একটি অপ্রত্যাশিত ত্রুটি ঘটেছে। অনুগ্রহ করে আবার চেষ্টা করুন।';
     
     if (error.message) {
         if (error.message.includes('API_KEY_INVALID') || error.message.includes('API key not found') || error.message.includes('authentication')) {
@@ -78,6 +84,7 @@ export async function handleGenerateExam(
     }
     
     return {
+      status: 'error',
       message: errorMessage,
     };
   }

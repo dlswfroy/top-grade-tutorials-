@@ -1,7 +1,7 @@
 'use client';
 
 import { useFormStatus } from 'react-dom';
-import { handleGenerateExam } from './actions';
+import { handleGenerateExam, type FormState } from './actions';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -13,7 +13,8 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { BrainCircuit, Loader2, Printer, X } from 'lucide-react';
 import { useActionState, useEffect, useRef } from 'react';
 
-const initialState = {
+const initialState: FormState = {
+  status: 'idle',
   message: '',
 };
 
@@ -41,7 +42,7 @@ export function QuestionGenerator() {
   const formRef = useRef<HTMLFormElement>(null);
 
   useEffect(() => {
-    if (state.message && !state.errors) {
+    if (state.status === 'success') {
       // formRef.current?.reset();
     }
   }, [state]);
@@ -142,9 +143,9 @@ export function QuestionGenerator() {
       </Card>
 
       <div className="lg:col-span-2">
-        {state.message && (
-          <Alert variant={state.errors ? 'destructive' : 'default'} className="mb-4">
-            <AlertTitle>{state.errors ? 'ত্রুটি' : 'সফল'}</AlertTitle>
+        {state.status !== 'idle' && state.message && (
+          <Alert variant={state.status === 'error' ? 'destructive' : 'default'} className="mb-4">
+            <AlertTitle>{state.status === 'error' ? 'ত্রুটি' : 'সফল'}</AlertTitle>
             <AlertDescription>{state.message}</AlertDescription>
           </Alert>
         )}
