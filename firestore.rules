@@ -39,6 +39,8 @@ service cloud.firestore {
     match /roles_admin/{adminUid} {
       // Allow users to read their own role document.
       allow get: if request.auth.uid == adminUid;
+      // Allow any signed-in user to check if at least one admin exists, for the first-user-is-admin logic.
+      allow list: if isSignedIn() && request.query.limit <= 1;
       // Allow head teachers to manage roles.
       allow list, write: if isHeadTeacher();
     }

@@ -9,7 +9,7 @@ import {
   sendEmailVerification,
   sendPasswordResetEmail,
 } from 'firebase/auth';
-import { doc, setDoc, getDocs, collection, writeBatch } from 'firebase/firestore';
+import { doc, setDoc, getDocs, collection, writeBatch, query, limit } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -95,7 +95,10 @@ export default function LoginPage() {
         batch.set(permissionsRef, DEFAULT_TEACHER_PERMISSIONS);
 
         // Check if any admin exists. If not, make this user the first admin.
-        const adminRolesQuery = await getDocs(collection(firestore, 'roles_admin'));
+        const adminRolesCollection = collection(firestore, 'roles_admin');
+        const q = query(adminRolesCollection, limit(1));
+        const adminRolesQuery = await getDocs(q);
+
         if (adminRolesQuery.empty) {
             const adminRoleRef = doc(firestore, 'roles_admin', user.uid);
             batch.set(adminRoleRef, { active: true });
