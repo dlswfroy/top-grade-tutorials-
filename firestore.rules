@@ -11,35 +11,38 @@ service cloud.firestore {
       return isAuth() && request.auth.uid == userId;
     }
 
-    function getRole(userId) {
-      // Use exists() to prevent errors on non-existent docs
-      return exists(/databases/$(database)/documents/user_roles/$(userId)) ? 
-             get(/databases/$(database)/documents/user_roles/$(userId)).data.role : 
-             '';
-    }
-
+    // Function to check if the requesting user is an admin.
+    // This function reads the user's own role document, which is allowed
+    // by the 'isOwner' part of the rule on the user_roles collection.
     function isAdmin() {
-      return isAuth() && getRole(request.auth.uid) == 'admin';
+      return isAuth() && get(/databases/$(database)/documents/user_roles/$(request.auth.uid)).data.role == 'admin';
     }
 
     // --- Rules ---
 
     // user_roles collection
     match /user_roles/{userId} {
-      // An admin can see all roles. A user can see their own role.
-      allow read: if isAdmin() || isOwner(userId);
-      // Only admins can change roles.
-      allow write: if isAdmin();
+      // A user can get their own document (breaking the circular dependency).
+      // An admin can get any document.
+      allow get: if isOwner(userId) || isAdmin();
+      
+      // Admins can list all roles for the settings page.
+      // Any authenticated user can list roles to check for admin existence on signup.
+      allow list: if isAuth();
+      
+      // Only admins can update roles.
+      allow update: if isAdmin();
+
       // A user can create their own role document during signup.
       allow create: if isOwner(userId);
-      // Allow authenticated users to list roles for signup logic.
-      allow list: if isAuth();
+      
+      // Admins can delete users (roles).
+      allow delete: if isAdmin();
     }
     
     // institution_settings collection
     match /institution_settings/{settingsId} {
-      // Allow anyone to read the settings (for logo/name in header).
-      // This is public information.
+      // Allow anyone (including unauthenticated users for the login page) to read the settings.
       allow get, list: if true;
       // Only admins can change settings.
       allow write: if isAdmin();
