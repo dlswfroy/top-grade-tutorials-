@@ -37,17 +37,17 @@ service cloud.firestore {
     }
 
     match /roles_admin/{adminUid} {
-      // Allow users to read their own role document.
-      allow get: if request.auth.uid == adminUid;
-      // Allow any signed-in user to check if at least one admin exists, for the first-user-is-admin logic.
+      // Allow any signed-in user to check for existence of an admin role (for isHeadTeacher() to work).
+      allow get: if isSignedIn();
+      // Allow any signed-in user to check if at least one admin exists (for first-user-is-admin logic).
       allow list: if isSignedIn() && request.query.limit <= 1;
       // Allow head teachers to manage roles.
-      allow list, write: if isHeadTeacher();
+      allow write: if isHeadTeacher();
     }
 
     match /roles_teacher/{teacherUid} {
-       // Allow users to read their own role document.
-       allow get: if request.auth.uid == teacherUid;
+       // Allow any signed-in user to check for existence of a teacher role (for isTeacher() to work).
+       allow get: if isSignedIn();
        // Allow head teachers to manage roles.
        allow list, write: if isHeadTeacher();
     }
