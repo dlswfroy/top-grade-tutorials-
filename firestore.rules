@@ -21,18 +21,15 @@ service cloud.firestore {
 
     // user_roles collection
     match /user_roles/{userId} {
-      // Allow a user to read their own role document.
-      allow get: if isOwner(userId);
+      // Allow any authenticated user to read roles. This is needed for the sign-up
+      // logic to check if an admin already exists. It's a safe trade-off for this app.
+      allow read: if isAuth();
       
-      // Allow any authenticated user to list users.
-      // The UI on the settings page restricts who can actually see the list.
-      allow list: if isAuth();
-      
-      // Only admins can update roles.
-      allow update: if isAdmin();
-
       // A user can create their own role document during signup.
       allow create: if isOwner(userId);
+
+      // Only admins can update roles.
+      allow update: if isAdmin();
       
       // Admins can delete users (roles).
       allow delete: if isAdmin();
