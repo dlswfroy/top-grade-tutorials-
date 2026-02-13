@@ -56,10 +56,14 @@ export async function handleGenerateExam(
       message: 'প্রশ্নপত্র সফলভাবে তৈরি হয়েছে!',
       examPaper: result.examPaperText,
     };
-  } catch (error) {
+  } catch (error: any) {
     console.error(error);
+    let errorMessage = 'প্রশ্নপত্র তৈরিতে একটি ত্রুটি হয়েছে। অনুগ্রহ করে আবার চেষ্টা করুন।';
+    if (error.message && (error.message.includes('API_KEY_INVALID') || error.message.includes('API key') || error.message.includes('authentication'))) {
+        errorMessage = 'AI সংযোগের জন্য API কী সেট করা নেই অথবা ভুল। অনুগ্রহ করে আপনার .env ফাইলে একটি সঠিক GEMINI_API_KEY যোগ করুন।';
+    }
     return {
-      message: 'প্রশ্নপত্র তৈরিতে একটি ত্রুটি হয়েছে। অনুগ্রহ করে আবার চেষ্টা করুন।',
+      message: errorMessage,
     };
   }
 }
