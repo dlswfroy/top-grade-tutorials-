@@ -26,7 +26,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { classNames, type Student, type Attendance } from '@/lib/data';
-import { Loader2, Save, ChevronsRight, Info } from 'lucide-react';
+import { Loader2, Save, ChevronsRight, Info, Users, UserCheck, UserX } from 'lucide-react';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where, doc, writeBatch } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
@@ -36,11 +36,13 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
 
 
 type AttendanceStatus = 'present' | 'absent';
 
-function AttendancePage() {
+function TakeAttendance() {
   const firestore = useFirestore();
   const { toast } = useToast();
   
@@ -130,15 +132,11 @@ function AttendancePage() {
 
 
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold font-headline">হাজিরা খাতা</h1>
-        <p className="text-muted-foreground">শিক্ষার্থীদের দৈনিক উপস্থিতি নিন।</p>
-      </div>
-
       <Card>
         <CardHeader>
-          <div className="flex flex-col sm:flex-row items-center gap-4">
+          <CardTitle>নতুন হাজিরা নিন</CardTitle>
+          <CardDescription>শিক্ষার্থীদের উপস্থিতি নিতে শ্রেণি ও তারিখ নির্বাচন করুন।</CardDescription>
+          <div className="flex flex-col sm:flex-row items-center gap-4 pt-4">
             <div className="w-full sm:w-auto flex-1 space-y-2">
                 <Label>শ্রেণি</Label>
                 <Select value={selectedClass} onValueChange={setSelectedClass}>
@@ -184,7 +182,7 @@ function AttendancePage() {
                         <Info className="h-4 w-4" />
                         <AlertTitle>হাজিরা সম্পন্ন</AlertTitle>
                         <AlertDescription>
-                            এই শ্রেণি এবং তারিখের জন্য হাজিরা ইতিমধ্যে নেওয়া হয়েছে।
+                            এই শ্রেণি এবং তারিখের জন্য হাজিরা ইতিমধ্যে নেওয়া হয়েছে। আপনি প্রয়োজনে তথ্য পরিবর্তন করতে পারেন।
                         </AlertDescription>
                     </Alert>
                 )}
@@ -206,7 +204,6 @@ function AttendancePage() {
                                         value={attendance[student.id] || ''} 
                                         onValueChange={(value) => handleAttendanceChange(student.id, value as AttendanceStatus)}
                                         className="justify-center"
-                                        disabled={isAttendanceAlreadySaved}
                                     >
                                         <div className="flex items-center space-x-2">
                                             <RadioGroupItem value="present" id={`present-${student.id}`} />
@@ -223,25 +220,188 @@ function AttendancePage() {
                     </TableBody>
                 </Table>
                 <div className="mt-6 flex justify-end">
-                    <Button onClick={handleSaveAttendance} disabled={isSaving || isAttendanceAlreadySaved}>
+                    <Button onClick={handleSaveAttendance} disabled={isSaving}>
                         {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                        {isAttendanceAlreadySaved ? 'হাজিরা সেভ করা হয়েছে' : 'হাজিরা সেভ করুন'}
+                        {isSaving ? 'সেভ করা হচ্ছে...' : 'হাজিরা সেভ করুন'}
                     </Button>
                 </div>
                 </>
             ) : (
                  <div className="flex flex-col items-center justify-center text-center p-12 border-2 border-dashed rounded-lg h-full">
-                    <p className="text-muted-foreground">শিক্ষার্থীদের তালিকা দেখার জন্য শ্রেণি ও তারিখ নির্বাচন করুন।</p>
+                    <p className="text-muted-foreground">শিক্ষার্থীদের তালিকা দেখার জন্য শ্রেণি নির্বাচন করুন।</p>
                  </div>
             )}
         </CardContent>
       </Card>
-    </div>
   );
 }
 
+
+function AttendanceReport() {
+  const firestore = useFirestore();
+  const [selectedClass, setSelectedClass] = useState('');
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
+
+  const formattedDate = useMemo(() => {
+    return selectedDate ? format(selectedDate, 'yyyy-MM-dd') : '';
+  }, [selectedDate]);
+
+  const studentsQuery = useMemoFirebase(() => {
+    if (!firestore || !selectedClass) return null;
+    return query(collection(firestore, 'students'), where('classGrade', '==', selectedClass));
+  }, [firestore, selectedClass]);
+  const { data: students, isLoading: isLoadingStudents } = useCollection<Student>(studentsQuery);
+
+  const attendanceQuery = useMemoFirebase(() => {
+    if (!firestore || !selectedClass || !formattedDate) return null;
+    return query(collection(firestore, 'attendance'), where('classGrade', '==', selectedClass), where('date', '==', formattedDate));
+  }, [firestore, selectedClass, formattedDate]);
+  const { data: attendanceData, isLoading: isLoadingAttendance } = useCollection<Attendance>(attendanceQuery);
+  
+  const attendanceMap = useMemo(() => {
+      if (!attendanceData) return new Map<string, AttendanceStatus>();
+      return new Map(attendanceData.map(a => [a.studentId, a.status]));
+  }, [attendanceData]);
+
+  const { presentCount, absentCount } = useMemo(() => {
+    if (!students || !attendanceData) return { presentCount: 0, absentCount: 0 };
+    const present = attendanceData.filter(a => a.status === 'present').length;
+    const absent = attendanceData.filter(a => a.status === 'absent').length;
+    const notMarked = students.length - (present + absent);
+    return { presentCount: present, absentCount: absent + notMarked };
+  }, [students, attendanceData]);
+
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>হাজিরার রিপোর্ট দেখুন</CardTitle>
+        <CardDescription>যেকোনো তারিখের হাজিরা রিপোর্ট দেখতে শ্রেণি ও তারিখ নির্বাচন করুন।</CardDescription>
+        <div className="flex flex-col sm:flex-row items-center gap-4 pt-4">
+          <div className="w-full sm:w-auto flex-1 space-y-2">
+            <Label>শ্রেণি</Label>
+            <Select value={selectedClass} onValueChange={setSelectedClass}>
+              <SelectTrigger>
+                <SelectValue placeholder="শ্রেণি নির্বাচন করুন" />
+              </SelectTrigger>
+              <SelectContent>
+                {classNames.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="w-full sm:w-auto flex-1 space-y-2">
+            <Label>তারিখ</Label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !selectedDate && "text-muted-foreground")}>
+                  <ChevronsRight className="mr-2 h-4 w-4" />
+                  {selectedDate ? format(selectedDate, "PPP", { locale: bn }) : <span>একটি তারিখ নির্বাচন করুন</span>}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0">
+                <Calendar mode="single" selected={selectedDate} onSelect={setSelectedDate} initialFocus />
+              </PopoverContent>
+            </Popover>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent>
+        {(isLoadingStudents || isLoadingAttendance) && selectedClass ? (
+          <div className="flex justify-center items-center h-64">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        ) : students && students.length > 0 ? (
+          <>
+            <div className="mb-4 grid gap-4 md:grid-cols-3">
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">মোট শিক্ষার্থী</CardTitle>
+                        <Users className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold">{students.length}</div>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">উপস্থিত</CardTitle>
+                        <UserCheck className="h-4 w-4 text-green-500" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold">{presentCount}</div>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">অনুপস্থিত</CardTitle>
+                        <UserX className="h-4 w-4 text-red-500" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold">{absentCount}</div>
+                    </CardContent>
+                </Card>
+            </div>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>রোল</TableHead>
+                  <TableHead>নাম</TableHead>
+                  <TableHead className="text-center">স্ট্যাটাস</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {students.map(student => {
+                  const status = attendanceMap.get(student.id);
+                  return (
+                    <TableRow key={student.id}>
+                      <TableCell>{student.rollNumber}</TableCell>
+                      <TableCell className="font-medium">{student.name}</TableCell>
+                      <TableCell className="text-center">
+                        {status === 'present' ? (
+                          <Badge variant="default" className="bg-green-500">হাজির</Badge>
+                        ) : status === 'absent' ? (
+                          <Badge variant="destructive">অনুপস্থিত</Badge>
+                        ) : (
+                          <Badge variant="secondary">N/A</Badge>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </>
+        ) : (
+          <div className="flex flex-col items-center justify-center text-center p-12 border-2 border-dashed rounded-lg h-full">
+            <p className="text-muted-foreground">রিপোর্ট দেখার জন্য শ্রেণি ও তারিখ নির্বাচন করুন।</p>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+
 export default function AttendancePageContainer() {
     return (
-        <AttendancePage />
+        <div className="space-y-8">
+            <div>
+                <h1 className="text-3xl font-bold font-headline">হাজিরা খাতা</h1>
+                <p className="text-muted-foreground">শিক্ষার্থীদের দৈনিক উপস্থিতি নিন এবং পূর্ববর্তী হাজিরার রেকর্ড দেখুন।</p>
+            </div>
+
+            <Tabs defaultValue="take-attendance" className="space-y-4">
+                <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="take-attendance">হাজিরা নিন</TabsTrigger>
+                    <TabsTrigger value="report">হাজিরার রিপোর্ট</TabsTrigger>
+                </TabsList>
+                <TabsContent value="take-attendance">
+                    <TakeAttendance />
+                </TabsContent>
+                <TabsContent value="report">
+                    <AttendanceReport />
+                </TabsContent>
+            </Tabs>
+        </div>
     )
 }
