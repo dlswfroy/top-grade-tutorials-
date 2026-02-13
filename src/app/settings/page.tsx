@@ -12,12 +12,27 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Save, Loader2, User as UserIcon } from 'lucide-react';
-import { useFirestore, useDoc, useMemoFirebase, useAuth } from '@/firebase';
-import { doc, setDoc } from 'firebase/firestore';
+import { useFirestore, useDoc, useMemoFirebase, useAuth, useCollection } from '@/firebase';
+import { doc, setDoc, updateDoc, collection } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { onAuthStateChanged, updateProfile, type User } from 'firebase/auth';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import type { UserRole } from '@/lib/data';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 type InstitutionSettings = {
     institutionName?: string;
@@ -64,6 +79,95 @@ const compressImage = (file: File): Promise<string> => {
     });
 };
 
+function UserManagementCard() {
+    const firestore = useFirestore();
+    const { toast } = useToast();
+    const auth = useAuth();
+
+    const userRolesQuery = useMemoFirebase(() => {
+        if (!firestore) return null;
+        return collection(firestore, 'user_roles');
+    }, [firestore]);
+    const { data: userRoles, isLoading: isLoadingUserRoles } = useCollection<UserRole>(userRolesQuery);
+
+    const [isSaving, setIsSaving] = useState<Record<string, boolean>>({});
+
+    const handleRoleChange = async (userId: string, newRole: 'admin' | 'teacher') => {
+        if (!firestore) return;
+
+        setIsSaving(prev => ({ ...prev, [userId]: true }));
+        try {
+            const userRoleRef = doc(firestore, 'user_roles', userId);
+            await updateDoc(userRoleRef, { role: newRole });
+            toast({ title: 'সফল', description: 'ব্যবহারকারীর ভূমিকা আপডেট করা হয়েছে।' });
+        } catch (error: any) {
+            toast({
+                variant: "destructive",
+                title: "ত্রুটি",
+                description: `ভূমিকা আপডেট করতে সমস্যা হয়েছে: ${error.message}`,
+            });
+        } finally {
+            setIsSaving(prev => ({ ...prev, [userId]: false }));
+        }
+    };
+
+    if (isLoadingUserRoles) {
+        return (
+            <Card>
+                <CardHeader>
+                    <CardTitle className="font-bold text-slate-900 dark:text-slate-100">ব্যবহারকারী ম্যানেজমেন্ট</CardTitle>
+                </CardHeader>
+                <CardContent className="flex justify-center items-center h-40">
+                    <Loader2 className="h-8 w-8 animate-spin" />
+                </CardContent>
+            </Card>
+        );
+    }
+
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle className="font-bold text-slate-900 dark:text-slate-100">ব্যবহারকারী ম্যানেজমেন্ট</CardTitle>
+                <CardDescription>ব্যবহারকারীদের ভূমিকা নির্ধারণ করুন। এডমিনরা সকল কিছু পরিবর্তন করার ক্ষমতা রাখেন।</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>নাম</TableHead>
+                            <TableHead>ইমেইল</TableHead>
+                            <TableHead className="text-right">ভূমিকা</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {userRoles?.map((user) => (
+                            <TableRow key={user.id}>
+                                <TableCell className="font-medium">{user.name}</TableCell>
+                                <TableCell>{user.email}</TableCell>
+                                <TableCell className="text-right">
+                                    <Select
+                                        value={user.role}
+                                        onValueChange={(newRole: 'admin' | 'teacher') => handleRoleChange(user.id, newRole)}
+                                        disabled={isSaving[user.id] || auth.currentUser?.uid === user.id}
+                                    >
+                                        <SelectTrigger className="w-[120px] ml-auto">
+                                            <SelectValue placeholder="ভূমিকা" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="admin">এডমিন</SelectItem>
+                                            <SelectItem value="teacher">শিক্ষক</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </TableCell>
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
+            </CardContent>
+        </Card>
+    );
+}
+
 function UserProfileCard() {
     const auth = useAuth();
     const firestore = useFirestore();
@@ -91,12 +195,13 @@ function UserProfileCard() {
     }, [auth]);
 
     useEffect(() => {
-        if (userRole) {
-            if (userRole.imageUrl) {
-                setImagePreview(userRole.imageUrl);
-            }
-        } else if (user) {
+        // This logic correctly prioritizes the Firestore URL, then auth, then fallback.
+        if (userRole?.imageUrl) {
+            setImagePreview(userRole.imageUrl);
+        } else if (user?.photoURL) {
             setImagePreview(user.photoURL);
+        } else {
+            setImagePreview(null);
         }
     }, [userRole, user]);
 
@@ -123,20 +228,17 @@ function UserProfileCard() {
         if (!user || !userRoleRef) return;
         setIsSaving(true);
         try {
-            // Update display name in Auth
-            if(user.displayName !== name) {
-                await updateProfile(user, { displayName: name });
-            }
-
-            // Update user role document in Firestore
+            await updateProfile(user, { displayName: name });
+            
             const userData: Partial<UserRole> = {
                 name: name,
+                email: user.email!, // Email should not be changed here, but is required by schema
                 imageUrl: imagePreview || '',
                 imageHint: 'person face'
             }
             await setDoc(userRoleRef, userData, { merge: true });
 
-            await user.getIdToken(true); // force refresh token
+            await user.getIdToken(true);
             toast({ title: 'সফল', description: 'আপনার প্রোফাইল সফলভাবে আপডেট করা হয়েছে।' });
         } catch (error: any) {
             toast({
@@ -318,6 +420,24 @@ function InstitutionSettingsCard() {
 }
 
 function SettingsPage() {
+    const auth = useAuth();
+    const firestore = useFirestore();
+    const [user, setUser] = useState<User | null>(null);
+
+    useEffect(() => {
+        const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+            setUser(currentUser);
+        });
+        return () => unsubscribe();
+    }, [auth]);
+    
+    const userRoleRef = useMemoFirebase(() => {
+        if (!firestore || !user) return null;
+        return doc(firestore, 'user_roles', user.uid);
+    }, [firestore, user]);
+
+    const { data: userRole } = useDoc<UserRole>(userRoleRef);
+
     return (
         <div className="space-y-8 p-8 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700">
             <div>
@@ -327,6 +447,11 @@ function SettingsPage() {
                  <InstitutionSettingsCard />
                  <UserProfileCard />
             </div>
+            {userRole?.role === 'admin' && (
+                <div className="mt-8">
+                    <UserManagementCard />
+                </div>
+            )}
         </div>
     );
 }
