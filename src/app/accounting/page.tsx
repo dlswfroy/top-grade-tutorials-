@@ -1212,7 +1212,7 @@ function Report() {
 
 function AccountingPage() {
   return (
-    <div className="space-y-8 p-8 rounded-xl bg-amber-100/50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
+    <div className="space-y-8 p-8 rounded-xl bg-amber-100 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800">
       <div>
         <h1 className="text-3xl font-bold font-headline text-amber-800 dark:text-amber-200">হিসাবরক্ষণ</h1>
       </div>

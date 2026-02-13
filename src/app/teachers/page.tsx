@@ -228,7 +228,7 @@ function TeachersPage() {
   
 
   return (
-    <div className="space-y-8 p-8 rounded-xl bg-indigo-100/50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800">
+    <div className="space-y-8 p-8 rounded-xl bg-indigo-100 dark:bg-indigo-900/30 border border-indigo-200 dark:border-indigo-800">
       <div>
         <h1 className="text-3xl font-bold font-headline text-indigo-800 dark:text-indigo-200">শিক্ষক ম্যানেজমেন্ট</h1>
       </div>
@@ -248,7 +248,7 @@ function TeachersPage() {
             </div>
             <Button onClick={handleSearch} className="w-full sm:w-auto">
               <Search className="mr-2 h-4 w-4" />
-              অনুসন্ধান
+              অনুসন্ধาน
             </Button>
             <Dialog open={isDialogOpen} onOpenChange={(open) => { if (!open) handleCloseDialog(); else setIsDialogOpen(true); }}>
               <DialogTrigger asChild>

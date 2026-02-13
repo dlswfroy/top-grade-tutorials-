@@ -382,7 +382,7 @@ function AttendanceReport() {
 
 export default function AttendancePageContainer() {
     return (
-        <div className="space-y-8 p-8 rounded-xl bg-cyan-100/50 dark:bg-cyan-900/20 border border-cyan-200 dark:border-cyan-800">
+        <div className="space-y-8 p-8 rounded-xl bg-cyan-100 dark:bg-cyan-900/30 border border-cyan-200 dark:border-cyan-800">
             <div>
                 <h1 className="text-3xl font-bold font-headline text-cyan-800 dark:text-cyan-200">হাজিরা খাতা</h1>
             </div>
