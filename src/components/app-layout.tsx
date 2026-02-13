@@ -52,19 +52,19 @@ function Logo({ settings, isLoading, className, iconClassName }: { settings: Ins
     const logoUrl = settings?.logoUrl;
 
     return (
-        <Link href="/" className={cn("flex items-center gap-2", className)}>
+        <Link href="/" className={cn("flex items-center gap-3", className)}>
             {isLoading ? (
-                <Loader2 className={cn("w-6 h-6 animate-spin", iconClassName || "text-primary")} />
+                <Loader2 className={cn("w-8 h-8 animate-spin", iconClassName || "text-primary")} />
             ) : logoUrl ? (
-                <Image src={logoUrl} alt={institutionName} width={28} height={28} className="rounded-sm object-cover" />
+                <Image src={logoUrl} alt={institutionName} width={40} height={40} className="rounded-md object-cover" />
             ) : (
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={cn("w-7 h-7", iconClassName || "text-primary")}>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={cn("w-10 h-10", iconClassName || "text-primary")}>
                   <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
                   <path d="M2 17l10 5 10-5"></path>
                   <path d="M2 12l10 5 10-5"></path>
                 </svg>
             )}
-            <h1 className="text-lg font-headline font-semibold">{institutionName}</h1>
+            <h1 className="text-2xl font-headline font-bold">{institutionName}</h1>
         </Link>
     );
 }
@@ -110,7 +110,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   return (
       <div className="min-h-screen flex flex-col">
           <header className="sticky top-0 z-40 w-full border-b bg-primary text-primary-foreground">
-              <div className="container flex h-16 items-center">
+              <div className="container flex h-20 items-center">
                   <Logo settings={settings} isLoading={isLoadingSettings} className="mr-6" iconClassName="text-primary-foreground"/>
                   
                   <nav className="hidden md:flex items-center space-x-6 text-sm font-medium">
