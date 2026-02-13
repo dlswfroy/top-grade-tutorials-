@@ -1221,9 +1221,9 @@ function AccountingPage() {
         <TabsList className="grid w-full grid-cols-3 sm:grid-cols-6">
             <TabsTrigger value="collection">বেতন আদায়</TabsTrigger>
             <TabsTrigger value="payment-list">আদায়ের তালিকা</TabsTrigger>
-            <TabsTrigger value="expenses">খরচের হিসাব</TabsTrigger>
             <TabsTrigger value="cashbook">ক্যাশবুক</TabsTrigger>
-            <TabsTrigger value="ledger">লেজার</TabsTrigger>
+            <TabsTrigger value="ledger">শিক্ষার্থী লেজার</TabsTrigger>
+            <TabsTrigger value="expenses">খরচের লেজার</TabsTrigger>
             <TabsTrigger value="report">রিপোর্ট</TabsTrigger>
         </TabsList>
         <TabsContent value="collection">
