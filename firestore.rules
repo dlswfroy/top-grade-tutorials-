@@ -32,7 +32,7 @@ service cloud.firestore {
     }
 
     match /institution_settings/{settingsId} {
-      allow read: if isHeadTeacher() || isTeacher();
+      allow read: if isSignedIn();
       allow write: if isHeadTeacher();
     }
 
