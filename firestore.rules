@@ -37,16 +37,24 @@ service cloud.firestore {
     }
 
     match /roles_admin/{adminUid} {
-      allow read, write: if isHeadTeacher();
+      // Allow users to read their own role document.
+      allow get: if request.auth.uid == adminUid;
+      // Allow head teachers to manage roles.
+      allow list, write: if isHeadTeacher();
     }
 
     match /roles_teacher/{teacherUid} {
-       allow read, write: if isHeadTeacher();
+       // Allow users to read their own role document.
+       allow get: if request.auth.uid == teacherUid;
+       // Allow head teachers to manage roles.
+       allow list, write: if isHeadTeacher();
     }
     
     match /teacher_permissions/{teacherId} {
-      allow read: if isHeadTeacher() || (isTeacher() && request.auth.uid == teacherId);
-      allow write: if isHeadTeacher();
+      // A teacher can read their own permissions. A head teacher can read any.
+      allow get: if isHeadTeacher() || (isTeacher() && request.auth.uid == teacherId);
+      // Only a head teacher can modify permissions.
+      allow list, write: if isHeadTeacher();
     }
 
     match /expenses/{expenseId} {
