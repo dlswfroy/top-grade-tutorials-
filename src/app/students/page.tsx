@@ -41,10 +41,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { useFirebaseApp, useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
 import { collection, doc, addDoc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
-import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 const defaultStudentState: Omit<Student, 'id' | 'dateAdded'> = {
   name: '',
@@ -58,7 +57,6 @@ const defaultStudentState: Omit<Student, 'id' | 'dateAdded'> = {
 };
 
 export default function StudentsPage() {
-  const firebaseApp = useFirebaseApp();
   const firestore = useFirestore();
   const { user } = useUser();
   const { toast } = useToast();
@@ -67,7 +65,6 @@ export default function StudentsPage() {
   const [activeSearchTerm, setActiveSearchTerm] = useState('');
   const [activeClassFilter, setActiveClassFilter] = useState('');
   const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [imageFile, setImageFile] = useState<File | null>(null);
   const [formData, setFormData] = useState(defaultStudentState);
   const [editingStudent, setEditingStudent] = useState<Student | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -90,25 +87,18 @@ export default function StudentsPage() {
         setFormData(defaultStudentState);
         setImagePreview(null);
     }
-    setImageFile(null);
   }, [editingStudent]);
-
-  useEffect(() => {
-    return () => {
-      if (imagePreview && imagePreview.startsWith('blob:')) {
-        URL.revokeObjectURL(imagePreview);
-      }
-    }
-  }, [imagePreview]);
 
   const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      setImageFile(file);
-      if (imagePreview && imagePreview.startsWith('blob:')) {
-        URL.revokeObjectURL(imagePreview);
-      }
-      setImagePreview(URL.createObjectURL(file));
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64String = reader.result as string;
+        setImagePreview(base64String);
+        setFormData(prev => ({ ...prev, imageUrl: base64String }));
+      };
+      reader.readAsDataURL(file);
     }
   };
 
@@ -122,7 +112,7 @@ export default function StudentsPage() {
   };
   
   const handleSaveStudent = async () => {
-    if (!firestore || !user || !firebaseApp) return;
+    if (!firestore || !user) return;
 
     if (!formData.name || !formData.classGrade || !formData.rollNumber) {
         toast({
@@ -136,15 +126,6 @@ export default function StudentsPage() {
     setIsSaving(true);
 
     try {
-        let finalImageUrl = editingStudent?.imageUrl || '';
-
-        if (imageFile) {
-            const storage = getStorage(firebaseApp);
-            const storageRef = ref(storage, `student_images/${user.uid}_${Date.now()}_${imageFile.name}`);
-            const uploadResult = await uploadBytes(storageRef, imageFile);
-            finalImageUrl = await getDownloadURL(uploadResult.ref);
-        }
-
         const studentData = {
             name: formData.name,
             classGrade: formData.classGrade,
@@ -152,7 +133,7 @@ export default function StudentsPage() {
             fatherName: formData.fatherName,
             mobileNumber: formData.mobileNumber,
             monthlyFee: Number(formData.monthlyFee) || 0,
-            imageUrl: finalImageUrl,
+            imageUrl: formData.imageUrl,
             imageHint: formData.imageHint || 'student person',
         };
 
@@ -162,7 +143,7 @@ export default function StudentsPage() {
         } else {
             await addDoc(collection(firestore, 'students'), { 
                 ...studentData,
-                imageUrl: finalImageUrl || `https://picsum.photos/seed/${formData.rollNumber}/200/200`,
+                imageUrl: formData.imageUrl || `https://picsum.photos/seed/${formData.rollNumber}/200/200`,
                 dateAdded: new Date().toISOString()
             });
             toast({ title: "সফল", description: `${formData.name} কে শিক্ষার্থী হিসেবে যোগ করা হয়েছে।` });
@@ -201,12 +182,8 @@ export default function StudentsPage() {
   const handleCloseDialog = () => {
     setIsDialogOpen(false);
     setEditingStudent(null);
-    if (imagePreview && imagePreview.startsWith('blob:')) {
-        URL.revokeObjectURL(imagePreview);
-    }
     setFormData(defaultStudentState);
     setImagePreview(null);
-    setImageFile(null);
   }
 
   const handleSearch = () => {

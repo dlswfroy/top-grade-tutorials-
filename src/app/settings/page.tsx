@@ -13,10 +13,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Save, Loader2 } from 'lucide-react';
-import { useFirebaseApp, useFirestore, useDoc, useMemoFirebase, useUser } from '@/firebase';
+import { useFirestore, useDoc, useMemoFirebase, useUser } from '@/firebase';
 import { doc, setDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
-import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 type InstitutionSettings = {
     institutionName?: string;
@@ -24,13 +23,11 @@ type InstitutionSettings = {
 };
 
 export default function SettingsPage() {
-  const firebaseApp = useFirebaseApp();
   const firestore = useFirestore();
   const { user } = useUser();
   const { toast } = useToast();
   const [institutionName, setInstitutionName] = useState('টপ গ্রেড টিউটোরিয়ালস');
-  const [logoPreview, setLogoPreview] = useState<string | null>(null);
-  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   
   const settingsRef = useMemoFirebase(() => {
@@ -46,32 +43,24 @@ export default function SettingsPage() {
         setInstitutionName(settings.institutionName);
       }
       if (settings.logoUrl) {
-        setLogoPreview(settings.logoUrl);
+        setLogoUrl(settings.logoUrl);
       }
     }
   }, [settings]);
 
-  useEffect(() => {
-    return () => {
-      if (logoPreview && logoPreview.startsWith('blob:')) {
-        URL.revokeObjectURL(logoPreview);
-      }
-    }
-  }, [logoPreview]);
-
   const handleLogoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      setLogoFile(file);
-       if (logoPreview && logoPreview.startsWith('blob:')) {
-        URL.revokeObjectURL(logoPreview);
-      }
-      setLogoPreview(URL.createObjectURL(file));
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setLogoUrl(reader.result as string);
+      };
+      reader.readAsDataURL(file);
     }
   };
 
   const handleSave = async () => {
-    if (!settingsRef || !firebaseApp || !user) return;
+    if (!settingsRef || !user) return;
 
     setIsSaving(true);
     
@@ -79,14 +68,8 @@ export default function SettingsPage() {
         const settingsData: Partial<InstitutionSettings & {lastUpdated: string}> = {
             institutionName: institutionName,
             lastUpdated: new Date().toISOString(),
+            logoUrl: logoUrl,
         };
-        
-        if (logoFile) {
-            const storage = getStorage(firebaseApp);
-            const storageRef = ref(storage, `institution_assets/logo_${Date.now()}`);
-            const uploadResult = await uploadBytes(storageRef, logoFile);
-            settingsData.logoUrl = await getDownloadURL(uploadResult.ref);
-        }
         
         await setDoc(settingsRef, settingsData, { merge: true });
         
@@ -94,8 +77,6 @@ export default function SettingsPage() {
             title: 'সফল',
             description: 'প্রতিষ্ঠানের তথ্য সেভ করা হয়েছে।',
         });
-        
-        setLogoFile(null);
 
     } catch (error: any) {
         console.error("Error saving settings:", error);
@@ -138,9 +119,9 @@ export default function SettingsPage() {
           <div className="space-y-2">
             <Label htmlFor="logo">প্রতিষ্ঠানের লোগো</Label>
             <div className="flex items-center gap-4">
-              {logoPreview && (
+              {logoUrl && (
                 <Image
-                  src={logoPreview}
+                  src={logoUrl}
                   alt="Logo Preview"
                   width={80}
                   height={80}

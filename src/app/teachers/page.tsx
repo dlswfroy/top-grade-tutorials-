@@ -36,10 +36,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { useFirebaseApp, useFirestore, useCollection, useMemoFirebase, useUser, useAuth } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase, useUser, useAuth } from '@/firebase';
 import { collection, doc, updateDoc, deleteDoc, setDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
-import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 
 const defaultTeacherState: Omit<Teacher, 'id' | 'dateAdded'> = {
@@ -50,13 +49,11 @@ const defaultTeacherState: Omit<Teacher, 'id' | 'dateAdded'> = {
 };
 
 export default function TeachersPage() {
-  const firebaseApp = useFirebaseApp();
   const firestore = useFirestore();
   const auth = useAuth();
   const { user } = useUser();
   const { toast } = useToast();
   const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [imageFile, setImageFile] = useState<File | null>(null);
   const [formData, setFormData] = useState<Omit<Teacher, 'id' | 'dateAdded'>>(defaultTeacherState);
   const [editingTeacher, setEditingTeacher] = useState<Teacher | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -71,22 +68,16 @@ export default function TeachersPage() {
 
   const { data: teachers, isLoading } = useCollection<Teacher>(teachersQuery);
 
-  useEffect(() => {
-    return () => {
-      if (imagePreview && imagePreview.startsWith('blob:')) {
-        URL.revokeObjectURL(imagePreview);
-      }
-    }
-  }, [imagePreview]);
-
   const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      setImageFile(file);
-      if (imagePreview && imagePreview.startsWith('blob:')) {
-        URL.revokeObjectURL(imagePreview);
-      }
-      setImagePreview(URL.createObjectURL(file));
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64String = reader.result as string;
+        setImagePreview(base64String);
+        setFormData(prev => ({ ...prev, imageUrl: base64String }));
+      };
+      reader.readAsDataURL(file);
     }
   };
 
@@ -96,7 +87,7 @@ export default function TeachersPage() {
   };
 
   const handleSaveTeacher = async () => {
-    if (!firestore || !auth || !firebaseApp) return;
+    if (!firestore || !auth) return;
 
     if (!formData.name || !formData.mobileNumber) {
         toast({
@@ -110,20 +101,11 @@ export default function TeachersPage() {
     setIsSaving(true);
 
     try {
-        let finalImageUrl = editingTeacher?.imageUrl || '';
-
-        if (imageFile) {
-            const storage = getStorage(firebaseApp);
-            const storageRef = ref(storage, `teacher_images/${auth.currentUser?.uid || 'unknown'}_${Date.now()}_${imageFile.name}`);
-            const uploadResult = await uploadBytes(storageRef, imageFile);
-            finalImageUrl = await getDownloadURL(uploadResult.ref);
-        }
-
         if (editingTeacher) {
             const teacherData = {
                 name: formData.name,
                 mobileNumber: formData.mobileNumber,
-                imageUrl: finalImageUrl,
+                imageUrl: formData.imageUrl,
             };
             const docRef = doc(firestore, 'teachers', editingTeacher.id);
             await updateDoc(docRef, teacherData);
@@ -141,7 +123,7 @@ export default function TeachersPage() {
             const teacherData = {
                 name: formData.name,
                 mobileNumber: formData.mobileNumber,
-                imageUrl: finalImageUrl || `https://picsum.photos/seed/${newTeacherUser.uid}/200/200`,
+                imageUrl: formData.imageUrl || `https://picsum.photos/seed/${newTeacherUser.uid}/200/200`,
                 imageHint: formData.imageHint || 'teacher person',
                 dateAdded: new Date().toISOString()
             };
@@ -203,11 +185,7 @@ export default function TeachersPage() {
     setIsDialogOpen(false);
     setEditingTeacher(null);
     setFormData(defaultTeacherState);
-    if (imagePreview && imagePreview.startsWith('blob:')) {
-        URL.revokeObjectURL(imagePreview);
-    }
     setImagePreview(null);
-    setImageFile(null);
     setEmail('');
     setPassword('');
   }
