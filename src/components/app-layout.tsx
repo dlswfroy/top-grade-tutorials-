@@ -73,22 +73,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <SidebarProvider>
       <Sidebar>
-        <SidebarHeader>
-          <div className="flex items-center gap-2 p-2">
-            {isLoadingSettings ? (
-                <Loader2 className="w-8 h-8 animate-spin text-primary" />
-            ) : logoUrl ? (
-                <Image src={logoUrl} alt={institutionName} width={32} height={32} className="rounded-sm object-cover" />
-            ) : (
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-8 h-8 text-primary">
-                    <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
-                    <path d="M2 17l10 5 10-5"></path>
-                    <path d="M2 12l10 5 10-5"></path>
-                </svg>
-            )}
-            <h1 className="text-xl font-headline font-semibold">{isLoadingSettings ? 'Loading...' : institutionName}</h1>
-          </div>
-        </SidebarHeader>
         <SidebarContent>
           <SidebarMenu>
             {menuItems.map((item) => (
@@ -124,22 +108,39 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         </SidebarFooter>
       </Sidebar>
       <SidebarInset>
-        <header className="flex items-center justify-between p-2 border-b bg-background/80 backdrop-blur-sm sticky top-0 z-10 md:hidden">
-            <Link href="/" className="flex items-center gap-2">
-                {isLoadingSettings ? (
-                    <Loader2 className="w-6 h-6 animate-spin text-primary" />
-                ) : logoUrl ? (
-                    <Image src={logoUrl} alt={institutionName} width={24} height={24} className="rounded-sm object-cover" />
-                ) : (
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6 text-primary">
-                      <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
-                      <path d="M2 17l10 5 10-5"></path>
-                      <path d="M2 12l10 5 10-5"></path>
-                    </svg>
-                )}
-                <h1 className="text-lg font-headline font-semibold">{shortInstitutionName}</h1>
-            </Link>
-            <SidebarTrigger>
+        <header className="flex items-center justify-between p-2 border-b bg-background/80 backdrop-blur-sm sticky top-0 z-10">
+            <div className="flex items-center gap-2">
+                <div className="hidden md:flex items-center gap-2">
+                    <SidebarTrigger />
+                    {isLoadingSettings ? (
+                        <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                    ) : logoUrl ? (
+                        <Image src={logoUrl} alt={institutionName} width={24} height={24} className="rounded-sm object-cover" />
+                    ) : (
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6 text-primary">
+                          <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
+                          <path d="M2 17l10 5 10-5"></path>
+                          <path d="M2 12l10 5 10-5"></path>
+                        </svg>
+                    )}
+                    <h1 className="text-lg font-headline font-semibold">{institutionName}</h1>
+                </div>
+                 <Link href="/" className="flex items-center gap-2 md:hidden">
+                    {isLoadingSettings ? (
+                        <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                    ) : logoUrl ? (
+                        <Image src={logoUrl} alt={institutionName} width={24} height={24} className="rounded-sm object-cover" />
+                    ) : (
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6 text-primary">
+                        <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
+                        <path d="M2 17l10 5 10-5"></path>
+                        <path d="M2 12l10 5 10-5"></path>
+                        </svg>
+                    )}
+                    <h1 className="text-lg font-headline font-semibold">{shortInstitutionName}</h1>
+                </Link>
+            </div>
+            <SidebarTrigger className="md:hidden">
                 <MoreVertical />
             </SidebarTrigger>
         </header>
