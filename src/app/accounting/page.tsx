@@ -105,7 +105,6 @@ function FeeCollection() {
             <Card>
                 <CardHeader>
                 <CardTitle>শিক্ষার্থী খুঁজুন</CardTitle>
-                <CardDescription>বেতন আদায়ের জন্য শিক্ষার্থী খুঁজুন।</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                 <div className="space-y-2">
@@ -239,7 +238,6 @@ function ReceiptDialog({ isOpen, setIsOpen, payment, student, settings }: { isOp
             <DialogContent>
                 <DialogHeader>
                     <DialogTitle>Payment Receipt</DialogTitle>
-                    <DialogDescription>Payment was successful. You can now print the receipt.</DialogDescription>
                 </DialogHeader>
                 <div id="receipt-content" className="text-sm">
                     <div className="p-4 border rounded-md">
@@ -438,9 +436,9 @@ function PaymentRecord({ student }: { student: Student }) {
                         </Avatar>
                         <div>
                             <CardTitle>{student.name}</CardTitle>
-                            <CardDescription>
+                            <p className="text-muted-foreground">
                                 শ্রেণি: {student.classGrade} | রোল: {student.rollNumber} | পিতার নাম: {student.fatherName}
-                            </CardDescription>
+                            </p>
                             <p className="text-lg font-semibold mt-1">মাসিক বেতন: ৳{student.monthlyFee}</p>
                         </div>
                     </div>
@@ -984,7 +982,6 @@ function Cashbook() {
         <Card>
             <CardHeader>
                 <CardTitle>ক্যাশবুক</CardTitle>
-                <CardDescription>তারিখ অনুযায়ী সকল আয় ও ব্যয়ের তালিকা।</CardDescription>
             </CardHeader>
             <CardContent>
                 <Table>
@@ -1016,87 +1013,139 @@ function Cashbook() {
 
 function LedgerBook() {
     const firestore = useFirestore();
-    const { data: students, isLoading: isLoadingStudents } = useCollection<Student>(useMemoFirebase(() => firestore ? collection(firestore, 'students') : null, [firestore]));
-    const [selectedStudentId, setSelectedStudentId] = useState<string>('');
-
-    const studentPaymentsQuery = useMemoFirebase(() => {
-        if (!firestore || !selectedStudentId) return null;
-        return query(collection(firestore, 'payments'), where('studentId', '==', selectedStudentId));
-    }, [firestore, selectedStudentId]);
-    const { data: studentPayments, isLoading: isLoadingPayments } = useCollection<Payment>(studentPaymentsQuery);
+    const { toast } = useToast();
     
-    const selectedStudent = useMemo(() => students?.find(s => s.id === selectedStudentId), [students, selectedStudentId]);
+    // New states for search
+    const [searchClass, setSearchClass] = useState('');
+    const [searchRoll, setSearchRoll] = useState('');
+    const [isSearching, setIsSearching] = useState(false);
+    const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
+
+    // This query will now depend on selectedStudent
+    const studentPaymentsQuery = useMemoFirebase(() => {
+        if (!firestore || !selectedStudent) return null;
+        return query(collection(firestore, 'payments'), where('studentId', '==', selectedStudent.id));
+    }, [firestore, selectedStudent]);
+    const { data: studentPayments, isLoading: isLoadingPayments } = useCollection<Payment>(studentPaymentsQuery);
 
     const totalPaid = useMemo(() => {
         if (!studentPayments) return 0;
         return studentPayments.reduce((sum, p) => sum + p.amount, 0);
     }, [studentPayments]);
+
+    const handleSearch = async () => {
+      if (!firestore || !searchClass || !searchRoll) {
+        toast({ variant: 'destructive', title: 'ত্রুটি', description: 'শ্রেণি এবং রোল নম্বর দিন।' });
+        return;
+      }
+      setIsSearching(true);
+      setSelectedStudent(null);
+      try {
+        const studentsRef = collection(firestore, 'students');
+        const q = query(studentsRef, where('classGrade', '==', searchClass), where('rollNumber', '==', searchRoll));
+        const querySnapshot = await getDocs(q);
+        
+        if (querySnapshot.empty) {
+          toast({ variant: 'destructive', title: 'পাওয়া যায়নি', description: 'এই রোল নম্বরের কোনো শিক্ষার্থী এই শ্রেণিতে নেই।' });
+        } else {
+          const studentDoc = querySnapshot.docs[0];
+          const studentData = { id: studentDoc.id, ...studentDoc.data() } as Student;
+          setSelectedStudent(studentData);
+        }
+      } catch (error) {
+        console.error("Error searching for student:", error);
+        toast({ variant: 'destructive', title: 'ত্রুটি', description: 'শিক্ষার্থী খুঁজতে গিয়ে সমস্যা হয়েছে।' });
+      } finally {
+        setIsSearching(false);
+      }
+    };
     
     return (
         <div className="space-y-6">
             <Card>
                 <CardHeader>
                     <CardTitle>শিক্ষার্থী লেজার</CardTitle>
-                    <CardDescription>একজন শিক্ষার্থীর সকল পেমেন্টের ইতিহাস দেখুন।</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <div className="max-w-sm space-y-2">
-                        <Label htmlFor="ledger-student">শিক্ষার্থী নির্বাচন করুন</Label>
-                        <Select value={selectedStudentId} onValueChange={setSelectedStudentId}>
-                            <SelectTrigger id="ledger-student">
-                                <SelectValue placeholder="একজন শিক্ষার্থী নির্বাচন করুন" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {isLoadingStudents ? <div className="p-4">লোড হচ্ছে...</div> : 
-                                students?.map(s => (
-                                    <SelectItem key={s.id} value={s.id}>{s.name} (রোল: {s.rollNumber}, শ্রেণি: {s.classGrade})</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                    <div className="flex flex-col sm:flex-row gap-4 items-end">
+                        <div className="space-y-2 flex-1">
+                            <Label htmlFor="ledger-search-class">শ্রেণি</Label>
+                            <Select value={searchClass} onValueChange={setSearchClass}>
+                                <SelectTrigger id="ledger-search-class">
+                                    <SelectValue placeholder="শ্রেণি নির্বাচন করুন" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {classNames.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="space-y-2 flex-1">
+                            <Label htmlFor="ledger-search-roll">রোল</Label>
+                            <Input
+                                id="ledger-search-roll"
+                                placeholder="রোল নম্বর লিখুন"
+                                value={searchRoll}
+                                onChange={(e) => setSearchRoll(e.target.value)}
+                            />
+                        </div>
+                        <div className="w-full sm:w-auto">
+                            <Button onClick={handleSearch} disabled={isSearching} className="w-full">
+                                {isSearching ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Search className="mr-2 h-4 w-4" />}
+                                খুঁজুন
+                            </Button>
+                        </div>
                     </div>
                 </CardContent>
             </Card>
 
-            {isLoadingPayments && selectedStudentId && <div className="flex justify-center p-8"><Loader2 className="h-8 w-8 animate-spin" /></div>}
+            {isSearching && <div className="flex justify-center p-8"><Loader2 className="h-8 w-8 animate-spin" /></div>}
             
-            {selectedStudent && (
+            {selectedStudent ? (
                  <Card>
                     <CardHeader>
                         <CardTitle>লেজার: {selectedStudent.name}</CardTitle>
-                        <CardDescription>রোল: {selectedStudent.rollNumber}, শ্রেণি: {selectedStudent.classGrade}, মাসিক বেতন: ৳{selectedStudent.monthlyFee}</CardDescription>
+                        <p className="text-sm text-muted-foreground">রোল: {selectedStudent.rollNumber}, শ্রেণি: {selectedStudent.classGrade}, মাসিক বেতন: ৳{selectedStudent.monthlyFee}</p>
                     </CardHeader>
                     <CardContent>
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>রসিদ নং</TableHead>
-                                    <TableHead>মাস</TableHead>
-                                    <TableHead>আদায়ের তারিখ</TableHead>
-                                    <TableHead className="text-right">পরিমাণ (৳)</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {studentPayments && studentPayments.length > 0 ? (
-                                    studentPayments.map(p => (
-                                        <TableRow key={p.id}>
-                                            <TableCell>{p.receiptNumber}</TableCell>
-                                            <TableCell>{format(parseISO(p.paymentMonth), 'MMMM, yyyy')}</TableCell>
-                                            <TableCell>{format(parseISO(p.paymentDate), 'PP', { locale: bn })}</TableCell>
-                                            <TableCell className="text-right">{p.amount.toFixed(2)}</TableCell>
-                                        </TableRow>
-                                    ))
-                                ) : (
+                        {isLoadingPayments ? <div className="flex justify-center p-8"><Loader2 className="h-8 w-8 animate-spin" /></div> : (
+                            <Table>
+                                <TableHeader>
                                     <TableRow>
-                                        <TableCell colSpan={4} className="text-center">এই শিক্ষার্থীর জন্য কোনো পেমেন্ট পাওয়া যায়নি।</TableCell>
+                                        <TableHead>রসিদ নং</TableHead>
+                                        <TableHead>মাস</TableHead>
+                                        <TableHead>আদায়ের তারিখ</TableHead>
+                                        <TableHead className="text-right">পরিমাণ (৳)</TableHead>
                                     </TableRow>
-                                )}
-                            </TableBody>
-                        </Table>
+                                </TableHeader>
+                                <TableBody>
+                                    {studentPayments && studentPayments.length > 0 ? (
+                                        studentPayments.map(p => (
+                                            <TableRow key={p.id}>
+                                                <TableCell>{p.receiptNumber}</TableCell>
+                                                <TableCell>{format(parseISO(p.paymentMonth), 'MMMM, yyyy')}</TableCell>
+                                                <TableCell>{format(parseISO(p.paymentDate), 'PP', { locale: bn })}</TableCell>
+                                                <TableCell className="text-right">{p.amount.toFixed(2)}</TableCell>
+                                            </TableRow>
+                                        ))
+                                    ) : (
+                                        <TableRow>
+                                            <TableCell colSpan={4} className="text-center">এই শিক্ষার্থীর জন্য কোনো পেমেন্ট পাওয়া যায়নি।</TableCell>
+                                        </TableRow>
+                                    )}
+                                </TableBody>
+                            </Table>
+                        )}
                     </CardContent>
                     <CardFooter className="justify-end font-bold">
                         মোট পরিশোধিত: ৳{totalPaid.toFixed(2)}
                     </CardFooter>
                 </Card>
+            ) : (
+                !isSearching && (
+                    <div className="flex flex-col items-center justify-center text-center p-12 border-2 border-dashed rounded-lg h-48">
+                        <p className="text-muted-foreground">শিক্ষার্থীর লেজার দেখার জন্য শ্রেণি ও রোল দিয়ে খুঁজুন।</p>
+                    </div>
+                )
             )}
         </div>
     );
@@ -1124,7 +1173,6 @@ function Report() {
         <Card>
             <CardHeader>
                 <CardTitle>আয়-ব্যয় রিপোর্ট</CardTitle>
-                <CardDescription>প্রতিষ্ঠানের মোট আয়, ব্যয় এবং বর্তমান ব্যালেন্স দেখুন।</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
                 {(isLoadingPayments || isLoadingExpenses) ? (
