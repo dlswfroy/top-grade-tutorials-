@@ -247,7 +247,7 @@ function StudentsPage() {
   
 
   return (
-    <div className="space-y-8 p-6 rounded-lg bg-green-50 dark:bg-green-950/30">
+    <div className="space-y-8 p-8 rounded-xl bg-green-100/50 dark:bg-green-900/20 border border-green-200 dark:border-green-800">
       <div>
         <h1 className="text-3xl font-bold font-headline text-green-800 dark:text-green-200">শিক্ষার্থী ম্যানেজমেন্ট</h1>
       </div>
@@ -289,7 +289,7 @@ function StudentsPage() {
               </DialogTrigger>
               <DialogContent className="sm:max-w-[425px]">
                 <DialogHeader>
-                  <DialogTitle className="text-slate-800 dark:text-slate-200">{editingStudent ? 'শিক্ষার্থীর তথ্য এডিট করুন' : 'নতুন শিক্ষার্থী যোগ করুন'}</DialogTitle>
+                  <DialogTitle className="font-bold text-slate-800 dark:text-slate-200">{editingStudent ? 'শিক্ষার্থীর তথ্য এডিট করুন' : 'নতুন শিক্ষার্থী যোগ করুন'}</DialogTitle>
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
                   {/* Form Inputs */}
@@ -355,14 +355,14 @@ function StudentsPage() {
                 <Table>
                     <TableHeader>
                     <TableRow>
-                        <TableHead className="text-green-700 dark:text-green-300">ছবি</TableHead>
-                        <TableHead className="text-green-700 dark:text-green-300">রোল</TableHead>
-                        <TableHead className="text-green-700 dark:text-green-300">নাম</TableHead>
-                        <TableHead className="text-green-700 dark:text-green-300">শ্রেণি</TableHead>
-                        <TableHead className="text-green-700 dark:text-green-300">পিতার নাম</TableHead>
-                        <TableHead className="text-green-700 dark:text-green-300">মোবাইল</TableHead>
-                        <TableHead className="text-right text-green-700 dark:text-green-300">বেতন</TableHead>
-                        <TableHead className="text-center text-green-700 dark:text-green-300">একশন</TableHead>
+                        <TableHead className="font-bold text-green-700 dark:text-green-300">ছবি</TableHead>
+                        <TableHead className="font-bold text-green-700 dark:text-green-300">রোল</TableHead>
+                        <TableHead className="font-bold text-green-700 dark:text-green-300">নাম</TableHead>
+                        <TableHead className="font-bold text-green-700 dark:text-green-300">শ্রেণি</TableHead>
+                        <TableHead className="font-bold text-green-700 dark:text-green-300">পিতার নাম</TableHead>
+                        <TableHead className="font-bold text-green-700 dark:text-green-300">মোবাইল</TableHead>
+                        <TableHead className="text-right font-bold text-green-700 dark:text-green-300">বেতন</TableHead>
+                        <TableHead className="text-center font-bold text-green-700 dark:text-green-300">একশন</TableHead>
                     </TableRow>
                     </TableHeader>
                     <TableBody>

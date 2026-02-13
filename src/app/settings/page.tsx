@@ -319,7 +319,7 @@ function InstitutionSettingsCard() {
 
 function SettingsPage() {
     return (
-        <div className="space-y-8 p-6 rounded-lg bg-slate-50 dark:bg-slate-800/20">
+        <div className="space-y-8 p-8 rounded-xl bg-slate-100 dark:bg-slate-800/30 border border-slate-200 dark:border-slate-700">
             <div>
                 <h1 className="text-3xl font-bold font-headline text-slate-800 dark:text-slate-200">সেটিংস</h1>
             </div>

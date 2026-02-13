@@ -51,7 +51,7 @@ function Dashboard() {
   }, [payments]);
 
   return (
-    <div className="space-y-8 p-6 rounded-lg bg-blue-50 dark:bg-blue-950/30">
+    <div className="space-y-8 p-8 rounded-xl bg-blue-100/50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
       <div>
         <h1 className="text-3xl font-bold font-headline text-blue-800 dark:text-blue-200">ড্যাসবোর্ড</h1>
       </div>
@@ -59,7 +59,7 @@ function Dashboard() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-300">মোট শিক্ষার্থী</CardTitle>
+            <CardTitle className="text-sm font-bold text-gray-600 dark:text-gray-300">মোট শিক্ষার্থী</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -71,7 +71,7 @@ function Dashboard() {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-300">আজকের উপস্থিতি</CardTitle>
+            <CardTitle className="text-sm font-bold text-gray-600 dark:text-gray-300">আজকের উপস্থিতি</CardTitle>
             <UserCheck className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -90,7 +90,7 @@ function Dashboard() {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-300">মাসিক আয়</CardTitle>
+            <CardTitle className="text-sm font-bold text-gray-600 dark:text-gray-300">মাসিক আয়</CardTitle>
             <span className="text-2xl font-bold text-gray-600 dark:text-gray-300">৳</span>
           </CardHeader>
           <CardContent>

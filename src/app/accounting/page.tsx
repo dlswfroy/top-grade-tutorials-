@@ -104,7 +104,7 @@ function FeeCollection() {
             <div className="lg:col-span-1">
             <Card>
                 <CardHeader>
-                <CardTitle className="text-amber-900 dark:text-amber-100">শিক্ষার্থী খুঁজুন</CardTitle>
+                <CardTitle className="font-bold text-amber-900 dark:text-amber-100">শিক্ষার্থী খুঁজুন</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                 <div className="space-y-2">
@@ -237,7 +237,7 @@ function ReceiptDialog({ isOpen, setIsOpen, payment, student, settings }: { isOp
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
             <DialogContent>
                 <DialogHeader>
-                    <DialogTitle>Payment Receipt</DialogTitle>
+                    <DialogTitle className="font-bold">Payment Receipt</DialogTitle>
                 </DialogHeader>
                 <div id="receipt-content" className="text-sm">
                     <div className="p-4 border rounded-md">
@@ -435,7 +435,7 @@ function PaymentRecord({ student }: { student: Student }) {
                             <AvatarFallback>{student.name.charAt(0)}</AvatarFallback>
                         </Avatar>
                         <div>
-                            <CardTitle className="text-slate-900 dark:text-slate-100">{student.name}</CardTitle>
+                            <CardTitle className="font-bold text-slate-900 dark:text-slate-100">{student.name}</CardTitle>
                             <p className="text-slate-600 dark:text-slate-400">
                                 শ্রেণি: {student.classGrade} | রোল: {student.rollNumber} | পিতার নাম: {student.fatherName}
                             </p>
@@ -456,11 +456,11 @@ function PaymentRecord({ student }: { student: Student }) {
                         <Table>
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead className="text-slate-500">মাসের নাম</TableHead>
-                                    <TableHead className="text-slate-500">পেমেন্টের তারিখ</TableHead>
-                                    <TableHead className="text-slate-500">টাকার পরিমাণ</TableHead>
-                                    <TableHead className="text-slate-500">আদায়কারী</TableHead>
-                                    <TableHead className="text-right text-slate-500">একশন</TableHead>
+                                    <TableHead className="font-bold text-slate-500">মাসের নাম</TableHead>
+                                    <TableHead className="font-bold text-slate-500">পেমেন্টের তারিখ</TableHead>
+                                    <TableHead className="font-bold text-slate-500">টাকার পরিমাণ</TableHead>
+                                    <TableHead className="font-bold text-slate-500">আদায়কারী</TableHead>
+                                    <TableHead className="text-right font-bold text-slate-500">একশন</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -493,7 +493,7 @@ function PaymentRecord({ student }: { student: Student }) {
                 <Dialog open={isPayDialogOpen} onOpenChange={setIsPayDialogOpen}>
                     <DialogContent>
                         <DialogHeader>
-                            <DialogTitle className="text-slate-800 dark:text-slate-200">{months[parseInt(selectedMonth.split('-')[1], 10) - 1]} মাসের বেতন আদায়</DialogTitle>
+                            <DialogTitle className="font-bold text-slate-800 dark:text-slate-200">{months[parseInt(selectedMonth.split('-')[1], 10) - 1]} মাসের বেতন আদায়</DialogTitle>
                         </DialogHeader>
                         <div className="space-y-4 py-4">
                             <div className="space-y-2">
@@ -638,7 +638,7 @@ function PaymentList() {
             <div className="grid gap-4 md:grid-cols-3">
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-300">দৈনিক আদায়</CardTitle>
+                        <CardTitle className="text-sm font-bold text-gray-600 dark:text-gray-300">দৈনিক আদায়</CardTitle>
                         <DollarSign className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
@@ -647,7 +647,7 @@ function PaymentList() {
                 </Card>
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-300">মাসিক আদায়</CardTitle>
+                        <CardTitle className="text-sm font-bold text-gray-600 dark:text-gray-300">মাসিক আদায়</CardTitle>
                         <DollarSign className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
@@ -656,7 +656,7 @@ function PaymentList() {
                 </Card>
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-300">বাৎসরিক আদায়</CardTitle>
+                        <CardTitle className="text-sm font-bold text-gray-600 dark:text-gray-300">বাৎসরিক আদায়</CardTitle>
                         <DollarSign className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
@@ -666,7 +666,7 @@ function PaymentList() {
             </div>
             <Card>
                 <CardHeader>
-                    <CardTitle className="text-amber-900 dark:text-amber-100">সকল আদায়ের তালিকা</CardTitle>
+                    <CardTitle className="font-bold text-amber-900 dark:text-amber-100">সকল আদায়ের তালিকা</CardTitle>
                 </CardHeader>
                 <CardContent>
                 {isLoadingPayments ? (
@@ -677,13 +677,13 @@ function PaymentList() {
                     <Table>
                         <TableHeader>
                             <TableRow>
-                                <TableHead className="text-amber-700 dark:text-amber-300">শিক্ষার্থী</TableHead>
-                                <TableHead className="text-amber-700 dark:text-amber-300">শ্রেণি</TableHead>
-                                <TableHead className="text-amber-700 dark:text-amber-300">মাস</TableHead>
-                                <TableHead className="text-amber-700 dark:text-amber-300">পরিমাণ</TableHead>
-                                <TableHead className="text-amber-700 dark:text-amber-300">আদায়ের তারিখ</TableHead>
-                                <TableHead className="text-amber-700 dark:text-amber-300">আদায়কারী</TableHead>
-                                <TableHead className="text-right text-amber-700 dark:text-amber-300">একশন</TableHead>
+                                <TableHead className="font-bold text-amber-700 dark:text-amber-300">শিক্ষার্থী</TableHead>
+                                <TableHead className="font-bold text-amber-700 dark:text-amber-300">শ্রেণি</TableHead>
+                                <TableHead className="font-bold text-amber-700 dark:text-amber-300">মাস</TableHead>
+                                <TableHead className="font-bold text-amber-700 dark:text-amber-300">পরিমাণ</TableHead>
+                                <TableHead className="font-bold text-amber-700 dark:text-amber-300">আদায়ের তারিখ</TableHead>
+                                <TableHead className="font-bold text-amber-700 dark:text-amber-300">আদায়কারী</TableHead>
+                                <TableHead className="text-right font-bold text-amber-700 dark:text-amber-300">একশন</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -732,7 +732,7 @@ function PaymentList() {
             <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle className="text-slate-800 dark:text-slate-200">পেমেন্টের তথ্য এডিট করুন</DialogTitle>
+                        <DialogTitle className="font-bold text-slate-800 dark:text-slate-200">পেমেন্টের তথ্য এডিট করুন</DialogTitle>
                     </DialogHeader>
                     <div className="space-y-4 py-4">
                         <div className="space-y-2">
@@ -839,14 +839,14 @@ function Expenses() {
          <div className="space-y-6">
             <Card>
                 <CardHeader className="flex-row items-center justify-between">
-                    <CardTitle className="text-amber-900 dark:text-amber-100">খরচের তালিকা</CardTitle>
+                    <CardTitle className="font-bold text-amber-900 dark:text-amber-100">খরচের তালিকা</CardTitle>
                     <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                         <DialogTrigger asChild>
                             <Button><PlusCircle className="mr-2 h-4 w-4" />নতুন খরচ</Button>
                         </DialogTrigger>
                         <DialogContent>
                             <DialogHeader>
-                                <DialogTitle className="text-slate-800 dark:text-slate-200">নতুন খরচ যোগ করুন</DialogTitle>
+                                <DialogTitle className="font-bold text-slate-800 dark:text-slate-200">নতুন খরচ যোগ করুন</DialogTitle>
                             </DialogHeader>
                             <div className="space-y-4 py-4">
                                 <Input placeholder="খরচের বিবরণ" value={description} onChange={e => setDescription(e.target.value)} />
@@ -885,11 +885,11 @@ function Expenses() {
                         <Table>
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead className="text-amber-700 dark:text-amber-300">বিবরণ</TableHead>
-                                    <TableHead className="text-amber-700 dark:text-amber-300">পরিমাণ</TableHead>
-                                    <TableHead className="text-amber-700 dark:text-amber-300">খরচের তারিখ</TableHead>
-                                    <TableHead className="text-amber-700 dark:text-amber-300">খরচ করেছেন</TableHead>
-                                    <TableHead className="text-right text-amber-700 dark:text-amber-300">একশন</TableHead>
+                                    <TableHead className="font-bold text-amber-700 dark:text-amber-300">বিবরণ</TableHead>
+                                    <TableHead className="font-bold text-amber-700 dark:text-amber-300">পরিমাণ</TableHead>
+                                    <TableHead className="font-bold text-amber-700 dark:text-amber-300">খরচের তারিখ</TableHead>
+                                    <TableHead className="font-bold text-amber-700 dark:text-amber-300">খরচ করেছেন</TableHead>
+                                    <TableHead className="text-right font-bold text-amber-700 dark:text-amber-300">একশন</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -981,17 +981,17 @@ function Cashbook() {
     return (
         <Card>
             <CardHeader>
-                <CardTitle className="text-amber-900 dark:text-amber-100">ক্যাশবুক</CardTitle>
+                <CardTitle className="font-bold text-amber-900 dark:text-amber-100">ক্যাশবুক</CardTitle>
             </CardHeader>
             <CardContent>
                 <Table>
                     <TableHeader>
                         <TableRow>
-                            <TableHead className="text-amber-700 dark:text-amber-300">তারিখ</TableHead>
-                            <TableHead className="text-amber-700 dark:text-amber-300">বিবরণ</TableHead>
-                            <TableHead className="text-right text-amber-700 dark:text-amber-300">আয় (৳)</TableHead>
-                            <TableHead className="text-right text-amber-700 dark:text-amber-300">ব্যয় (৳)</TableHead>
-                            <TableHead className="text-right text-amber-700 dark:text-amber-300">ব্যালেন্স (৳)</TableHead>
+                            <TableHead className="font-bold text-amber-700 dark:text-amber-300">তারিখ</TableHead>
+                            <TableHead className="font-bold text-amber-700 dark:text-amber-300">বিবরণ</TableHead>
+                            <TableHead className="text-right font-bold text-amber-700 dark:text-amber-300">আয় (৳)</TableHead>
+                            <TableHead className="text-right font-bold text-amber-700 dark:text-amber-300">ব্যয় (৳)</TableHead>
+                            <TableHead className="text-right font-bold text-amber-700 dark:text-amber-300">ব্যালেন্স (৳)</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -1064,7 +1064,7 @@ function LedgerBook() {
         <div className="space-y-6">
             <Card>
                 <CardHeader>
-                    <CardTitle className="text-amber-900 dark:text-amber-100">শিক্ষার্থী লেজার</CardTitle>
+                    <CardTitle className="font-bold text-amber-900 dark:text-amber-100">শিক্ষার্থী লেজার</CardTitle>
                 </CardHeader>
                 <CardContent>
                     <div className="flex flex-col sm:flex-row gap-4 items-end">
@@ -1103,7 +1103,7 @@ function LedgerBook() {
             {selectedStudent ? (
                  <Card>
                     <CardHeader>
-                        <CardTitle className="text-slate-900 dark:text-slate-100">লেজার: {selectedStudent.name}</CardTitle>
+                        <CardTitle className="font-bold text-slate-900 dark:text-slate-100">লেজার: {selectedStudent.name}</CardTitle>
                         <p className="text-sm text-slate-600 dark:text-slate-400">রোল: {selectedStudent.rollNumber}, শ্রেণি: {selectedStudent.classGrade}, মাসিক বেতন: ৳{selectedStudent.monthlyFee}</p>
                     </CardHeader>
                     <CardContent>
@@ -1111,10 +1111,10 @@ function LedgerBook() {
                             <Table>
                                 <TableHeader>
                                     <TableRow>
-                                        <TableHead className="text-slate-600 dark:text-slate-400">রসিদ নং</TableHead>
-                                        <TableHead className="text-slate-600 dark:text-slate-400">মাস</TableHead>
-                                        <TableHead className="text-slate-600 dark:text-slate-400">আদায়ের তারিখ</TableHead>
-                                        <TableHead className="text-right text-slate-600 dark:text-slate-400">পরিমাণ (৳)</TableHead>
+                                        <TableHead className="font-bold text-slate-600 dark:text-slate-400">রসিদ নং</TableHead>
+                                        <TableHead className="font-bold text-slate-600 dark:text-slate-400">মাস</TableHead>
+                                        <TableHead className="font-bold text-slate-600 dark:text-slate-400">আদায়ের তারিখ</TableHead>
+                                        <TableHead className="text-right font-bold text-slate-600 dark:text-slate-400">পরিমাণ (৳)</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -1172,7 +1172,7 @@ function Report() {
     return (
         <Card>
             <CardHeader>
-                <CardTitle className="text-amber-900 dark:text-amber-100">আয়-ব্যয় রিপোর্ট</CardTitle>
+                <CardTitle className="font-bold text-amber-900 dark:text-amber-100">আয়-ব্যয় রিপোর্ট</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
                 {(isLoadingPayments || isLoadingExpenses) ? (
@@ -1181,7 +1181,7 @@ function Report() {
                     <div className="grid gap-4 md:grid-cols-3">
                          <Card className="bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800">
                             <CardHeader>
-                                <CardTitle className="text-green-800 dark:text-green-300">মোট আয়</CardTitle>
+                                <CardTitle className="font-bold text-green-800 dark:text-green-300">মোট আয়</CardTitle>
                             </CardHeader>
                             <CardContent>
                                 <p className="text-3xl font-bold text-green-900 dark:text-green-200">৳{totalIncome}</p>
@@ -1189,7 +1189,7 @@ function Report() {
                          </Card>
                          <Card className="bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800">
                             <CardHeader>
-                                <CardTitle className="text-red-800 dark:text-red-300">মোট ব্যয়</CardTitle>
+                                <CardTitle className="font-bold text-red-800 dark:text-red-300">মোট ব্যয়</CardTitle>
                             </CardHeader>
                             <CardContent>
                                 <p className="text-3xl font-bold text-red-900 dark:text-red-200">৳{totalExpense}</p>
@@ -1197,7 +1197,7 @@ function Report() {
                          </Card>
                          <Card className={cn(netBalance >= 0 ? "bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800" : "bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800")}>
                             <CardHeader>
-                                <CardTitle className={cn(netBalance >= 0 ? "text-blue-800 dark:text-blue-300" : "text-orange-800 dark:text-orange-300")}>বর্তমান ব্যালেন্স</CardTitle>
+                                <CardTitle className={cn("font-bold", netBalance >= 0 ? "text-blue-800 dark:text-blue-300" : "text-orange-800 dark:text-orange-300")}>বর্তমান ব্যালেন্স</CardTitle>
                             </CardHeader>
                             <CardContent>
                                 <p className="text-3xl font-bold text-slate-800 dark:text-slate-200">৳{netBalance}</p>
@@ -1212,7 +1212,7 @@ function Report() {
 
 function AccountingPage() {
   return (
-    <div className="space-y-8 p-6 rounded-lg bg-amber-50 dark:bg-amber-950/30">
+    <div className="space-y-8 p-8 rounded-xl bg-amber-100/50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
       <div>
         <h1 className="text-3xl font-bold font-headline text-amber-800 dark:text-amber-200">হিসাবরক্ষণ</h1>
       </div>

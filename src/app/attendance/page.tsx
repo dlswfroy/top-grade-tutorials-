@@ -134,7 +134,7 @@ function TakeAttendance() {
   return (
       <Card>
         <CardHeader>
-          <CardTitle className="text-cyan-900 dark:text-cyan-100">নতুন হাজিরা নিন</CardTitle>
+          <CardTitle className="font-bold text-cyan-900 dark:text-cyan-100">নতুন হাজিরা নিন</CardTitle>
           <div className="flex flex-col sm:flex-row items-center gap-4 pt-4">
             <div className="w-full sm:w-auto flex-1 space-y-2">
                 <Label className="text-cyan-800 dark:text-cyan-300">শ্রেণি</Label>
@@ -179,7 +179,7 @@ function TakeAttendance() {
                 {isAttendanceAlreadySaved && (
                     <Alert className="mb-4">
                         <Info className="h-4 w-4" />
-                        <AlertTitle>হাজিরা সম্পন্ন</AlertTitle>
+                        <AlertTitle className="font-bold">হাজিরা সম্পন্ন</AlertTitle>
                         <AlertDescription>
                             এই শ্রেণি এবং তারিখের জন্য হাজিরা ইতিমধ্যে নেওয়া হয়েছে। আপনি প্রয়োজনে তথ্য পরিবর্তন করতে পারেন।
                         </AlertDescription>
@@ -188,9 +188,9 @@ function TakeAttendance() {
                 <Table>
                     <TableHeader>
                         <TableRow>
-                            <TableHead className="text-cyan-700 dark:text-cyan-300">রোল</TableHead>
-                            <TableHead className="text-cyan-700 dark:text-cyan-300">নাম</TableHead>
-                            <TableHead className="text-center text-cyan-700 dark:text-cyan-300">হাজিরা</TableHead>
+                            <TableHead className="font-bold text-cyan-700 dark:text-cyan-300">রোল</TableHead>
+                            <TableHead className="font-bold text-cyan-700 dark:text-cyan-300">নাম</TableHead>
+                            <TableHead className="text-center font-bold text-cyan-700 dark:text-cyan-300">হাজিরা</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -274,7 +274,7 @@ function AttendanceReport() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-cyan-900 dark:text-cyan-100">হাজিরার রিপোর্ট দেখুন</CardTitle>
+        <CardTitle className="font-bold text-cyan-900 dark:text-cyan-100">হাজিরার রিপোর্ট দেখুন</CardTitle>
         <div className="flex flex-col sm:flex-row items-center gap-4 pt-4">
           <div className="w-full sm:w-auto flex-1 space-y-2">
             <Label className="text-cyan-800 dark:text-cyan-300">শ্রেণি</Label>
@@ -313,7 +313,7 @@ function AttendanceReport() {
             <div className="mb-4 grid gap-4 md:grid-cols-3">
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-300">মোট শিক্ষার্থী</CardTitle>
+                        <CardTitle className="text-sm font-bold text-gray-600 dark:text-gray-300">মোট শিক্ষার্থী</CardTitle>
                         <Users className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
@@ -322,7 +322,7 @@ function AttendanceReport() {
                 </Card>
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-300">উপস্থিত</CardTitle>
+                        <CardTitle className="text-sm font-bold text-gray-600 dark:text-gray-300">উপস্থিত</CardTitle>
                         <UserCheck className="h-4 w-4 text-green-500" />
                     </CardHeader>
                     <CardContent>
@@ -331,7 +331,7 @@ function AttendanceReport() {
                 </Card>
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-300">অনুপস্থিত</CardTitle>
+                        <CardTitle className="text-sm font-bold text-gray-600 dark:text-gray-300">অনুপস্থিত</CardTitle>
                         <UserX className="h-4 w-4 text-red-500" />
                     </CardHeader>
                     <CardContent>
@@ -342,9 +342,9 @@ function AttendanceReport() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="text-cyan-700 dark:text-cyan-300">রোল</TableHead>
-                  <TableHead className="text-cyan-700 dark:text-cyan-300">নাম</TableHead>
-                  <TableHead className="text-center text-cyan-700 dark:text-cyan-300">স্ট্যাটাস</TableHead>
+                  <TableHead className="font-bold text-cyan-700 dark:text-cyan-300">রোল</TableHead>
+                  <TableHead className="font-bold text-cyan-700 dark:text-cyan-300">নাম</TableHead>
+                  <TableHead className="text-center font-bold text-cyan-700 dark:text-cyan-300">স্ট্যাটাস</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -382,7 +382,7 @@ function AttendanceReport() {
 
 export default function AttendancePageContainer() {
     return (
-        <div className="space-y-8 p-6 rounded-lg bg-cyan-50 dark:bg-cyan-950/30">
+        <div className="space-y-8 p-8 rounded-xl bg-cyan-100/50 dark:bg-cyan-900/20 border border-cyan-200 dark:border-cyan-800">
             <div>
                 <h1 className="text-3xl font-bold font-headline text-cyan-800 dark:text-cyan-200">হাজিরা খাতা</h1>
             </div>

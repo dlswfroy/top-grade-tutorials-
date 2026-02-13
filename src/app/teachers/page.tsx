@@ -228,7 +228,7 @@ function TeachersPage() {
   
 
   return (
-    <div className="space-y-8 p-6 rounded-lg bg-indigo-50 dark:bg-indigo-950/30">
+    <div className="space-y-8 p-8 rounded-xl bg-indigo-100/50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800">
       <div>
         <h1 className="text-3xl font-bold font-headline text-indigo-800 dark:text-indigo-200">শিক্ষক ম্যানেজমেন্ট</h1>
       </div>
@@ -259,7 +259,7 @@ function TeachersPage() {
               </DialogTrigger>
               <DialogContent className="sm:max-w-[425px]">
                 <DialogHeader>
-                  <DialogTitle className="text-slate-800 dark:text-slate-200">{editingTeacher ? 'শিক্ষকের তথ্য এডিট করুন' : 'নতুন শিক্ষক যোগ করুন'}</DialogTitle>
+                  <DialogTitle className="font-bold text-slate-800 dark:text-slate-200">{editingTeacher ? 'শিক্ষকের তথ্য এডিট করুন' : 'নতুন শিক্ষক যোগ করুন'}</DialogTitle>
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
                   {/* Form Inputs */}
@@ -310,12 +310,12 @@ function TeachersPage() {
                 <Table>
                     <TableHeader>
                     <TableRow>
-                        <TableHead className="text-indigo-700 dark:text-indigo-300">ছবি</TableHead>
-                        <TableHead className="text-indigo-700 dark:text-indigo-300">নাম</TableHead>
-                        <TableHead className="text-indigo-700 dark:text-indigo-300">বিষয়</TableHead>
-                        <TableHead className="text-indigo-700 dark:text-indigo-300">মোবাইল</TableHead>
-                        <TableHead className="text-indigo-700 dark:text-indigo-300">ইমেইল</TableHead>
-                        <TableHead className="text-center text-indigo-700 dark:text-indigo-300">একশন</TableHead>
+                        <TableHead className="font-bold text-indigo-700 dark:text-indigo-300">ছবি</TableHead>
+                        <TableHead className="font-bold text-indigo-700 dark:text-indigo-300">নাম</TableHead>
+                        <TableHead className="font-bold text-indigo-700 dark:text-indigo-300">বিষয়</TableHead>
+                        <TableHead className="font-bold text-indigo-700 dark:text-indigo-300">মোবাইল</TableHead>
+                        <TableHead className="font-bold text-indigo-700 dark:text-indigo-300">ইমেইল</TableHead>
+                        <TableHead className="text-center font-bold text-indigo-700 dark:text-indigo-300">একশন</TableHead>
                     </TableRow>
                     </TableHeader>
                     <TableBody>
