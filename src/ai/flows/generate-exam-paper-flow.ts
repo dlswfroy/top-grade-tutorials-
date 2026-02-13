@@ -30,9 +30,14 @@ export async function generateExamPaper(input: GenerateExamPaperInput): Promise<
   return generateExamPaperFlow(input);
 }
 
+// Internal schema for the prompt, extending the main input with a derived value.
+const PromptInputSchema = GenerateExamPaperInputSchema.extend({
+    questionTypeNameInBengali: z.string().describe('The type of the question in Bengali language (e.g., "সৃজনশীল" or "বহুনির্বাচনী").')
+});
+
 const prompt = ai.definePrompt({
   name: 'generateExamPaperPrompt',
-  input: {schema: GenerateExamPaperInputSchema},
+  input: {schema: PromptInputSchema},
   output: {schema: GenerateExamPaperOutputSchema},
   prompt: `আপনি একজন অভিজ্ঞ শিক্ষক এবং প্রশ্নপত্র প্রস্তুতকারক। আপনাকে একটি পরীক্ষার প্রশ্নপত্র তৈরি করতে হবে।
 নিম্নলিখিত তথ্য ব্যবহার করে একটি সম্পূর্ণ প্রশ্নপত্র তৈরি করুন:
@@ -40,13 +45,13 @@ const prompt = ai.definePrompt({
 শ্রেণি: {{{class}}}
 বিষয়: {{{subject}}}
 অধ্যায়/বিষয়বস্তু: {{{chapter}}}
-প্রশ্নের ধরণ: {{#if (eq questionType 'creative')}}সৃজনশীল{{else}}বহুনির্বাচনী{{/if}}
+প্রশ্নের ধরণ: {{{questionTypeNameInBengali}}}
 প্রশ্নের সংখ্যা: {{{numberOfQuestions}}}
 সময়: {{{timeLimit}}}
 পূর্ণমান: {{{totalMarks}}}
 
 প্রশ্নপত্রের শুরুতেই উপরে উল্লিখিত "শ্রেণি", "বিষয়", "সময়" এবং "পূর্ণমান" তথ্যগুলি পরিষ্কারভাবে উল্লেখ করুন।
-তারপর, {{#if (eq questionType 'creative')}}সৃজনশীল{{else}}বহুনির্বাচনী{{/if}} প্রশ্নগুলি ক্রমানুসারে তৈরি করুন।
+তারপর, {{{questionTypeNameInBengali}}} প্রশ্নগুলি ক্রমানুসারে তৈরি করুন।
 
 যদি প্রশ্নের ধরণ "সৃজনশীল" হয়:
 প্রতিটি সৃজনশীল প্রশ্ন একটি উদ্দীপক (যদি প্রয়োজন হয়) এবং কমপক্ষে ৩-৪টি উপ-প্রশ্ন (ক, খ, গ, ঘ) নিয়ে গঠিত হবে।
@@ -69,7 +74,16 @@ const generateExamPaperFlow = ai.defineFlow(
     outputSchema: GenerateExamPaperOutputSchema,
   },
   async input => {
-    const {output} = await prompt(input);
+    // Derive the Bengali name for the question type.
+    const questionTypeNameInBengali = input.questionType === 'creative' ? 'সৃজনশীল' : 'বহুনির্বাচনী';
+    
+    // Create the input object for the prompt, including the derived value.
+    const promptInput = {
+        ...input,
+        questionTypeNameInBengali,
+    };
+
+    const {output} = await prompt(promptInput);
     return output!;
   }
 );
