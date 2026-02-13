@@ -1,31 +1,5 @@
 {
   "entities": {
-    "UserRole": {
-      "title": "User Role",
-      "type": "object",
-      "description": "Defines the role of a user, which can be either 'admin' or 'teacher'.",
-      "properties": {
-        "role": {
-          "type": "string",
-          "enum": [
-            "admin",
-            "teacher"
-          ]
-        },
-        "email": {
-          "type": "string",
-          "format": "email"
-        },
-        "name": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "role",
-        "email",
-        "name"
-      ]
-    },
     "Student": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Student",
@@ -288,28 +262,10 @@
     }
   },
   "auth": {
-    "providers": [
-      "password"
-    ]
+    "providers": []
   },
   "firestore": {
     "structure": [
-      {
-        "path": "/user_roles/{userId}",
-        "definition": {
-          "entityName": "UserRole",
-          "schema": {
-            "$ref": "#/backend/entities/UserRole"
-          },
-          "description": "Stores the role for each user.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The user's unique ID."
-            }
-          ]
-        }
-      },
       {
         "path": "/students/{studentId}",
         "definition": {
@@ -409,3 +365,5 @@
     ]
   }
 }
+
+    

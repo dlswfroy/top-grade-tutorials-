@@ -3,7 +3,6 @@ import './globals.css';
 import { AppLayout } from '@/components/app-layout';
 import { Toaster } from '@/components/ui/toaster';
 import { FirebaseClientProvider } from '@/firebase/client-provider';
-import { AuthProvider } from '@/firebase/auth-provider';
 
 export const metadata: Metadata = {
   title: 'TopGrade Academy Manager',
@@ -27,12 +26,12 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased">
         <FirebaseClientProvider>
-          <AuthProvider>
             <AppLayout>{children}</AppLayout>
             <Toaster />
-          </AuthProvider>
         </FirebaseClientProvider>
       </body>
     </html>
   );
 }
+
+    

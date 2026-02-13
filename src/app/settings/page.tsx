@@ -11,29 +11,10 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Save, Loader2, Shield, Users } from 'lucide-react';
-import { useFirestore, useDoc, useMemoFirebase, useCollection } from '@/firebase';
-import { doc, setDoc, updateDoc } from 'firebase/firestore';
+import { Save, Loader2 } from 'lucide-react';
+import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { doc, setDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
-import { useUser } from '@/hooks/use-user';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { collection } from 'firebase/firestore';
-import { UserRole } from '@/lib/data';
 
 type InstitutionSettings = {
     institutionName?: string;
@@ -157,103 +138,15 @@ function InstitutionSettingsCard() {
     )
 }
 
-function UserManagementCard() {
-    const firestore = useFirestore();
-    const { toast } = useToast();
-
-    const usersQuery = useMemoFirebase(() => {
-        if (!firestore) return null;
-        return collection(firestore, 'user_roles');
-    }, [firestore]);
-
-    const { data: users, isLoading } = useCollection<UserRole>(usersQuery);
-
-    const handleRoleChange = async (userId: string, newRole: 'admin' | 'teacher') => {
-        if (!firestore) return;
-        try {
-            const userDocRef = doc(firestore, 'user_roles', userId);
-            await updateDoc(userDocRef, { role: newRole });
-            toast({ title: 'সফল', description: 'ব্যবহারকারীর ভূমিকা পরিবর্তন করা হয়েছে।' });
-        } catch (error: any) {
-            toast({ variant: 'destructive', title: 'ত্রুটি', description: `ভূমিকা পরিবর্তনে সমস্যা হয়েছে: ${error.message}` });
-        }
-    };
-
-    return (
-        <Card>
-            <CardHeader>
-                <CardTitle>ব্যবহারকারী ব্যবস্থাপনা</CardTitle>
-                <CardDescription>
-                    ব্যবহারকারীদের ভূমিকা নির্ধারণ করুন। এডমিনরা সকল কিছু পরিবর্তন করতে পারে।
-                </CardDescription>
-            </CardHeader>
-            <CardContent>
-                {isLoading ? (
-                    <div className="flex justify-center items-center h-40">
-                        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                    </div>
-                ) : (
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>নাম</TableHead>
-                                <TableHead>ইমেইল</TableHead>
-                                <TableHead className="w-[180px]">ভূমিকা</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {users?.map(user => (
-                                <TableRow key={user.id}>
-                                    <TableCell className="font-medium">{user.name}</TableCell>
-                                    <TableCell>{user.email}</TableCell>
-                                    <TableCell>
-                                        <Select
-                                            value={user.role}
-                                            onValueChange={(value: 'admin' | 'teacher') => handleRoleChange(user.id, value)}
-                                        >
-                                            <SelectTrigger>
-                                                <SelectValue />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="admin">এডমিন</SelectItem>
-                                                <SelectItem value="teacher">টিচার</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                    </TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                )}
-            </CardContent>
-        </Card>
-    );
-}
-
 function SettingsPage() {
-    const { role } = useUser();
-
-    if (role && role !== 'admin') {
-        return (
-            <Alert variant="destructive">
-                <Shield className="h-4 w-4" />
-                <AlertTitle>প্রবেশাধিকার নেই</AlertTitle>
-                <AlertDescription>
-                এই পেজটি দেখার জন্য আপনার অনুমতি নেই। শুধুমাত্র এডমিন এই পেজটি দেখতে পারবেন।
-                </AlertDescription>
-            </Alert>
-        );
-    }
-  
     return (
         <div className="space-y-8">
             <div>
                 <h1 className="text-3xl font-bold font-headline">সেটিংস</h1>
                 <p className="text-muted-foreground">
-                প্রতিষ্ঠানের সাধারণ তথ্য এবং ব্যবহারকারীদের ভূমিকা পরিচালনা করুন।
+                প্রতিষ্ঠানের সাধারণ তথ্য পরিচালনা করুন।
                 </p>
             </div>
-            <UserManagementCard />
             <InstitutionSettingsCard />
         </div>
     );
@@ -264,3 +157,5 @@ export default function SettingsPageContainer() {
         <SettingsPage />
     )
 }
+
+    

@@ -2,52 +2,13 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // --- Helper Functions ---
-    function isAuth() {
-      return request.auth != null;
+    // WARNING: These rules are completely open and do not provide any security.
+    // Any user can read, write, and delete any data in your database.
+    // This is not recommended for production applications.
+    match /{document=**} {
+      allow read, write: if true;
     }
-
-    function isOwner(userId) {
-      return isAuth() && request.auth.uid == userId;
-    }
-
-    // Function to check if the requesting user is an admin.
-    // This function reads the user's own role document.
-    function isAdmin() {
-      return isAuth() && get(/databases/$(database)/documents/user_roles/$(request.auth.uid)).data.role == 'admin';
-    }
-
-    // --- Rules ---
-
-    // user_roles collection
-    match /user_roles/{userId} {
-      // Allow any authenticated user to read roles. This is needed for the sign-up
-      // logic to check if an admin already exists. It's a safe trade-off for this app.
-      allow read: if isAuth();
-      
-      // A user can create their own role document during signup.
-      allow create: if isOwner(userId);
-
-      // Only admins can update roles.
-      allow update: if isAdmin();
-      
-      // Admins can delete users (roles).
-      allow delete: if isAdmin();
-    }
-    
-    // institution_settings collection
-    match /institution_settings/{settingsId} {
-      // Allow anyone (including unauthenticated users for the login page) to read the settings.
-      allow get, list: if true;
-      // Only admins can change settings.
-      allow write: if isAdmin();
-    }
-    
-    // All other collections are accessible by any authenticated user for simplicity.
-    match /students/{studentId} { allow read, write: if isAuth(); }
-    match /payments/{paymentId} { allow read, write: if isAuth(); }
-    match /expenses/{expenseId} { allow read, write: if isAuth(); }
-    match /attendance/{attendanceId} { allow read, write: if isAuth(); }
-    match /question_papers/{paperId} { allow read, write: if isAuth(); }
   }
 }
+
+    
