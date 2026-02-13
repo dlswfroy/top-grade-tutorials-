@@ -1,8 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
-import { useState, useMemo, useEffect } from 'react';
+import { usePathname } from 'next/navigation';
+import { useState, useMemo } from 'react';
 import {
   LayoutDashboard,
   Users,
@@ -73,7 +73,7 @@ function Logo({ settings, isLoading, className, iconClassName }: { settings: Ins
     );
 }
 
-export function AppLayout({ children }: { children: React.ReactNode }) {
+function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const firestore = useFirestore();
   const auth = useAuth();
@@ -178,4 +178,17 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           </main>
       </div>
   );
+}
+
+export function AppLayout({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+
+  // If we are on the login page, don't render the main app layout.
+  // This prevents trying to fetch app-wide data like settings before a user is authenticated.
+  if (pathname === '/login') {
+    return <>{children}</>;
+  }
+
+  // For all other pages, render the full authenticated layout.
+  return <AuthenticatedLayout>{children}</AuthenticatedLayout>;
 }
