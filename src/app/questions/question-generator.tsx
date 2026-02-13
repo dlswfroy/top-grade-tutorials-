@@ -1,6 +1,6 @@
 'use client';
 
-import { useFormState, useFormStatus } from 'react-dom';
+import { useFormStatus } from 'react-dom';
 import { handleGenerateExam } from './actions';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { classNames } from '@/lib/data';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { BrainCircuit, Loader2, Printer, X } from 'lucide-react';
-import { useEffect, useRef } from 'react';
+import { useActionState, useEffect, useRef } from 'react';
 
 const initialState = {
   message: '',
@@ -37,7 +37,7 @@ function SubmitButton() {
 }
 
 export function QuestionGenerator() {
-  const [state, formAction] = useFormState(handleGenerateExam, initialState);
+  const [state, formAction] = useActionState(handleGenerateExam, initialState);
   const formRef = useRef<HTMLFormElement>(null);
 
   useEffect(() => {
