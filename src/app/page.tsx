@@ -3,15 +3,23 @@ import { useMemo } from 'react';
 import {
   Card,
   CardContent,
+  CardDescription,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { Users, UserCheck, UserX, Loader2 } from 'lucide-react';
 import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
 import { collection, query, where } from 'firebase/firestore';
 import type { Student, Payment, Attendance } from '@/lib/data';
 import { format, parseISO, isThisMonth } from 'date-fns';
-import { bn } from 'date-fns/locale';
 
 export default function DashboardPage() {
   const firestore = useFirestore();
@@ -29,7 +37,7 @@ export default function DashboardPage() {
   }, [firestore, user]);
   const { data: payments, isLoading: isLoadingPayments } = useCollection<Payment>(paymentsQuery);
   
-  const today = format(new Date(), 'yyyy-MM-dd');
+  const today = useMemo(() => format(new Date(), 'yyyy-MM-dd'), []);
   const attendanceQuery = useMemoFirebase(() => {
       if (!firestore || !user) return null;
       return query(collection(firestore, 'attendance'), where('date', '==', today));
@@ -51,6 +59,12 @@ export default function DashboardPage() {
         .filter(p => isThisMonth(parseISO(p.paymentDate)))
         .reduce((sum, p) => sum + p.amount, 0);
   }, [payments]);
+
+  const absentStudentsList = useMemo(() => {
+    if (!todaysAttendance || !students) return [];
+    const absentIds = new Set(todaysAttendance.filter(a => a.status === 'absent').map(a => a.studentId));
+    return students.filter(s => absentIds.has(s.id));
+  }, [todaysAttendance, students]);
 
 
   return (
@@ -111,6 +125,45 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>আজকের অনুপস্থিত শিক্ষার্থী</CardTitle>
+          <CardDescription>
+            আজ যারা ক্লাসে অনুপস্থিত আছে তাদের তালিকা।
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {isLoadingAttendance || isLoadingStudents ? (
+            <div className="flex justify-center items-center h-40">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          ) : absentStudentsList.length === 0 ? (
+            <p className="text-muted-foreground text-center py-8">
+                আজ কোনো শিক্ষার্থী অনুপস্থিত নেই।
+            </p>
+          ) : (
+            <Table>
+                <TableHeader>
+                    <TableRow>
+                        <TableHead>রোল</TableHead>
+                        <TableHead>নাম</TableHead>
+                        <TableHead>শ্রেণি</TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {absentStudentsList.map((student) => (
+                        <TableRow key={student.id}>
+                            <TableCell>{student.rollNumber}</TableCell>
+                            <TableCell className="font-medium">{student.name}</TableCell>
+                            <TableCell>{student.classGrade}</TableCell>
+                        </TableRow>
+                    ))}
+                </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
