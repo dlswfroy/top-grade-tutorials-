@@ -78,9 +78,9 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const settingsRef = useMemoFirebase(() => {
-    if (!firestore) return null;
+    if (!firestore || !user) return null;
     return doc(firestore, 'institution_settings', 'default');
-  }, [firestore]);
+  }, [firestore, user]);
 
   const { data: settings, isLoading: isLoadingSettings } = useDoc<InstitutionSettings>(settingsRef);
   
