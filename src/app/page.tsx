@@ -9,7 +9,6 @@ import {
 import { Users, UserCheck, UserX, Loader2 } from 'lucide-react';
 import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
 import { collection, query, where } from 'firebase/firestore';
-import { DashboardChart } from './dashboard-chart';
 import type { Student, Payment, Attendance } from '@/lib/data';
 import { format, parseISO, isThisMonth } from 'date-fns';
 import { bn } from 'date-fns/locale';
@@ -26,7 +25,7 @@ export default function DashboardPage() {
 
   const paymentsQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
-    return collection(firestore, 'payments');
+    return query(collection(firestore, 'payments'));
   }, [firestore, user]);
   const { data: payments, isLoading: isLoadingPayments } = useCollection<Payment>(paymentsQuery);
   
@@ -112,15 +111,6 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
       </div>
-
-      <Card className="col-span-1 lg:col-span-2">
-        <CardHeader>
-          <CardTitle>শ্রেণিভিত্তিক শিক্ষার্থী</CardTitle>
-        </CardHeader>
-        <CardContent className="pl-2">
-          <DashboardChart students={students} isLoading={isLoadingStudents} />
-        </CardContent>
-      </Card>
     </div>
   );
 }
