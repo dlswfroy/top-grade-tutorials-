@@ -37,7 +37,7 @@ const PromptInputSchema = GenerateExamPaperInputSchema.extend({
 
 const prompt = ai.definePrompt({
   name: 'generateExamPaperPrompt',
-  model: 'googleai/gemini-pro',
+  model: 'gemini-pro',
   input: {schema: PromptInputSchema},
   output: {schema: GenerateExamPaperOutputSchema},
   prompt: `আপনি একজন অভিজ্ঞ শিক্ষক এবং প্রশ্নপত্র প্রস্তুতকারক। আপনাকে একটি পরীক্ষার প্রশ্নপত্র তৈরি করতে হবে।
