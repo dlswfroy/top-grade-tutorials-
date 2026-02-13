@@ -52,16 +52,16 @@ function Logo({ settings, isLoading, className, iconClassName, titleClassName }:
     return (
         <Link href="/" className={cn("flex items-center gap-4 ml-2", className)}>
             {isLoading ? (
-                <Loader2 className={cn("h-12 w-12 animate-spin", iconClassName || "text-inherit")} />
+                <Loader2 className={cn("h-14 w-14 animate-spin", iconClassName || "text-inherit")} />
             ) : logoUrl ? (
-                <div className="w-12 h-12 relative">
-                    <Avatar className="h-12 w-12">
+                <div className="w-14 h-14 relative">
+                    <Avatar className="h-14 w-14">
                         <AvatarImage src={logoUrl} alt={institutionName} className="object-cover" />
                         <AvatarFallback>{institutionName.charAt(0)}</AvatarFallback>
                     </Avatar>
                 </div>
             ) : (
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={cn("w-12 h-12", iconClassName || "text-inherit")}>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={cn("w-14 h-14", iconClassName || "text-inherit")}>
                   <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
                   <path d="M2 17l10 5 10-5"></path>
                   <path d="M2 12l10 5 10-5"></path>
@@ -133,7 +133,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   return (
       <div className="min-h-screen flex flex-col bg-muted/40">
           <header className="sticky top-0 z-40 w-full border-b border-primary-foreground/20 bg-primary text-primary-foreground">
-              <div className="container flex h-16 items-center">
+              <div className="container flex h-20 items-center">
                   <div className="md:hidden mr-4">
                     <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
                         <SheetTrigger asChild>
@@ -165,7 +165,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                   </div>
                   
                   <div className="hidden md:flex items-center">
-                     <Logo settings={settings} isLoading={isLoadingSettings} className="mr-6" iconClassName="text-inherit" titleClassName="text-yellow-300"/>
+                     <Logo settings={settings} isLoading={isLoadingSettings} className="mr-6" iconClassName="text-inherit" titleClassName="text-white"/>
                       <nav className="flex items-center space-x-6 text-sm font-medium">
                           {menuItems.map((item) => (
                               <Link
