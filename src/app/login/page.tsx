@@ -1,12 +1,13 @@
 'use client';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/firebase';
+import { useAuth, useFirestore } from '@/firebase';
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   updateProfile,
 } from 'firebase/auth';
+import { doc, setDoc } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -26,8 +27,10 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
+  const [mobileNumber, setMobileNumber] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const auth = useAuth();
+  const firestore = useFirestore();
   const router = useRouter();
   const { toast } = useToast();
 
@@ -38,13 +41,29 @@ export default function LoginPage() {
         await signInWithEmailAndPassword(auth, email, password);
         toast({ title: 'সফল', description: 'সফলভাবে লগইন করেছেন।' });
       } else {
-        if (!name) {
-            toast({ variant: 'destructive', title: 'ত্রুটি', description: 'অনুগ্রহ করে আপনার নাম দিন।' });
+        if (!name || !mobileNumber) {
+            toast({ variant: 'destructive', title: 'ত্রুটি', description: 'অনুগ্রহ করে আপনার নাম ও মোবাইল নম্বর দিন।' });
             setIsLoading(false);
             return;
         }
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-        await updateProfile(userCredential.user, { displayName: name });
+        const user = userCredential.user;
+        await updateProfile(user, { displayName: name });
+        
+        // Create teacher document in Firestore
+        const teacherRef = doc(firestore, 'teachers', user.uid);
+        await setDoc(teacherRef, {
+            name: name,
+            mobileNumber: mobileNumber,
+            imageUrl: `https://picsum.photos/seed/${user.uid}/200/200`,
+            imageHint: 'teacher person',
+            dateAdded: new Date().toISOString()
+        });
+
+        // Create role document for the teacher
+        const teacherRoleRef = doc(firestore, 'roles_teacher', user.uid);
+        await setDoc(teacherRoleRef, { active: true });
+
         toast({ title: 'সফল', description: 'আপনার একাউন্ট সফলভাবে তৈরি হয়েছে।' });
       }
       router.push('/');
@@ -137,6 +156,18 @@ export default function LoginPage() {
                   required
                   value={name}
                   onChange={(e) => setName(e.target.value)}
+                  disabled={isLoading}
+                />
+              </div>
+               <div className="space-y-2">
+                <Label htmlFor="mobile-signup">মোবাইল নম্বর</Label>
+                <Input
+                  id="mobile-signup"
+                  type="tel"
+                  placeholder="আপনার মোবাইল নম্বর"
+                  required
+                  value={mobileNumber}
+                  onChange={(e) => setMobileNumber(e.target.value)}
                   disabled={isLoading}
                 />
               </div>

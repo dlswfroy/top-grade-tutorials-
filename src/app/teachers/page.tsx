@@ -23,12 +23,11 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { type Teacher } from '@/lib/data';
-import { PlusCircle, MoreHorizontal, Pencil, Trash2, Loader2, Save } from 'lucide-react';
+import { MoreHorizontal, Pencil, Trash2, Loader2, Save } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   DropdownMenu,
@@ -37,7 +36,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useFirebaseApp, useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
-import { collection, doc, addDoc, updateDoc, deleteDoc, DocumentReference, DocumentData } from 'firebase/firestore';
+import { collection, doc, updateDoc, deleteDoc, DocumentReference, DocumentData } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { getStorage, ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 
@@ -55,7 +54,7 @@ export default function TeachersPage() {
   const { toast } = useToast();
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
-  const [formData, setFormData] = useState(defaultTeacherState);
+  const [formData, setFormData] = useState<Omit<Teacher, 'id' | 'dateAdded'>>(defaultTeacherState);
   const [editingTeacher, setEditingTeacher] = useState<Teacher | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -150,7 +149,14 @@ export default function TeachersPage() {
   };
 
   const handleSaveTeacher = async () => {
-    if (!firestore || !user) return;
+    if (!firestore || !user || !editingTeacher) {
+         toast({
+            variant: "destructive",
+            title: "ত্রুটি",
+            description: "সম্পাদনা করার জন্য কোনো শিক্ষক নির্বাচন করা হয়নি।",
+        });
+        return;
+    };
 
     if (!formData.name || !formData.mobileNumber) {
         toast({
@@ -164,28 +170,17 @@ export default function TeachersPage() {
     setIsSaving(true);
     
     try {
-        const teacherData = {
+        const teacherData: Partial<Teacher> = {
             ...formData,
             imageUrl: imagePreview || `https://picsum.photos/seed/${formData.mobileNumber}/200/200`,
-            imageHint: formData.imageHint || 'teacher person',
         };
         
-        if (editingTeacher) {
-            const teacherRef = doc(firestore, 'teachers', editingTeacher.id);
-            await updateDoc(teacherRef, teacherData);
-            toast({ title: "সফল", description: `${formData.name}-এর তথ্য আপডেট করা হয়েছে।` });
+        const teacherRef = doc(firestore, 'teachers', editingTeacher.id);
+        await updateDoc(teacherRef, teacherData);
+        toast({ title: "সফল", description: `${formData.name}-এর তথ্য আপডেট করা হয়েছে।` });
 
-            if (imageFile) {
-                uploadAndSaveUrl(imageFile, teacherRef);
-            }
-        } else {
-            const finalData = { ...teacherData, dateAdded: new Date().toISOString() };
-            const docRef = await addDoc(collection(firestore, 'teachers'), finalData);
-            toast({ title: "সফল", description: `${formData.name} কে শিক্ষক হিসেবে যোগ করা হয়েছে।` });
-            
-            if (imageFile) {
-                uploadAndSaveUrl(imageFile, docRef);
-            }
+        if (imageFile) {
+            uploadAndSaveUrl(imageFile, teacherRef);
         }
 
         handleCloseDialog();
@@ -212,7 +207,7 @@ export default function TeachersPage() {
     }
   };
 
-  const handleOpenDialog = (teacher: Teacher | null) => {
+  const handleOpenDialog = (teacher: Teacher) => {
     setEditingTeacher(teacher);
     setIsDialogOpen(true);
   }
@@ -233,7 +228,7 @@ export default function TeachersPage() {
       <div>
         <h1 className="text-3xl font-bold font-headline">শিক্ষক ম্যানেজমেন্ট</h1>
         <p className="text-muted-foreground">
-          নতুন শিক্ষক যোগ করুন এবং তাদের তথ্য দেখুন।
+          নিবন্ধিত শিক্ষকদের তথ্য দেখুন এবং সম্পাদনা করুন।
         </p>
       </div>
 
@@ -246,46 +241,6 @@ export default function TeachersPage() {
                 এখানে সকল নিবন্ধিত শিক্ষকের তালিকা দেখুন।
               </CardDescription>
             </div>
-            <Dialog open={isDialogOpen} onOpenChange={(open) => { if (!open) handleCloseDialog(); else setIsDialogOpen(true); }}>
-              <DialogTrigger asChild>
-                <Button onClick={() => handleOpenDialog(null)}>
-                  <PlusCircle className="mr-2 h-4 w-4" />
-                  নতুন শিক্ষক
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-[425px]">
-                <DialogHeader>
-                  <DialogTitle>{editingTeacher ? 'শিক্ষকের তথ্য এডিট করুন' : 'নতুন শিক্ষক যোগ করুন'}</DialogTitle>
-                </DialogHeader>
-                <div className="grid gap-4 py-4">
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="name" className="text-right">নাম</Label>
-                    <Input id="name" value={formData.name} onChange={handleInputChange} placeholder="শিক্ষকের নাম" className="col-span-3" disabled={isSaving} />
-                  </div>
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="mobileNumber" className="text-right">মোবাইল</Label>
-                    <Input id="mobileNumber" value={formData.mobileNumber} onChange={handleInputChange} placeholder="মোবাইল নম্বর" className="col-span-3" disabled={isSaving} />
-                  </div>
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="picture" className="text-right">ছবি</Label>
-                    <Input id="picture" type="file" accept="image/*" onChange={handleImageChange} className="col-span-3" disabled={isSaving} />
-                  </div>
-                  {imagePreview && (
-                    <div className="grid grid-cols-4 items-center gap-4">
-                      <div className="col-start-2 col-span-3">
-                        <Image src={imagePreview} alt="Image Preview" width={100} height={100} className="rounded-md object-cover" />
-                      </div>
-                    </div>
-                  )}
-                </div>
-                <DialogFooter>
-                    <Button onClick={handleSaveTeacher} disabled={isSaving} className="w-full">
-                        {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                        {isSaving ? 'সেভ হচ্ছে...' : 'সেভ করুন'}
-                    </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
           </div>
         </CardHeader>
         <CardContent>
@@ -294,50 +249,86 @@ export default function TeachersPage() {
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 </div>
             ) : (
-                <Table>
-                    <TableHeader>
-                    <TableRow>
-                        <TableHead>ছবি</TableHead>
-                        <TableHead>নাম</TableHead>
-                        <TableHead>মোবাইল নম্বর</TableHead>
-                        <TableHead className="text-center">একশন</TableHead>
-                    </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                    {teachers?.map((teacher) => (
-                        <TableRow key={teacher.id}>
-                        <TableCell>
-                            <Avatar>
-                            <AvatarImage src={teacher.imageUrl || `https://picsum.photos/seed/${teacher.mobileNumber}/200/200`} data-ai-hint={teacher.imageHint} alt={teacher.name} />
-                            <AvatarFallback>{teacher.name?.charAt(0)}</AvatarFallback>
-                            </Avatar>
-                        </TableCell>
-                        <TableCell className="font-medium">{teacher.name}</TableCell>
-                        <TableCell>{teacher.mobileNumber}</TableCell>
-                        <TableCell className="text-center">
-                            <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" className="h-8 w-8 p-0">
-                                <span className="sr-only">Open menu</span>
-                                <MoreHorizontal className="h-4 w-4" />
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={() => handleOpenDialog(teacher)}>
-                                <Pencil className="mr-2 h-4 w-4" />
-                                <span>এডিট</span>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem className="text-destructive" onClick={() => handleDeleteTeacher(teacher.id, teacher.name)}>
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                <span>ডিলিট</span>
-                                </DropdownMenuItem>
-                            </DropdownMenuContent>
-                            </DropdownMenu>
-                        </TableCell>
+                <>
+                    <Table>
+                        <TableHeader>
+                        <TableRow>
+                            <TableHead>ছবি</TableHead>
+                            <TableHead>নাম</TableHead>
+                            <TableHead>মোবাইল নম্বর</TableHead>
+                            <TableHead className="text-center">একশন</TableHead>
                         </TableRow>
-                    ))}
-                    </TableBody>
-                </Table>
+                        </TableHeader>
+                        <TableBody>
+                        {teachers?.map((teacher) => (
+                            <TableRow key={teacher.id}>
+                            <TableCell>
+                                <Avatar>
+                                <AvatarImage src={teacher.imageUrl || `https://picsum.photos/seed/${teacher.mobileNumber}/200/200`} data-ai-hint={teacher.imageHint} alt={teacher.name} />
+                                <AvatarFallback>{teacher.name?.charAt(0)}</AvatarFallback>
+                                </Avatar>
+                            </TableCell>
+                            <TableCell className="font-medium">{teacher.name}</TableCell>
+                            <TableCell>{teacher.mobileNumber}</TableCell>
+                            <TableCell className="text-center">
+                                <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" className="h-8 w-8 p-0">
+                                    <span className="sr-only">Open menu</span>
+                                    <MoreHorizontal className="h-4 w-4" />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                    <DropdownMenuItem onClick={() => handleOpenDialog(teacher)}>
+                                    <Pencil className="mr-2 h-4 w-4" />
+                                    <span>এডিট</span>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem className="text-destructive" onClick={() => handleDeleteTeacher(teacher.id, teacher.name)}>
+                                    <Trash2 className="mr-2 h-4 w-4" />
+                                    <span>ডিলিট</span>
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                                </DropdownMenu>
+                            </TableCell>
+                            </TableRow>
+                        ))}
+                        </TableBody>
+                    </Table>
+                     <Dialog open={isDialogOpen} onOpenChange={(open) => { if (!open) handleCloseDialog(); else setIsDialogOpen(true); }}>
+                        <DialogContent className="sm:max-w-[425px]">
+                            <DialogHeader>
+                            <DialogTitle>শিক্ষকের তথ্য এডিট করুন</DialogTitle>
+                            </DialogHeader>
+                            <div className="grid gap-4 py-4">
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor="name" className="text-right">নাম</Label>
+                                <Input id="name" value={formData.name} onChange={handleInputChange} placeholder="শিক্ষকের নাম" className="col-span-3" disabled={isSaving} />
+                            </div>
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor="mobileNumber" className="text-right">মোবাইল</Label>
+                                <Input id="mobileNumber" value={formData.mobileNumber} onChange={handleInputChange} placeholder="মোবাইল নম্বর" className="col-span-3" disabled={isSaving} />
+                            </div>
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor="picture" className="text-right">ছবি</Label>
+                                <Input id="picture" type="file" accept="image/*" onChange={handleImageChange} className="col-span-3" disabled={isSaving} />
+                            </div>
+                            {imagePreview && (
+                                <div className="grid grid-cols-4 items-center gap-4">
+                                <div className="col-start-2 col-span-3">
+                                    <Image src={imagePreview} alt="Image Preview" width={100} height={100} className="rounded-md object-cover" />
+                                </div>
+                                </div>
+                            )}
+                            </div>
+                            <DialogFooter>
+                                <Button onClick={handleSaveTeacher} disabled={isSaving} className="w-full">
+                                    {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                                    {isSaving ? 'সেভ হচ্ছে...' : 'সেভ করুন'}
+                                </Button>
+                            </DialogFooter>
+                        </DialogContent>
+                    </Dialog>
+                </>
             )}
         </CardContent>
       </Card>
