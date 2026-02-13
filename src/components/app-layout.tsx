@@ -13,6 +13,7 @@ import {
   CalendarCheck,
   Menu,
   GraduationCap,
+  Notebook,
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -28,6 +29,7 @@ const menuItems = [
   { href: '/accounting', label: 'হিসাব', icon: Calculator },
   { href: '/attendance', label: 'হাজিরা', icon: CalendarCheck },
   { href: '/questions', label: 'প্রশ্ন তৈরি', icon: BrainCircuit },
+  { href: '/class-9-math', label: 'নবম গণিত', icon: Notebook },
   { href: '/settings', label: 'সেটিংস', icon: Settings },
 ];
 
