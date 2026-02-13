@@ -1,6 +1,5 @@
 'use client';
 import { useState, useMemo, useEffect } from 'react';
-import Image from 'next/image';
 import {
   Card,
   CardContent,
@@ -37,9 +36,11 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useFirestore, useCollection, useMemoFirebase, useUser, useAuth } from '@/firebase';
-import { collection, doc, updateDoc, deleteDoc, setDoc } from 'firebase/firestore';
+import { collection, doc, updateDoc, deleteDoc, setDoc, writeBatch } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import { DEFAULT_TEACHER_PERMISSIONS } from '@/hooks/usePermissions';
+import { PermissionGuard } from '@/components/permission-guard';
 
 const defaultTeacherState: Omit<Teacher, 'id' | 'dateAdded'> = {
     name: '',
@@ -48,7 +49,7 @@ const defaultTeacherState: Omit<Teacher, 'id' | 'dateAdded'> = {
     imageHint: 'teacher person',
 };
 
-export default function TeachersPage() {
+function TeachersPage() {
   const firestore = useFirestore();
   const auth = useAuth();
   const { user } = useUser();
@@ -111,9 +112,8 @@ export default function TeachersPage() {
   const handleImageChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      if (file.size > 1048487) { // Approx 1MB
         try {
-          toast({ title: 'ছবি প্রসেস করা হচ্ছে...', description: 'বড় ছবি সংকুচিত করতে কয়েক মুহূর্ত সময় লাগতে পারে।' });
+          toast({ title: 'ছবি প্রসেস করা হচ্ছে...', description: 'ছবি সংকুচিত করতে কয়েক মুহূর্ত সময় লাগতে পারে।' });
           const compressedDataUrl = await compressImage(file);
           setImagePreview(compressedDataUrl);
           setFormData(prev => ({ ...prev, imageUrl: compressedDataUrl }));
@@ -122,18 +122,9 @@ export default function TeachersPage() {
           toast({
             variant: "destructive",
             title: "ত্রুটি",
-            description: "ছবিটি সংকুচিত করতে সমস্যা হয়েছে। অনুগ্রহ করে ১MB এর ছোট ফাইল আপলোড করুন।",
+            description: "ছবিটি সংকুচিত করতে সমস্যা হয়েছে। অনুগ্রহ করে একটি বৈধ ছবি ফাইল আপলোড করুন।",
           });
         }
-      } else {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          const base64String = reader.result as string;
-          setImagePreview(base64String);
-          setFormData(prev => ({ ...prev, imageUrl: base64String }));
-        };
-        reader.readAsDataURL(file);
-      }
     }
   };
 
@@ -177,6 +168,8 @@ export default function TeachersPage() {
             const newTeacherUser = userCredential.user;
             await updateProfile(newTeacherUser, { displayName: formData.name });
 
+            const batch = writeBatch(firestore);
+
             const teacherData = {
                 name: formData.name,
                 mobileNumber: formData.mobileNumber,
@@ -185,8 +178,11 @@ export default function TeachersPage() {
                 dateAdded: new Date().toISOString()
             };
 
-            await setDoc(doc(firestore, 'teachers', newTeacherUser.uid), teacherData);
-            await setDoc(doc(firestore, 'roles_teacher', newTeacherUser.uid), { active: true });
+            batch.set(doc(firestore, 'teachers', newTeacherUser.uid), teacherData);
+            batch.set(doc(firestore, 'roles_teacher', newTeacherUser.uid), { active: true });
+            batch.set(doc(firestore, 'teacher_permissions', newTeacherUser.uid), DEFAULT_TEACHER_PERMISSIONS);
+            
+            await batch.commit();
             
             toast({ title: "সফল", description: `${formData.name} কে শিক্ষক হিসেবে যোগ করা হয়েছে।` });
         }
@@ -222,8 +218,11 @@ export default function TeachersPage() {
     // TODO: Should also delete the user from Firebase Auth, which requires a server-side function.
     // For now, we just delete the Firestore documents.
     try {
-        await deleteDoc(doc(firestore, 'teachers', teacherId));
-        await deleteDoc(doc(firestore, 'roles_teacher', teacherId));
+        const batch = writeBatch(firestore);
+        batch.delete(doc(firestore, 'teachers', teacherId));
+        batch.delete(doc(firestore, 'roles_teacher', teacherId));
+        batch.delete(doc(firestore, 'teacher_permissions', teacherId));
+        await batch.commit();
         toast({ title: "সফল", description: `${teacherName} কে তালিকা থেকে মুছে ফেলা হয়েছে।` });
     } catch (error: any) {
         console.error("Error deleting teacher:", error);
@@ -361,7 +360,7 @@ export default function TeachersPage() {
                 {imagePreview && (
                     <div className="grid grid-cols-4 items-center gap-4">
                     <div className="col-start-2 col-span-3">
-                        <Image src={imagePreview} alt="Image Preview" width={100} height={100} className="rounded-md object-cover" />
+                        <img src={imagePreview} alt="Image Preview" width={100} height={100} className="rounded-md object-cover" />
                     </div>
                     </div>
                 )}
@@ -376,4 +375,12 @@ export default function TeachersPage() {
     </Dialog>
     </div>
   );
+}
+
+export default function TeachersPageContainer() {
+    return (
+        <PermissionGuard requiredPermission="canManageTeachers">
+            <TeachersPage />
+        </PermissionGuard>
+    )
 }

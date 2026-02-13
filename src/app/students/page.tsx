@@ -1,6 +1,5 @@
 'use client';
 import { useState, useMemo, useEffect } from 'react';
-import Image from 'next/image';
 import {
   Card,
   CardContent,
@@ -44,6 +43,7 @@ import {
 import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
 import { collection, doc, addDoc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
+import { PermissionGuard } from '@/components/permission-guard';
 
 const defaultStudentState: Omit<Student, 'id' | 'dateAdded'> = {
   name: '',
@@ -56,7 +56,7 @@ const defaultStudentState: Omit<Student, 'id' | 'dateAdded'> = {
   imageHint: 'student person',
 };
 
-export default function StudentsPage() {
+function StudentsPage() {
   const firestore = useFirestore();
   const { user } = useUser();
   const { toast } = useToast();
@@ -77,7 +77,7 @@ export default function StudentsPage() {
 
   const { data: students, isLoading } = useCollection<Student>(studentsQuery);
   
-    const compressImage = (file: File): Promise<string> => {
+  const compressImage = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.readAsDataURL(file);
@@ -132,9 +132,8 @@ export default function StudentsPage() {
   const handleImageChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      if (file.size > 1048487) { // Approx 1MB
         try {
-          toast({ title: 'ছবি প্রসেস করা হচ্ছে...', description: 'বড় ছবি সংকুচিত করতে কয়েক মুহূর্ত সময় লাগতে পারে।' });
+          toast({ title: 'ছবি প্রসেস করা হচ্ছে...', description: 'ছবি সংকুচিত করতে কয়েক মুহূর্ত সময় লাগতে পারে।' });
           const compressedDataUrl = await compressImage(file);
           setImagePreview(compressedDataUrl);
           setFormData(prev => ({ ...prev, imageUrl: compressedDataUrl }));
@@ -143,18 +142,9 @@ export default function StudentsPage() {
           toast({
             variant: "destructive",
             title: "ত্রুটি",
-            description: "ছবিটি সংকুচিত করতে সমস্যা হয়েছে। অনুগ্রহ করে ১MB এর ছোট ফাইল আপলোড করুন।",
+            description: "ছবিটি সংকুচিত করতে সমস্যা হয়েছে। অনুগ্রহ করে একটি বৈধ ছবি ফাইল আপলোড করুন।",
           });
         }
-      } else {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          const base64String = reader.result as string;
-          setImagePreview(base64String);
-          setFormData(prev => ({ ...prev, imageUrl: base64String }));
-        };
-        reader.readAsDataURL(file);
-      }
     }
   };
 
@@ -346,7 +336,7 @@ export default function StudentsPage() {
                   {imagePreview && (
                     <div className="grid grid-cols-4 items-center gap-4">
                       <div className="col-start-2 col-span-3">
-                        <Image src={imagePreview} alt="Image Preview" width={100} height={100} className="rounded-md object-cover" />
+                         <img src={imagePreview} alt="Image Preview" width={100} height={100} className="rounded-md object-cover" />
                       </div>
                     </div>
                   )}
@@ -424,4 +414,12 @@ export default function StudentsPage() {
       </Card>
     </div>
   );
+}
+
+export default function StudentsPageContainer() {
+    return (
+        <PermissionGuard requiredPermission="canManageStudents">
+            <StudentsPage />
+        </PermissionGuard>
+    )
 }

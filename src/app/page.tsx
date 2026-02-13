@@ -20,8 +20,9 @@ import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebas
 import { collection, query, where } from 'firebase/firestore';
 import type { Student, Payment, Attendance } from '@/lib/data';
 import { format, parseISO, isThisMonth } from 'date-fns';
+import { PermissionGuard } from '@/components/permission-guard';
 
-export default function DashboardPage() {
+function Dashboard() {
   const firestore = useFirestore();
   const { user } = useUser();
   
@@ -165,5 +166,13 @@ export default function DashboardPage() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+export default function DashboardPage() {
+  return (
+    <PermissionGuard requiredPermission="canViewDashboard">
+      <Dashboard />
+    </PermissionGuard>
   );
 }

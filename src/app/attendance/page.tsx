@@ -36,11 +36,12 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { PermissionGuard } from '@/components/permission-guard';
 
 
 type AttendanceStatus = 'present' | 'absent';
 
-export default function AttendancePage() {
+function AttendancePage() {
   const firestore = useFirestore();
   const { user } = useUser();
   const { toast } = useToast();
@@ -240,4 +241,12 @@ export default function AttendancePage() {
       </Card>
     </div>
   );
+}
+
+export default function AttendancePageContainer() {
+    return (
+        <PermissionGuard requiredPermission="canManageAttendance">
+            <AttendancePage />
+        </PermissionGuard>
+    )
 }

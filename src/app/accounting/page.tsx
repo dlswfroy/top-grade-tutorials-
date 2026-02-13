@@ -52,6 +52,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { PermissionGuard } from '@/components/permission-guard';
 
 const months = ['জানুয়ারি', 'ফেব্রুয়ারি', 'মার্চ', 'এপ্রিল', 'মে', 'জুন', 'জুলাই', 'আগস্ট', 'সেপ্টেম্বর', 'অক্টোবর', 'নভেম্বর', 'ডিসেম্বর'];
 
@@ -854,7 +855,7 @@ function Report() {
     );
 }
 
-export default function AccountingPage() {
+function AccountingPage() {
   return (
     <div className="space-y-8">
       <div>
@@ -884,4 +885,12 @@ export default function AccountingPage() {
       </Tabs>
     </div>
   );
+}
+
+export default function AccountingPageContainer() {
+    return (
+        <PermissionGuard requiredPermission="canManageAccounting">
+            <AccountingPage />
+        </PermissionGuard>
+    )
 }

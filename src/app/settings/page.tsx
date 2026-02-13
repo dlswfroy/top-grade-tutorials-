@@ -1,6 +1,5 @@
 'use client';
 import { useState, useEffect } from 'react';
-import Image from 'next/image';
 import {
   Card,
   CardContent,
@@ -16,13 +15,14 @@ import { Save, Loader2 } from 'lucide-react';
 import { useFirestore, useDoc, useMemoFirebase, useUser } from '@/firebase';
 import { doc, setDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
+import { PermissionGuard } from '@/components/permission-guard';
 
 type InstitutionSettings = {
     institutionName?: string;
     logoUrl?: string;
 };
 
-export default function SettingsPage() {
+function SettingsPage() {
   const firestore = useFirestore();
   const { user } = useUser();
   const { toast } = useToast();
@@ -91,25 +91,17 @@ export default function SettingsPage() {
   const handleLogoChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      if (file.size > 1048487) { 
-        try {
-          toast({ title: 'ছবি প্রসেস করা হচ্ছে...', description: 'বড় ছবি সংকুচিত করতে কয়েক মুহূর্ত সময় লাগতে পারে।' });
-          const compressedDataUrl = await compressImage(file);
-          setLogoUrl(compressedDataUrl);
-        } catch (error) {
-          console.error("Image compression failed:", error);
-          toast({
-            variant: "destructive",
-            title: "ত্রুটি",
-            description: "ছবিটি সংকুচিত করতে সমস্যা হয়েছে। অনুগ্রহ করে ১MB এর ছোট ফাইল আপলোড করুন।",
-          });
-        }
-      } else {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          setLogoUrl(reader.result as string);
-        };
-        reader.readAsDataURL(file);
+      try {
+        toast({ title: 'ছবি প্রসেস করা হচ্ছে...', description: 'ছবি সংকুচিত করতে কয়েক মুহূর্ত সময় লাগতে পারে।' });
+        const compressedDataUrl = await compressImage(file);
+        setLogoUrl(compressedDataUrl);
+      } catch (error) {
+        console.error("Image compression failed:", error);
+        toast({
+          variant: "destructive",
+          title: "ত্রুটি",
+          description: "ছবিটি সংকুচিত করতে সমস্যা হয়েছে। অনুগ্রহ করে একটি বৈধ ছবি ফাইল আপলোড করুন।",
+        });
       }
     }
   };
@@ -175,14 +167,14 @@ export default function SettingsPage() {
             <Label htmlFor="logo">প্রতিষ্ঠানের লোগো</Label>
             <div className="flex items-center gap-4">
               {logoUrl && (
-                <Image
-                  src={logoUrl}
-                  alt="Logo Preview"
-                  width={80}
-                  height={80}
-                  className="rounded-md border p-1 object-cover"
-                  data-ai-hint="education logo"
-                />
+                <div className="w-20 h-20 relative">
+                   <img
+                    src={logoUrl}
+                    alt="Logo Preview"
+                    className="rounded-md border p-1 object-cover w-full h-full"
+                    data-ai-hint="education logo"
+                    />
+                </div>
               )}
               <div className="flex-1">
                 <Input
@@ -206,4 +198,12 @@ export default function SettingsPage() {
       </Card>
     </div>
   );
+}
+
+export default function SettingsPageContainer() {
+    return (
+        <PermissionGuard requiredPermission="canManageSettings">
+            <SettingsPage />
+        </PermissionGuard>
+    )
 }

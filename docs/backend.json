@@ -263,12 +263,28 @@
         "recordedByTeacherId": { "type": "string" }
       },
       "required": ["id", "studentId", "classGrade", "date", "status"]
+    },
+    "TeacherPermissions": {
+      "title": "Teacher Permissions",
+      "type": "object",
+      "description": "Defines access control permissions for a teacher for different sections of the application.",
+      "properties": {
+        "id": { "type": "string" },
+        "canViewDashboard": { "type": "boolean", "description": "Access to Dashboard" },
+        "canManageStudents": { "type": "boolean", "description": "Access to Students Management" },
+        "canManageTeachers": { "type": "boolean", "description": "Access to Teachers Management" },
+        "canManageAccounting": { "type": "boolean", "description": "Access to Accounting" },
+        "canManageAttendance": { "type": "boolean", "description": "Access to Attendance" },
+        "canGenerateQuestions": { "type": "boolean", "description": "Access to Question Generator" },
+        "canManageSettings": { "type": "boolean", "description": "Access to Settings" },
+        "canManagePermissions": { "type": "boolean", "description": "Access to Permissions Management" }
+      },
+       "required": ["id"]
     }
   },
   "auth": {
     "providers": [
-      "password",
-      "anonymous"
+      "password"
     ]
   },
   "firestore": {
@@ -413,6 +429,20 @@
             {
               "name": "attendanceId",
               "description": "The unique identifier for the attendance record, typically studentId_YYYY-MM-DD."
+            }
+          ]
+        }
+      },
+       {
+        "path": "/teacher_permissions/{teacherId}",
+        "definition": {
+          "entityName": "TeacherPermissions",
+          "schema": { "$ref": "#/backend/entities/TeacherPermissions" },
+          "description": "Stores access control permissions for each teacher.",
+          "params": [
+            {
+              "name": "teacherId",
+              "description": "The UID of the teacher."
             }
           ]
         }

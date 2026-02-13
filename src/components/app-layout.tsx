@@ -3,7 +3,6 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useState, useMemo, useEffect } from 'react';
-import Image from 'next/image';
 import {
   LayoutDashboard,
   Users,
@@ -15,6 +14,8 @@ import {
   Loader2,
   CalendarCheck,
   Menu,
+  ShieldCheck,
+  AlertCircle,
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -31,15 +32,18 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { cn } from '@/lib/utils';
 import { signOut } from 'firebase/auth';
+import { usePermissions } from '@/hooks/usePermissions';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
-const menuItems = [
-  { href: '/', label: 'ড্যাসবোর্ড', icon: LayoutDashboard },
-  { href: '/students', label: 'শিক্ষার্থী', icon: Users },
-  { href: '/teachers', label: 'শিক্ষক', icon: Briefcase },
-  { href: '/accounting', label: 'হিসাব', icon: Calculator },
-  { href: '/attendance', label: 'হাজিরা', icon: CalendarCheck },
-  { href: '/questions', label: 'প্রশ্ন তৈরি', icon: BrainCircuit },
-  { href: '/settings', label: 'সেটিংস', icon: Settings },
+const allMenuItems = [
+  { href: '/', label: 'ড্যাসবোর্ড', icon: LayoutDashboard, permission: 'canViewDashboard' },
+  { href: '/students', label: 'শিক্ষার্থী', icon: Users, permission: 'canManageStudents' },
+  { href: '/teachers', label: 'শিক্ষক', icon: Briefcase, permission: 'canManageTeachers' },
+  { href: '/accounting', label: 'হিসাব', icon: Calculator, permission: 'canManageAccounting' },
+  { href: '/attendance', label: 'হাজিরা', icon: CalendarCheck, permission: 'canManageAttendance' },
+  { href: '/questions', label: 'প্রশ্ন তৈরি', icon: BrainCircuit, permission: 'canGenerateQuestions' },
+  { href: '/permissions', label: 'অনুমতি', icon: ShieldCheck, permission: 'canManagePermissions' },
+  { href: '/settings', label: 'সেটিংস', icon: Settings, permission: 'canManageSettings' },
 ];
 
 type InstitutionSettings = {
@@ -56,7 +60,12 @@ function Logo({ settings, isLoading, className, iconClassName }: { settings: Ins
             {isLoading ? (
                 <Loader2 className={cn("h-10 w-10 animate-spin", iconClassName || "text-primary")} />
             ) : logoUrl ? (
-                <Image src={logoUrl} alt={institutionName} width={40} height={40} className="rounded-md object-cover" />
+                <div className="w-10 h-10 relative">
+                    <Avatar className="h-10 w-10">
+                        <AvatarImage src={logoUrl} alt={institutionName} className="object-cover" />
+                        <AvatarFallback>{institutionName.charAt(0)}</AvatarFallback>
+                    </Avatar>
+                </div>
             ) : (
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={cn("w-10 h-10", iconClassName || "text-primary")}>
                   <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
@@ -76,6 +85,12 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const auth = useAuth();
   const firestore = useFirestore();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { permissions, isHeadTeacher } = usePermissions();
+
+  const menuItems = useMemo(() => {
+    if (!permissions) return [];
+    return allMenuItems.filter(item => permissions[item.permission as keyof typeof permissions]);
+  }, [permissions]);
 
   const settingsRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
@@ -145,6 +160,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                                         <p className="text-xs leading-none text-muted-foreground">
                                             {user?.email}
                                         </p>
+                                        {isHeadTeacher && <p className="text-xs leading-none text-primary font-semibold mt-1">প্রধান শিক্ষক</p>}
                                     </div>
                                 </DropdownMenuLabel>
                                 <DropdownMenuSeparator />
@@ -197,6 +213,15 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               </div>
           </header>
           <main className="flex-1 container p-4 sm:p-6 lg:p-8">
+              {!user.emailVerified && (
+                  <Alert variant="destructive" className="mb-6">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertTitle>ইমেইল যাচাইকরণ প্রয়োজন</AlertTitle>
+                      <AlertDescription>
+                          আপনার একাউন্টের সম্পূর্ণ সুবিধা পেতে অনুগ্রহ করে আপনার ইমেইল ঠিকানাটি যাচাই করুন। আপনার ইনবক্সে একটি ভেরিফিকেশন লিঙ্ক পাঠানো হয়েছে।
+                      </AlertDescription>
+                  </Alert>
+              )}
               {children}
           </main>
       </div>
