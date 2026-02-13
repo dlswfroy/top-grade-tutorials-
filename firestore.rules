@@ -12,8 +12,7 @@ service cloud.firestore {
     }
 
     // Function to check if the requesting user is an admin.
-    // This function reads the user's own role document, which is allowed
-    // by the 'isOwner' part of the rule on the user_roles collection.
+    // This function reads the user's own role document.
     function isAdmin() {
       return isAuth() && get(/databases/$(database)/documents/user_roles/$(request.auth.uid)).data.role == 'admin';
     }
@@ -22,13 +21,9 @@ service cloud.firestore {
 
     // user_roles collection
     match /user_roles/{userId} {
-      // A user can get their own document (breaking the circular dependency).
-      // An admin can get any document.
-      allow get: if isOwner(userId) || isAdmin();
-      
-      // Admins can list all roles for the settings page.
-      // Any authenticated user can list roles to check for admin existence on signup.
-      allow list: if isAuth();
+      // Allow any authenticated user to read roles. This is needed for the app to
+      // determine user permissions and for an admin to manage roles on the settings page.
+      allow read: if isAuth();
       
       // Only admins can update roles.
       allow update: if isAdmin();
