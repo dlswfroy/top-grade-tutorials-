@@ -14,7 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Save, Loader2 } from 'lucide-react';
 import { useFirebaseApp, useFirestore, useDoc, useMemoFirebase, useUser } from '@/firebase';
-import { doc, setDoc, updateDoc } from 'firebase/firestore';
+import { doc, setDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { getStorage, ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 
@@ -76,52 +76,53 @@ export default function SettingsPage() {
     setIsSaving(true);
     
     try {
-        const settingsData = {
+        let logoUrlToSave = settings?.logoUrl;
+        
+        if (logoFile) {
+            const { id: toastId, update } = toast({
+                title: "লোগো আপলোড হচ্ছে...",
+                description: "অনুগ্রহ করে অপেক্ষা করুন...",
+            });
+            
+            const storage = getStorage(firebaseApp);
+            const storageRef = ref(storage, `institution_assets/logo_${Date.now()}`);
+            const uploadTask = uploadBytesResumable(storageRef, logoFile);
+
+            await new Promise<void>((resolve, reject) => {
+                uploadTask.on('state_changed',
+                    (snapshot) => {
+                        const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                        update({ description: `${Math.round(progress)}% সম্পন্ন হয়েছে।` });
+                    },
+                    (error) => {
+                        console.error("Upload failed:", error);
+                        reject(error);
+                    },
+                    async () => {
+                        logoUrlToSave = await getDownloadURL(uploadTask.snapshot.ref);
+                        resolve();
+                    }
+                );
+            });
+             update({ title: 'আপলোড সফল', description: 'লোগো সফলভাবে আপলোড হয়েছে।' });
+             setTimeout(() => { toast({ id: toastId }).dismiss() }, 3000);
+        }
+        
+        const settingsData: { institutionName: string, lastUpdated: string, logoUrl?: string } = {
             institutionName: institutionName,
             lastUpdated: new Date().toISOString(),
         };
 
+        if (logoUrlToSave) {
+            settingsData.logoUrl = logoUrlToSave;
+        }
+
         await setDoc(settingsRef, settingsData, { merge: true });
+        
         toast({
             title: 'সফল',
             description: 'সেটিংস সফলভাবে সেভ করা হয়েছে।',
         });
-        
-        if (logoFile) {
-            const fileToUpload = logoFile;
-            const documentRef = settingsRef;
-
-            const { id: toastId, update, dismiss } = toast({
-                title: "লোগো আপলোড হচ্ছে...",
-                description: "শুরু হচ্ছে...",
-            });
-
-            const storage = getStorage(firebaseApp);
-            const storageRef = ref(storage, `institution_assets/logo_${Date.now()}`);
-            const uploadTask = uploadBytesResumable(storageRef, fileToUpload);
-
-            uploadTask.on('state_changed',
-                (snapshot) => {
-                    const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-                    update({ description: `${Math.round(progress)}% সম্পন্ন হয়েছে।` });
-                },
-                (error) => {
-                    console.error("Upload failed:", error);
-                    update({ variant: 'destructive', title: 'আপলোড ব্যর্থ', description: `লোগোটি আপলোড করা যায়নি।` });
-                },
-                async () => {
-                    try {
-                        const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-                        await updateDoc(documentRef, { logoUrl: downloadURL });
-                        update({ title: 'আপলোড সফল', description: 'লোগো সফলভাবে আপলোড হয়েছে।' });
-                        setTimeout(() => dismiss(toastId), 3000);
-                    } catch (error) {
-                        console.error('Failed to get download URL or update doc:', error);
-                        update({ variant: 'destructive', title: 'আপডেট ব্যর্থ', description: `লোগো আপলোড হলেও তথ্য আপডেট করা যায়নি।` });
-                    }
-                }
-            );
-        }
         
         setLogoFile(null);
 
