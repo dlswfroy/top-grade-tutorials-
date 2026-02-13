@@ -28,8 +28,6 @@ const menuItems = [
   { href: '/teachers', label: 'শিক্ষক', icon: GraduationCap },
   { href: '/accounting', label: 'হিসাব', icon: Calculator },
   { href: '/attendance', label: 'হাজিরা', icon: CalendarCheck },
-  { href: '/questions', label: 'প্রশ্ন তৈরি', icon: BrainCircuit },
-  { href: '/class-9-math', label: 'নবম গণিত', icon: Notebook },
   { href: '/settings', label: 'সেটিংস', icon: Settings },
 ];
 
