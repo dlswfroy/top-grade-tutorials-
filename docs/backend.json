@@ -100,7 +100,9 @@
             "id": { "type": "string" },
             "email": { "type": "string", "format": "email"},
             "name": { "type": "string" },
-            "role": { "type": "string", "enum": ["admin", "teacher"] }
+            "role": { "type": "string", "enum": ["admin", "teacher"] },
+            "imageUrl": { "type": "string", "format": "uri" },
+            "imageHint": { "type": "string" }
         },
         "required": ["email", "name", "role"]
     },

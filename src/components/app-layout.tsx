@@ -30,6 +30,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
+import type { UserRole } from '@/lib/data';
 
 const menuItems = [
   { href: '/', label: 'ড্যাসবোর্ড', icon: LayoutDashboard },
@@ -46,7 +47,7 @@ type InstitutionSettings = {
 };
 
 function Logo({ settings, isLoading, className, iconClassName, titleClassName }: { settings: InstitutionSettings | null, isLoading: boolean, className?: string, iconClassName?: string, titleClassName?: string }) {
-    const institutionName = settings?.institutionName || 'টপ গ্রেড টিউটোরিয়ালস';
+    const institutionName = settings?.institutionName || 'Top Grade Tutorials';
     const logoUrl = settings?.logoUrl;
 
     return (
@@ -67,7 +68,7 @@ function Logo({ settings, isLoading, className, iconClassName, titleClassName }:
                   <path d="M2 12l10 5 10-5"></path>
                 </svg>
             )}
-            <h1 className={cn("text-3xl font-headline font-bold text-white", titleClassName || 'text-inherit')}>{institutionName}</h1>
+            <h1 className={cn("text-3xl font-headline font-bold", titleClassName || 'text-white')}>{institutionName}</h1>
         </Link>
     );
 }
@@ -102,6 +103,12 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   }, [firestore]);
   
   const { data: settings, isLoading: isLoadingSettings } = useDoc<InstitutionSettings>(settingsRef);
+  
+  const userRoleRef = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return doc(firestore, 'user_roles', user.uid);
+  }, [firestore, user]);
+  const { data: userRole } = useDoc<UserRole>(userRoleRef);
   
   const handleLogout = async () => {
     try {
@@ -161,7 +168,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                   </div>
                   
                   <div className="hidden md:flex items-center">
-                     <Logo settings={settings} isLoading={isLoadingSettings} className="mr-6" iconClassName="text-inherit" titleClassName="text-white"/>
+                     <Logo settings={settings} isLoading={isLoadingSettings} className="mr-6" />
                       <nav className="flex items-center space-x-6 text-sm font-medium">
                           {menuItems.map((item) => (
                               <Link
@@ -184,7 +191,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                             <DropdownMenuTrigger asChild>
                                 <Button variant="ghost" className="relative h-10 w-10 rounded-full hover:bg-primary/90 focus-visible:ring-primary-foreground">
                                     <Avatar className="h-10 w-10">
-                                        <AvatarImage src={user.photoURL || `https://i.pravatar.cc/150?u=${user.uid}`} alt={user.displayName || 'User'} />
+                                        <AvatarImage src={userRole?.imageUrl || user.photoURL || `https://i.pravatar.cc/150?u=${user.uid}`} alt={user.displayName || 'User'} />
                                         <AvatarFallback>{user.displayName?.charAt(0) || user.email?.charAt(0)}</AvatarFallback>
                                     </Avatar>
                                 </Button>

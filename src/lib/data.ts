@@ -53,6 +53,8 @@ export type UserRole = {
   email: string;
   name: string;
   role: 'admin' | 'teacher';
+  imageUrl?: string;
+  imageHint?: string;
 };
 
 

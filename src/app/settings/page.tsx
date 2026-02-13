@@ -17,6 +17,7 @@ import { doc, setDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { onAuthStateChanged, updateProfile, type User } from 'firebase/auth';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import type { UserRole } from '@/lib/data';
 
 type InstitutionSettings = {
     institutionName?: string;
@@ -65,22 +66,40 @@ const compressImage = (file: File): Promise<string> => {
 
 function UserProfileCard() {
     const auth = useAuth();
+    const firestore = useFirestore();
     const { toast } = useToast();
     const [user, setUser] = useState<User | null>(null);
     const [isSaving, setIsSaving] = useState(false);
     const [imagePreview, setImagePreview] = useState<string | null>(null);
     const [name, setName] = useState('');
 
+    const userRoleRef = useMemoFirebase(() => {
+        if (!firestore || !user) return null;
+        return doc(firestore, 'user_roles', user.uid);
+    }, [firestore, user]);
+
+    const { data: userRole, isLoading: isLoadingUserRole } = useDoc<UserRole>(userRoleRef);
+
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
             setUser(currentUser);
             if (currentUser) {
                 setName(currentUser.displayName || '');
-                setImagePreview(currentUser.photoURL || null);
             }
         });
         return () => unsubscribe();
     }, [auth]);
+
+    useEffect(() => {
+        if (userRole) {
+            if (userRole.imageUrl) {
+                setImagePreview(userRole.imageUrl);
+            }
+        } else if (user) {
+            setImagePreview(user.photoURL);
+        }
+    }, [userRole, user]);
+
 
     const handleImageChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
@@ -101,14 +120,23 @@ function UserProfileCard() {
     };
 
     const handleSave = async () => {
-        if (!user) return;
+        if (!user || !userRoleRef) return;
         setIsSaving(true);
         try {
-            await updateProfile(user, {
-                displayName: name,
-                photoURL: imagePreview,
-            });
-            await user.getIdToken(true);
+            // Update display name in Auth
+            if(user.displayName !== name) {
+                await updateProfile(user, { displayName: name });
+            }
+
+            // Update user role document in Firestore
+            const userData: Partial<UserRole> = {
+                name: name,
+                imageUrl: imagePreview || '',
+                imageHint: 'person face'
+            }
+            await setDoc(userRoleRef, userData, { merge: true });
+
+            await user.getIdToken(true); // force refresh token
             toast({ title: 'সফল', description: 'আপনার প্রোফাইল সফলভাবে আপডেট করা হয়েছে।' });
         } catch (error: any) {
             toast({
@@ -120,6 +148,8 @@ function UserProfileCard() {
             setIsSaving(false);
         }
     };
+
+    const isLoading = isSaving || isLoadingUserRole;
 
     return (
         <Card>
@@ -133,7 +163,7 @@ function UserProfileCard() {
                         id="user-name"
                         value={name}
                         onChange={(e) => setName(e.target.value)}
-                        disabled={isSaving || !user}
+                        disabled={isLoading || !user}
                     />
                 </div>
                 <div className="space-y-2">
@@ -142,7 +172,7 @@ function UserProfileCard() {
                         <Avatar className="h-20 w-20">
                             <AvatarImage src={imagePreview || undefined} />
                             <AvatarFallback>
-                                <UserIcon className="h-10 w-10 text-slate-400" />
+                                {isLoading ? <Loader2 className="animate-spin" /> : <UserIcon className="h-10 w-10 text-slate-400" />}
                             </AvatarFallback>
                         </Avatar>
                         <div className="flex-1">
@@ -152,16 +182,16 @@ function UserProfileCard() {
                                 accept="image/*"
                                 onChange={handleImageChange}
                                 className="max-w-xs"
-                                disabled={isSaving || !user}
+                                disabled={isLoading || !user}
                             />
                         </div>
                     </div>
                 </div>
             </CardContent>
             <CardFooter>
-                <Button onClick={handleSave} disabled={isSaving || !user}>
-                    {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                    {isSaving ? 'সেভ হচ্ছে...' : 'প্রোফাইল সেভ করুন'}
+                <Button onClick={handleSave} disabled={isLoading || !user}>
+                    {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                    {isLoading ? 'সেভ হচ্ছে...' : 'প্রোফাইল সেভ করুন'}
                 </Button>
             </CardFooter>
         </Card>
@@ -279,8 +309,8 @@ function InstitutionSettingsCard() {
             </CardContent>
             <CardFooter>
                 <Button onClick={handleSave} disabled={isSaving || isLoading}>
-                    {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                    {isSaving ? 'সেভ হচ্ছে...' : 'সেভ করুন'}
+                    {isSaving || isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                    {isSaving || isLoading ? 'সেভ হচ্ছে...' : 'সেভ করুন'}
                 </Button>
             </CardFooter>
         </Card>
