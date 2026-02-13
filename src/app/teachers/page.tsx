@@ -68,16 +68,72 @@ export default function TeachersPage() {
 
   const { data: teachers, isLoading } = useCollection<Teacher>(teachersQuery);
 
-  const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const compressImage = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = (event) => {
+            const img = new Image();
+            img.src = event.target?.result as string;
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                const MAX_WIDTH = 512;
+                const MAX_HEIGHT = 512;
+                let width = img.width;
+                let height = img.height;
+
+                if (width > height) {
+                    if (width > MAX_WIDTH) {
+                        height *= MAX_WIDTH / width;
+                        width = MAX_WIDTH;
+                    }
+                } else {
+                    if (height > MAX_HEIGHT) {
+                        width *= MAX_HEIGHT / height;
+                        height = MAX_HEIGHT;
+                    }
+                }
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                 if (!ctx) {
+                    return reject(new Error('Could not get canvas context'));
+                }
+                ctx.drawImage(img, 0, 0, width, height);
+                resolve(canvas.toDataURL('image/jpeg', 0.9)); // Adjust quality
+            };
+            img.onerror = error => reject(error);
+        };
+        reader.onerror = error => reject(error);
+    });
+  };
+
+  const handleImageChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const base64String = reader.result as string;
-        setImagePreview(base64String);
-        setFormData(prev => ({ ...prev, imageUrl: base64String }));
-      };
-      reader.readAsDataURL(file);
+      if (file.size > 1000000) { // Approx 1MB
+        try {
+          toast({ title: 'ছবি প্রসেস করা হচ্ছে...', description: 'বড় ছবি সংকুচিত করতে কয়েক মুহূর্ত সময় লাগতে পারে।' });
+          const compressedDataUrl = await compressImage(file);
+          setImagePreview(compressedDataUrl);
+          setFormData(prev => ({ ...prev, imageUrl: compressedDataUrl }));
+        } catch (error) {
+          console.error("Image compression failed:", error);
+          toast({
+            variant: "destructive",
+            title: "ত্রুটি",
+            description: "ছবিটি সংকুচিত করতে সমস্যা হয়েছে। অনুগ্রহ করে ১MB এর ছোট ফাইল আপলোড করুন।",
+          });
+        }
+      } else {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const base64String = reader.result as string;
+          setImagePreview(base64String);
+          setFormData(prev => ({ ...prev, imageUrl: base64String }));
+        };
+        reader.readAsDataURL(file);
+      }
     }
   };
 
@@ -237,7 +293,7 @@ export default function TeachersPage() {
                             <TableRow key={teacher.id}>
                             <TableCell>
                                 <Avatar>
-                                <AvatarImage src={teacher.imageUrl || `https://picsum.photos/seed/${teacher.mobileNumber}/200/200`} data-ai-hint={teacher.imageHint} alt={teacher.name} />
+                                <AvatarImage src={teacher.imageUrl} data-ai-hint={teacher.imageHint} alt={teacher.name} />
                                 <AvatarFallback>{teacher.name?.charAt(0)}</AvatarFallback>
                                 </Avatar>
                             </TableCell>
