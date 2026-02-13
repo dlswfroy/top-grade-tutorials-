@@ -69,15 +69,21 @@ export async function handleGenerateExam(
     console.error(error);
     let errorMessage = 'একটি অপ্রত্যাশিত ত্রুটি ঘটেছে। অনুগ্রহ করে আবার চেষ্টা করুন।';
     
-    if (error.message) {
-        if (error.message.includes('API_KEY_INVALID') || error.message.includes('API key not found') || error.message.includes('authentication')) {
+    // Convert error to string to catch more details from various error structures
+    const errorString = (error instanceof Error ? error.message : JSON.stringify(error));
+
+    if (errorString) {
+        if (errorString.includes('API_KEY_INVALID') || errorString.includes('API key not found') || errorString.includes('authentication')) {
             errorMessage = 'AI সংযোগের জন্য API কী সেট করা নেই অথবা ভুল। অনুগ্রহ করে আপনার .env ফাইলে একটি সঠিক GEMINI_API_KEY যোগ করুন। একটি কী পেতে, এখানে যান: https://aistudio.google.com/app/apikey';
-        } else if (error.message.includes('SAFETY')) {
+        } else if (errorString.includes('SAFETY')) {
             errorMessage = 'নিরাপত্তাজনিত কারণে AI কন্টেন্ট তৈরি করতে পারেনি। এটি হতে পারে যদি প্রশ্নটি কোনো সংবেদনশীল বিষয় নিয়ে হয়। অনুগ্রহ করে আপনার ইনপুট পরিবর্তন করে আবার চেষ্টা করুন।';
-        } else if (error.message.includes('429')) {
-             errorMessage = 'আপনি খুব অল্প সময়ে অনেকগুলো অনুরোধ করেছেন। অনুগ্রহ করে কিছুক্ষণ পর আবার চেষ্টা করুন।';
-        } else if (error.message.includes('output is not valid') || error.message.includes('failed to generate a valid question paper')) {
+        } else if (errorString.includes('429') || errorString.includes('RESOURCE_EXHAUSTED')) {
+             errorMessage = 'আপনি খুব অল্প সময়ে অনেকগুলো অনুরোধ করেছেন অথবা আপনার কোটা শেষ হয়ে গেছে। অনুগ্রহ করে কিছুক্ষণ পর আবার চেষ্টা করুন।';
+        } else if (errorString.includes('output is not valid') || errorString.includes('failed to generate a valid question paper')) {
             errorMessage = 'AI একটি অপ্রত্যাশিত ফরম্যাটে উত্তর দিয়েছে। অনুগ্রহ করে আপনার ইনপুট পরিবর্তন করে আবার চেষ্টা করুন অথবা কিছুক্ষণ পর আবার চেষ্টা করুন।';
+        } else {
+            // If no specific keyword is found, show the raw error for better debugging.
+            errorMessage = `একটি প্রযুক্তিগত ত্রুটি ঘটেছে: ${errorString}`;
         }
     }
     
