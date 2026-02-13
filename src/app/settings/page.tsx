@@ -11,15 +11,163 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Save, Loader2 } from 'lucide-react';
-import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { Save, Loader2, User as UserIcon } from 'lucide-react';
+import { useFirestore, useDoc, useMemoFirebase, useAuth } from '@/firebase';
 import { doc, setDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
+import { onAuthStateChanged, updateProfile, type User } from 'firebase/auth';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 type InstitutionSettings = {
     institutionName?: string;
     logoUrl?: string;
 };
+
+const compressImage = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = (event) => {
+            const img = new window.Image();
+            img.src = event.target?.result as string;
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                const MAX_WIDTH = 256;
+                const MAX_HEIGHT = 256;
+                let width = img.width;
+                let height = img.height;
+
+                if (width > height) {
+                    if (width > MAX_WIDTH) {
+                        height *= MAX_WIDTH / width;
+                        width = MAX_WIDTH;
+                    }
+                } else {
+                    if (height > MAX_HEIGHT) {
+                        width *= MAX_HEIGHT / height;
+                        height = MAX_HEIGHT;
+                    }
+                }
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                 if (!ctx) {
+                    return reject(new Error('Could not get canvas context'));
+                }
+                ctx.drawImage(img, 0, 0, width, height);
+                resolve(canvas.toDataURL('image/jpeg', 0.9));
+            };
+            img.onerror = error => reject(error);
+        };
+        reader.onerror = error => reject(error);
+    });
+};
+
+function UserProfileCard() {
+    const auth = useAuth();
+    const { toast } = useToast();
+    const [user, setUser] = useState<User | null>(null);
+    const [isSaving, setIsSaving] = useState(false);
+    const [imagePreview, setImagePreview] = useState<string | null>(null);
+    const [name, setName] = useState('');
+
+    useEffect(() => {
+        const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+            setUser(currentUser);
+            if (currentUser) {
+                setName(currentUser.displayName || '');
+                setImagePreview(currentUser.photoURL || null);
+            }
+        });
+        return () => unsubscribe();
+    }, [auth]);
+
+    const handleImageChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (file) {
+            try {
+              toast({ title: 'ছবি প্রসেস করা হচ্ছে...', description: 'ছবি সংকুচিত করতে কয়েক মুহূর্ত সময় লাগতে পারে।' });
+              const compressedDataUrl = await compressImage(file);
+              setImagePreview(compressedDataUrl);
+            } catch (error) {
+              console.error("Image compression failed:", error);
+              toast({
+                variant: "destructive",
+                title: "ত্রুটি",
+                description: "ছবিটি সংকুচিত করতে সমস্যা হয়েছে। অনুগ্রহ করে একটি বৈধ ছবি ফাইল আপলোড করুন।",
+              });
+            }
+        }
+    };
+
+    const handleSave = async () => {
+        if (!user) return;
+        setIsSaving(true);
+        try {
+            await updateProfile(user, {
+                displayName: name,
+                photoURL: imagePreview,
+            });
+            await user.getIdToken(true);
+            toast({ title: 'সফল', description: 'আপনার প্রোফাইল সফলভাবে আপডেট করা হয়েছে।' });
+        } catch (error: any) {
+            toast({
+                variant: "destructive",
+                title: "ত্রুটি",
+                description: `প্রোফাইল আপডেট করতে সমস্যা হয়েছে: ${error.message}`,
+            });
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle className="font-bold text-slate-900 dark:text-slate-100">ব্যবহারকারীর প্রোফাইল</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+                <div className="space-y-2">
+                    <Label htmlFor="user-name" className="text-slate-700 dark:text-slate-300">আপনার নাম</Label>
+                    <Input
+                        id="user-name"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        disabled={isSaving || !user}
+                    />
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="photo" className="text-slate-700 dark:text-slate-300">প্রোফাইল ছবি</Label>
+                    <div className="flex items-center gap-4">
+                        <Avatar className="h-20 w-20">
+                            <AvatarImage src={imagePreview || undefined} />
+                            <AvatarFallback>
+                                <UserIcon className="h-10 w-10 text-slate-400" />
+                            </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1">
+                            <Input
+                                id="photo"
+                                type="file"
+                                accept="image/*"
+                                onChange={handleImageChange}
+                                className="max-w-xs"
+                                disabled={isSaving || !user}
+                            />
+                        </div>
+                    </div>
+                </div>
+            </CardContent>
+            <CardFooter>
+                <Button onClick={handleSave} disabled={isSaving || !user}>
+                    {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                    {isSaving ? 'সেভ হচ্ছে...' : 'প্রোফাইল সেভ করুন'}
+                </Button>
+            </CardFooter>
+        </Card>
+    );
+}
+
 
 function InstitutionSettingsCard() {
     const firestore = useFirestore();
@@ -51,7 +199,6 @@ function InstitutionSettingsCard() {
         if (file) {
             const reader = new FileReader();
             reader.onloadend = () => {
-                // Ensure the result is a string before setting it
                 if (typeof reader.result === 'string') {
                     setLogoUrl(reader.result);
                 }
@@ -88,7 +235,7 @@ function InstitutionSettingsCard() {
     return (
         <Card>
             <CardHeader>
-                <CardTitle className="text-slate-900 dark:text-slate-100">প্রতিষ্ঠানের তথ্য</CardTitle>
+                <CardTitle className="font-bold text-slate-900 dark:text-slate-100">প্রতিষ্ঠানের তথ্য</CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
                 <div className="space-y-2">
@@ -141,7 +288,10 @@ function SettingsPage() {
             <div>
                 <h1 className="text-3xl font-bold font-headline text-slate-800 dark:text-slate-200">সেটিংস</h1>
             </div>
-            <InstitutionSettingsCard />
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+                 <InstitutionSettingsCard />
+                 <UserProfileCard />
+            </div>
         </div>
     );
 }
