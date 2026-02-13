@@ -11,19 +11,10 @@ export type Student = {
   dateAdded: string;
 };
 
-export type Teacher = {
-  id: string;
-  name: string;
-  mobileNumber: string;
-  imageUrl?: string;
-  imageHint?: string;
-  dateAdded: string;
-};
-
 export type Payment = {
   id: string;
   studentId: string;
-  teacherId: string;
+  collectorName: string;
   amount: number;
   paymentDate: string;
   paymentMonth: string;
@@ -35,7 +26,7 @@ export type Expense = {
   description: string;
   amount: number;
   expenseDate: string;
-  spentByTeacherId: string;
+  spentByName: string;
 }
 
 export type Attendance = {
@@ -44,20 +35,6 @@ export type Attendance = {
     classGrade: string;
     date: string; // YYYY-MM-DD
     status: 'present' | 'absent';
-    recordedByTeacherId?: string;
 }
-
-export type TeacherPermissions = {
-    id: string;
-    canViewDashboard: boolean;
-    canManageStudents: boolean;
-    canManageTeachers: boolean;
-    canManageAccounting: boolean;
-    canManageAttendance: boolean;
-    canGenerateQuestions: boolean;
-    canManageSettings: boolean;
-    canManagePermissions: boolean;
-};
-
 
 export const classNames = ["ষষ্ঠ", "সপ্তম", "অষ্টম", "নবম", "দশম"];

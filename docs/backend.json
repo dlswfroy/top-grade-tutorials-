@@ -56,42 +56,6 @@
         "dateAdded"
       ]
     },
-    "Teacher": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Teacher",
-      "type": "object",
-      "description": "Represents a teacher in Top Grade Tutorials, including their contact information. Teachers can also be associated with activities like collecting payments and generating question papers.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Teacher entity."
-        },
-        "name": {
-          "type": "string",
-          "description": "The full name of the teacher."
-        },
-        "mobileNumber": {
-          "type": "string",
-          "description": "The mobile contact number of the teacher."
-        },
-        "imageUrl": {
-          "type": "string",
-          "description": "URL to the teacher's profile image.",
-          "format": "uri"
-        },
-        "dateAdded": {
-          "type": "string",
-          "description": "The date and time when the teacher record was initially added to the system.",
-          "format": "date-time"
-        }
-      },
-      "required": [
-        "id",
-        "name",
-        "mobileNumber",
-        "dateAdded"
-      ]
-    },
     "Payment": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Payment",
@@ -106,9 +70,9 @@
           "type": "string",
           "description": "Reference to the Student who made the payment. (Relationship: Student 1:N Payment)"
         },
-        "teacherId": {
+        "collectorName": {
           "type": "string",
-          "description": "Reference to the Teacher who collected the payment. (Relationship: Teacher 1:N Payment)"
+          "description": "Name of the person who collected the payment."
         },
         "amount": {
           "type": "number",
@@ -131,7 +95,7 @@
       "required": [
         "id",
         "studentId",
-        "teacherId",
+        "collectorName",
         "amount",
         "paymentDate",
         "paymentMonth",
@@ -185,10 +149,6 @@
           "type": "string",
           "description": "The date and time when the question paper was generated.",
           "format": "date-time"
-        },
-        "generatedByTeacherId": {
-          "type": "string",
-          "description": "Reference to the Teacher who initiated the generation of this question paper. (Relationship: Teacher 1:N QuestionPaper)"
         }
       },
       "required": [
@@ -201,8 +161,7 @@
         "timeLimitMinutes",
         "totalMarks",
         "generatedPdfUrl",
-        "generationDate",
-        "generatedByTeacherId"
+        "generationDate"
       ]
     },
     "InstitutionSettings": {
@@ -246,9 +205,9 @@
         "description": { "type": "string" },
         "amount": { "type": "number" },
         "expenseDate": { "type": "string", "format": "date-time" },
-        "spentByTeacherId": { "type": "string" }
+        "spentByName": { "type": "string" }
       },
-      "required": ["id", "description", "amount", "expenseDate", "spentByTeacherId"]
+      "required": ["id", "description", "amount", "expenseDate", "spentByName"]
     },
     "Attendance": {
       "title": "Attendance",
@@ -259,33 +218,13 @@
         "studentId": { "type": "string" },
         "classGrade": { "type": "string" },
         "date": { "type": "string", "format": "date" },
-        "status": { "type": "string", "enum": ["present", "absent"] },
-        "recordedByTeacherId": { "type": "string" }
+        "status": { "type": "string", "enum": ["present", "absent"] }
       },
       "required": ["id", "studentId", "classGrade", "date", "status"]
-    },
-    "TeacherPermissions": {
-      "title": "Teacher Permissions",
-      "type": "object",
-      "description": "Defines access control permissions for a teacher for different sections of the application.",
-      "properties": {
-        "id": { "type": "string" },
-        "canViewDashboard": { "type": "boolean", "description": "Access to Dashboard" },
-        "canManageStudents": { "type": "boolean", "description": "Access to Students Management" },
-        "canManageTeachers": { "type": "boolean", "description": "Access to Teachers Management" },
-        "canManageAccounting": { "type": "boolean", "description": "Access to Accounting" },
-        "canManageAttendance": { "type": "boolean", "description": "Access to Attendance" },
-        "canGenerateQuestions": { "type": "boolean", "description": "Access to Question Generator" },
-        "canManageSettings": { "type": "boolean", "description": "Access to Settings" },
-        "canManagePermissions": { "type": "boolean", "description": "Access to Permissions Management" }
-      },
-       "required": ["id"]
     }
   },
   "auth": {
-    "providers": [
-      "password"
-    ]
+    "providers": []
   },
   "firestore": {
     "structure": [
@@ -296,27 +235,11 @@
           "schema": {
             "$ref": "#/backend/entities/Student"
           },
-          "description": "Contains records of all enrolled students. Access is restricted to authenticated teachers and administrators. No explicit denormalization for authorization is needed as access is role-based for the entire collection.",
+          "description": "Contains records of all enrolled students.",
           "params": [
             {
               "name": "studentId",
               "description": "The unique identifier for the student."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/teachers/{teacherId}",
-        "definition": {
-          "entityName": "Teacher",
-          "schema": {
-            "$ref": "#/backend/entities/Teacher"
-          },
-          "description": "Contains records of all registered teachers. Access is restricted to authenticated administrators for management, and teachers can read their own profiles. No explicit denormalization for authorization is needed as access is role-based.",
-          "params": [
-            {
-              "name": "teacherId",
-              "description": "The unique identifier for the teacher."
             }
           ]
         }
@@ -328,7 +251,7 @@
           "schema": {
             "$ref": "#/backend/entities/Payment"
           },
-          "description": "Records all student fee payments. Includes `studentId` and `teacherId` for direct authorization checks and querying. This enables Authorization Independence and QAPs by allowing rules to check `request.resource.data.teacherId == request.auth.uid` for teachers creating payments, or filtering lists by `teacherId`.",
+          "description": "Records all student fee payments.",
           "params": [
             {
               "name": "paymentId",
@@ -344,7 +267,7 @@
           "schema": {
             "$ref": "#/backend/entities/QuestionPaper"
           },
-          "description": "Stores details of AI-generated question papers. Includes `generatedByTeacherId` for direct authorization checks and querying. This enables Authorization Independence and QAPs by allowing rules to check `request.resource.data.generatedByTeacherId == request.auth.uid` for teachers creating papers, or filtering lists by `generatedByTeacherId`.",
+          "description": "Stores details of AI-generated question papers.",
           "params": [
             {
               "name": "paperId",
@@ -360,43 +283,11 @@
           "schema": {
             "$ref": "#/backend/entities/InstitutionSettings"
           },
-          "description": "Stores global institution settings, expected to be a singleton document (e.g., with ID 'defaultSettings'). Only administrators have write access.",
+          "description": "Stores global institution settings, expected to be a singleton document (e.g., with ID 'defaultSettings').",
           "params": [
             {
               "name": "settingsId",
               "description": "The unique identifier for the institution settings document (expected to be a fixed ID like 'defaultSettings')."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/roles_admin/{adminUid}",
-        "definition": {
-          "entityName": "Teacher",
-          "schema": {
-            "$ref": "#/backend/entities/Teacher"
-          },
-          "description": "A collection where the mere existence of a document with `adminUid` as its ID grants administrative privileges to that user. The document content can be minimal (e.g., `{ active: true }`). Used for DBAC. Due to schema constraints, 'Teacher' is used as the entity reference, though it represents a generic admin role.",
-          "params": [
-            {
-              "name": "adminUid",
-              "description": "The UID of the authenticated user who has administrative privileges."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/roles_teacher/{teacherUid}",
-        "definition": {
-          "entityName": "Teacher",
-          "schema": {
-            "$ref": "#/backend/entities/Teacher"
-          },
-          "description": "A collection where the mere existence of a document with `teacherUid` as its ID grants teacher privileges to that user. The document content can be minimal (e.g., `{ active: true }`). Used for DBAC, allowing teachers to manage students, collect payments, and generate question papers. 'Teacher' is the appropriate entity reference.",
-          "params": [
-            {
-              "name": "teacherUid",
-              "description": "The UID of the authenticated user who has teacher privileges."
             }
           ]
         }
@@ -432,22 +323,7 @@
             }
           ]
         }
-      },
-       {
-        "path": "/teacher_permissions/{teacherId}",
-        "definition": {
-          "entityName": "TeacherPermissions",
-          "schema": { "$ref": "#/backend/entities/TeacherPermissions" },
-          "description": "Stores access control permissions for each teacher.",
-          "params": [
-            {
-              "name": "teacherId",
-              "description": "The UID of the teacher."
-            }
-          ]
-        }
       }
-    ],
-    "reasoning": "The Firestore structure for 'Top Grade Academy Manager' is designed following the core principles of Authorization Independence, Structural Segregation, and DBAC (Database-Backed Access Control) to ensure security, scalability, and debuggability.\n\n**Authorization Independence (CRITICAL):**\nThis design prioritizes authorization independence by denormalizing ownership and role information directly into the documents or using dedicated role collections. For instance, `Payment` documents include `teacherId` (the ID of the teacher who collected the payment) and `QuestionPaper` documents include `generatedByTeacherId`. This eliminates the need for `get()` calls in security rules to check parent documents or external collections for authorization context, making rules atomic, efficient, and easier to debug. For global roles, dedicated collections like `/roles_admin/{adminUid}` and `/roles_teacher/{teacherUid}` are used, where the mere existence of a document grants the role, further ensuring independence from other entity structures.\n\n**QAPs (Rules are not Filters):**\nQuery-Ability and Predictability (QAPs) are ensured through structural segregation and the inclusion of denormalized authorization fields. For `/students` and `/teachers` collections, `list` operations are secured by checking the `request.auth.uid` against the `/roles_admin` and `/roles_teacher` collections. For `/payments` and `/question_papers`, teachers can perform `list` queries that filter by their own `teacherId` or `generatedByTeacherId` respectively (e.g., `db.collection('payments').where('teacherId', '==', currentUser.uid)`). The security rules will then validate that the `request.query.where.teacherId` matches `request.auth.uid` for teacher-level access, while admins retain full `list` access. This structure prevents unauthorized data exposure during `list` operations and ensures efficient, index-backed queries.\n\n**Structural Segregation:**\nEach top-level collection (`students`, `teachers`, `payments`, `question_papers`, `institution_settings`, `roles_admin`, `roles_teacher`) represents a distinct entity or security posture. This ensures that all documents within a given collection share homogeneous security requirements, simplifying Firestore security rules significantly. For example, all `Student` documents are managed by institution staff, not by students themselves.\n\n**Access Modeling & DBAC:**\n\n*   **Private Data & Hierarchical Paths:** User roles are implemented using `Path-Based Ownership` via dedicated collections `/roles_admin/{adminUid}` and `/roles_teacher/{teacherUid}`, where the document ID `adminUid` or `teacherUid` directly corresponds to the authenticated user's UID. This provides a clear, scalable, and auditable DBAC system.\n*   **Centralized Institution Data:** Entities like `students`, `teachers`, `payments`, `question_papers`, and `institution_settings` are managed centrally by users with appropriate roles (admin, teacher) rather than individual user ownership, reflecting the institutional nature of the application. `InstitutionSettings` is designed as a singleton collection with a single document (e.g., ID 'defaultSettings') for global configuration.\n\n**Data Clarity and Predictability:**\nSemantic naming conventions are strictly applied (e.g., `{studentId}`, `{teacherId}`). Required fields for authorization (`teacherId`, `generatedByTeacherId`) are explicitly included in the respective documents, making their purpose clear. This design enables robust security rules, efficient querying, and simplified data management for the 'Top Grade Tutorials' application."
+    ]
   }
 }

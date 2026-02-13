@@ -40,10 +40,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, doc, addDoc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
-import { PermissionGuard } from '@/components/permission-guard';
 
 const defaultStudentState: Omit<Student, 'id' | 'dateAdded'> = {
   name: '',
@@ -58,7 +57,6 @@ const defaultStudentState: Omit<Student, 'id' | 'dateAdded'> = {
 
 function StudentsPage() {
   const firestore = useFirestore();
-  const { user } = useUser();
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [classFilter, setClassFilter] = useState('');
@@ -71,9 +69,9 @@ function StudentsPage() {
   const [isSaving, setIsSaving] = useState(false);
 
   const studentsQuery = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
+    if (!firestore) return null;
     return collection(firestore, 'students');
-  }, [firestore, user]);
+  }, [firestore]);
 
   const { data: students, isLoading } = useCollection<Student>(studentsQuery);
   
@@ -158,7 +156,7 @@ function StudentsPage() {
   };
   
   const handleSaveStudent = async () => {
-    if (!firestore || !user) return;
+    if (!firestore) return;
 
     if (!formData.name || !formData.classGrade || !formData.rollNumber) {
         toast({
@@ -416,10 +414,4 @@ function StudentsPage() {
   );
 }
 
-export default function StudentsPageContainer() {
-    return (
-        <PermissionGuard requiredPermission="canManageStudents">
-            <StudentsPage />
-        </PermissionGuard>
-    )
-}
+export default StudentsPage;

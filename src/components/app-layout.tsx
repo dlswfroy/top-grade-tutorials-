@@ -1,49 +1,33 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
-import { useState, useMemo, useEffect } from 'react';
+import { usePathname } from 'next/navigation';
+import { useState, useMemo } from 'react';
 import {
   LayoutDashboard,
   Users,
-  Briefcase,
   Calculator,
   BrainCircuit,
   Settings,
-  LogOut,
   Loader2,
   CalendarCheck,
   Menu,
-  ShieldCheck,
-  AlertCircle,
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { useUser, useAuth, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 import { cn } from '@/lib/utils';
-import { signOut } from 'firebase/auth';
-import { usePermissions } from '@/hooks/usePermissions';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 const allMenuItems = [
-  { href: '/', label: 'ড্যাসবোর্ড', icon: LayoutDashboard, permission: 'canViewDashboard' },
-  { href: '/students', label: 'শিক্ষার্থী', icon: Users, permission: 'canManageStudents' },
-  { href: '/teachers', label: 'শিক্ষক', icon: Briefcase, permission: 'canManageTeachers' },
-  { href: '/accounting', label: 'হিসাব', icon: Calculator, permission: 'canManageAccounting' },
-  { href: '/attendance', label: 'হাজিরা', icon: CalendarCheck, permission: 'canManageAttendance' },
-  { href: '/questions', label: 'প্রশ্ন তৈরি', icon: BrainCircuit, permission: 'canGenerateQuestions' },
-  { href: '/permissions', label: 'অনুমতি', icon: ShieldCheck, permission: 'canManagePermissions' },
-  { href: '/settings', label: 'সেটিংস', icon: Settings, permission: 'canManageSettings' },
+  { href: '/', label: 'ড্যাসবোর্ড', icon: LayoutDashboard },
+  { href: '/students', label: 'শিক্ষার্থী', icon: Users },
+  { href: '/accounting', label: 'হিসাব', icon: Calculator },
+  { href: '/attendance', label: 'হাজিরা', icon: CalendarCheck },
+  { href: '/questions', label: 'প্রশ্ন তৈরি', icon: BrainCircuit },
+  { href: '/settings', label: 'সেটিংস', icon: Settings },
 ];
 
 type InstitutionSettings = {
@@ -80,47 +64,15 @@ function Logo({ settings, isLoading, className, iconClassName }: { settings: Ins
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const router = useRouter();
-  const { user, isUserLoading } = useUser();
-  const auth = useAuth();
   const firestore = useFirestore();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const { permissions, isHeadTeacher } = usePermissions();
-
-  const menuItems = useMemo(() => {
-    if (!permissions) return [];
-    return allMenuItems.filter(item => permissions[item.permission as keyof typeof permissions]);
-  }, [permissions]);
 
   const settingsRef = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
+    if (!firestore) return null;
     return doc(firestore, 'institution_settings', 'default');
-  }, [firestore, user]);
+  }, [firestore]);
 
   const { data: settings, isLoading: isLoadingSettings } = useDoc<InstitutionSettings>(settingsRef);
-  
-  useEffect(() => {
-    if (!isUserLoading && !user && pathname !== '/login') {
-      router.push('/login');
-    }
-  }, [isUserLoading, user, pathname, router]);
-
-  const handleLogout = async () => {
-    await signOut(auth);
-    router.push('/login');
-  }
-
-  if (isUserLoading || (!user && pathname !== '/login')) {
-      return (
-          <div className="flex h-screen items-center justify-center">
-              <Loader2 className="h-8 w-8 animate-spin" />
-          </div>
-      );
-  }
-
-  if (!user) {
-    return <>{children}</>;
-  }
 
   return (
       <div className="min-h-screen flex flex-col">
@@ -129,7 +81,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                   <Logo settings={settings} isLoading={isLoadingSettings} className="ml-2 mr-6" iconClassName="text-primary-foreground"/>
                   
                   <nav className="hidden md:flex items-center space-x-6 text-sm font-medium">
-                      {menuItems.map((item) => (
+                      {allMenuItems.map((item) => (
                           <Link
                               key={item.href}
                               href={item.href}
@@ -144,33 +96,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                   </nav>
 
                   <div className="flex flex-1 items-center justify-end space-x-2">
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" className="relative h-8 w-8 rounded-full hover:bg-black/10">
-                                    <Avatar className="h-8 w-8">
-                                        <AvatarImage src={user?.photoURL || undefined} />
-                                        <AvatarFallback>{(user?.displayName || 'ব').charAt(0)}</AvatarFallback>
-                                    </Avatar>
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent className="w-56" align="end" forceMount>
-                                <DropdownMenuLabel className="font-normal">
-                                    <div className="flex flex-col space-y-1">
-                                        <p className="text-sm font-medium leading-none">{user?.displayName || 'ব্যবহারকারী'}</p>
-                                        <p className="text-xs leading-none text-muted-foreground">
-                                            {user?.email}
-                                        </p>
-                                        {isHeadTeacher && <p className="text-xs leading-none text-primary font-semibold mt-1">প্রধান শিক্ষক</p>}
-                                    </div>
-                                </DropdownMenuLabel>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem onClick={handleLogout}>
-                                    <LogOut className="mr-2 h-4 w-4" />
-                                    <span>লগ আউট</span>
-                                </DropdownMenuItem>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-
                       <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
                           <SheetTrigger asChild>
                               <Button variant="ghost" size="icon" className="md:hidden">
@@ -181,7 +106,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                           <SheetContent side="left" className="w-[300px] sm:w-[400px]">
                               <Logo settings={settings} isLoading={isLoadingSettings} className="mb-8" />
                               <div className="flex flex-col space-y-2">
-                                  {menuItems.map((item) => (
+                                  {allMenuItems.map((item) => (
                                       <Link
                                           key={item.href}
                                           href={item.href}
@@ -195,17 +120,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                                           <span>{item.label}</span>
                                       </Link>
                                   ))}
-                                  <DropdownMenuSeparator />
-                                   <button
-                                      onClick={() => {
-                                          handleLogout();
-                                          setMobileMenuOpen(false);
-                                      }}
-                                      className="flex items-center gap-3 rounded-md p-3 text-lg font-medium text-muted-foreground hover:bg-accent/80"
-                                    >
-                                      <LogOut className="h-5 w-5" />
-                                      <span>লগ আউট</span>
-                                    </button>
                               </div>
                           </SheetContent>
                       </Sheet>
@@ -213,15 +127,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               </div>
           </header>
           <main className="flex-1 container p-4 sm:p-6 lg:p-8">
-              {!user.emailVerified && (
-                  <Alert variant="destructive" className="mb-6">
-                      <AlertCircle className="h-4 w-4" />
-                      <AlertTitle>ইমেইল যাচাইকরণ প্রয়োজন</AlertTitle>
-                      <AlertDescription>
-                          আপনার একাউন্টের সম্পূর্ণ সুবিধা পেতে অনুগ্রহ করে আপনার ইমেইল ঠিকানাটি যাচাই করুন। আপনার ইনবক্সে একটি ভেরিফিকেশন লিঙ্ক পাঠানো হয়েছে।
-                      </AlertDescription>
-                  </Alert>
-              )}
               {children}
           </main>
       </div>

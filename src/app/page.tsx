@@ -16,33 +16,31 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Users, UserCheck, UserX, Loader2 } from 'lucide-react';
-import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where } from 'firebase/firestore';
 import type { Student, Payment, Attendance } from '@/lib/data';
 import { format, parseISO, isThisMonth } from 'date-fns';
-import { PermissionGuard } from '@/components/permission-guard';
 
 function Dashboard() {
   const firestore = useFirestore();
-  const { user } = useUser();
   
   const studentsQuery = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
+    if (!firestore) return null;
     return collection(firestore, 'students');
-  }, [firestore, user]);
+  }, [firestore]);
   const { data: students, isLoading: isLoadingStudents } = useCollection<Student>(studentsQuery);
 
   const paymentsQuery = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
+    if (!firestore) return null;
     return query(collection(firestore, 'payments'));
-  }, [firestore, user]);
+  }, [firestore]);
   const { data: payments, isLoading: isLoadingPayments } = useCollection<Payment>(paymentsQuery);
   
   const today = useMemo(() => format(new Date(), 'yyyy-MM-dd'), []);
   const attendanceQuery = useMemoFirebase(() => {
-      if (!firestore || !user) return null;
+      if (!firestore) return null;
       return query(collection(firestore, 'attendance'), where('date', '==', today));
-  }, [firestore, user, today]);
+  }, [firestore, today]);
   const { data: todaysAttendance, isLoading: isLoadingAttendance } = useCollection<Attendance>(attendanceQuery);
 
   const totalStudents = students?.length ?? 0;
@@ -169,10 +167,4 @@ function Dashboard() {
   );
 }
 
-export default function DashboardPage() {
-  return (
-    <PermissionGuard requiredPermission="canViewDashboard">
-      <Dashboard />
-    </PermissionGuard>
-  );
-}
+export default Dashboard;

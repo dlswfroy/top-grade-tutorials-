@@ -1,5 +1,4 @@
 import { QuestionGenerator } from './question-generator';
-import { PermissionGuard } from '@/components/permission-guard';
 
 function QuestionPage() {
   return (
@@ -17,8 +16,6 @@ function QuestionPage() {
 
 export default function QuestionPageContainer() {
   return (
-    <PermissionGuard requiredPermission="canGenerateQuestions">
-      <QuestionPage />
-    </PermissionGuard>
+    <QuestionPage />
   );
 }

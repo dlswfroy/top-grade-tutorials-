@@ -18,10 +18,10 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
-import { classNames, type Student, type Teacher, type Payment, type Expense } from '@/lib/data';
+import { classNames, type Student, type Payment, type Expense } from '@/lib/data';
 import { Search, Printer, Loader2, DollarSign, Save, PlusCircle, TrendingDown, ChevronsRight, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { useFirestore, useCollection, useDoc, useMemoFirebase, useUser } from '@/firebase';
+import { useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
 import { collection, where, query, getDocs, doc, addDoc, setDoc, writeBatch, updateDoc, deleteDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { format, isToday, isThisMonth, isThisYear, parseISO } from 'date-fns';
@@ -52,7 +52,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { PermissionGuard } from '@/components/permission-guard';
 
 const months = ['জানুয়ারি', 'ফেব্রুয়ারি', 'মার্চ', 'এপ্রিল', 'মে', 'জুন', 'জুলাই', 'আগস্ট', 'সেপ্টেম্বর', 'অক্টোবর', 'নভেম্বর', 'ডিসেম্বর'];
 
@@ -158,30 +157,23 @@ function FeeCollection() {
 
 function PaymentRecord({ student }: { student: Student }) {
     const firestore = useFirestore();
-    const { user } = useUser();
     const { toast } = useToast();
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [selectedMonth, setSelectedMonth] = useState('');
     const [paymentAmount, setPaymentAmount] = useState<number | string>('');
-    const [paymentCollectorId, setPaymentCollectorId] = useState('');
+    const [collectorName, setCollectorName] = useState('');
     const [isSaving, setIsSaving] = useState(false);
 
     const settingsRef = useMemoFirebase(() => {
-        if (!firestore || !user) return null;
+        if (!firestore) return null;
         return doc(firestore, 'institution_settings', 'default');
-    }, [firestore, user]);
+    }, [firestore]);
     const { data: settings } = useDoc<InstitutionSettings>(settingsRef);
 
-    const teachersQuery = useMemoFirebase(() => {
-        if (!firestore || !user) return null;
-        return collection(firestore, 'teachers');
-    }, [firestore, user]);
-    const { data: teachers } = useCollection<Teacher>(teachersQuery);
-
     const paymentsQuery = useMemoFirebase(() => {
-        if (!firestore || !user) return null;
+        if (!firestore) return null;
         return query(collection(firestore, 'payments'), where('studentId', '==', student.id));
-    }, [firestore, user, student.id]);
+    }, [firestore, student.id]);
     const { data: payments, isLoading: isLoadingPayments } = useCollection<Payment>(paymentsQuery);
 
     const paymentsByMonth = useMemo(() => {
@@ -196,10 +188,6 @@ function PaymentRecord({ student }: { student: Student }) {
             return acc;
         }, {} as Record<string, Payment>);
     }, [payments]);
-    
-    const getTeacherName = (teacherId: string) => {
-        return teachers?.find(t => t.id === teacherId)?.name || 'N/A';
-    }
 
     const handleOpenPaymentDialog = (month: string) => {
         const monthIndex = months.indexOf(month) + 1;
@@ -210,7 +198,7 @@ function PaymentRecord({ student }: { student: Student }) {
     };
 
     const handleCollectPayment = async () => {
-        if (!firestore || !selectedMonth || !paymentAmount || !paymentCollectorId) {
+        if (!firestore || !selectedMonth || !paymentAmount || !collectorName) {
             toast({ variant: 'destructive', title: 'ত্রুটি', description: 'অনুগ্রহ করে সকল তথ্য পূরণ করুন।' });
             return;
         }
@@ -219,7 +207,7 @@ function PaymentRecord({ student }: { student: Student }) {
         try {
             const paymentData = {
                 studentId: student.id,
-                teacherId: paymentCollectorId,
+                collectorName: collectorName,
                 amount: Number(paymentAmount),
                 paymentMonth: selectedMonth,
                 paymentDate: new Date().toISOString(),
@@ -229,7 +217,7 @@ function PaymentRecord({ student }: { student: Student }) {
             await addDoc(collection(firestore, 'payments'), paymentData);
             toast({ title: 'সফল', description: 'বেতন সফলভাবে আদায় করা হয়েছে।' });
             setIsDialogOpen(false);
-            setPaymentCollectorId('');
+            setCollectorName('');
 
         } catch (error: any) {
             console.error("Error collecting payment:", error);
@@ -294,7 +282,7 @@ function PaymentRecord({ student }: { student: Student }) {
                                     <td>${paymentsByMonth[month] ? format(parseISO(paymentsByMonth[month]!.paymentDate), 'PP', { locale: bn }) : ''}</td>
                                     <td>${student.monthlyFee}</td>
                                     <td>${paymentsByMonth[month]?.amount || ''}</td>
-                                    <td>${paymentsByMonth[month] ? getTeacherName(paymentsByMonth[month]!.teacherId) : ''}</td>
+                                    <td>${paymentsByMonth[month]?.collectorName || ''}</td>
                                 </tr>
                             `).join('')}
                         </tbody>
@@ -356,7 +344,7 @@ function PaymentRecord({ student }: { student: Student }) {
                                         <TableCell className="font-medium">{month}</TableCell>
                                         <TableCell>{payment ? format(parseISO(payment.paymentDate), 'PP', { locale: bn }) : 'N/A'}</TableCell>
                                         <TableCell>{payment ? `৳${payment.amount}` : 'N/A'}</TableCell>
-                                        <TableCell>{payment ? getTeacherName(payment.teacherId) : 'N/A'}</TableCell>
+                                        <TableCell>{payment ? payment.collectorName : 'N/A'}</TableCell>
                                         <TableCell className="text-right">
                                             {payment ? (
                                                 <span className="text-green-600 font-semibold">পরিশোধিত</span>
@@ -387,14 +375,7 @@ function PaymentRecord({ student }: { student: Student }) {
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="collector">আদায়কারী</Label>
-                            <Select value={paymentCollectorId} onValueChange={setPaymentCollectorId} disabled={isSaving}>
-                                <SelectTrigger id="collector">
-                                    <SelectValue placeholder="আদায়কারীর নাম নির্বাচন করুন" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {teachers?.map(t => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
-                                </SelectContent>
-                            </Select>
+                            <Input id="collector" value={collectorName} onChange={(e) => setCollectorName(e.target.value)} placeholder="আদায়কারীর নাম লিখুন" disabled={isSaving} />
                         </div>
                     </div>
                     <DialogFooter>
@@ -412,32 +393,25 @@ function PaymentRecord({ student }: { student: Student }) {
 // Payment List Component
 function PaymentList() {
     const firestore = useFirestore();
-    const { user } = useUser();
     const { toast } = useToast();
     const paymentsQuery = useMemoFirebase(() => {
-        if (!firestore || !user) return null;
+        if (!firestore) return null;
         return collection(firestore, 'payments');
-    }, [firestore, user]);
+    }, [firestore]);
     const { data: payments, isLoading: isLoadingPayments } = useCollection<Payment>(paymentsQuery);
 
     const studentsQuery = useMemoFirebase(() => {
-        if (!firestore || !user) return null;
+        if (!firestore) return null;
         return collection(firestore, 'students');
-    }, [firestore, user]);
+    }, [firestore]);
     const { data: students } = useCollection<Student>(studentsQuery);
     
-    const teachersQuery = useMemoFirebase(() => {
-        if (!firestore || !user) return null;
-        return collection(firestore, 'teachers');
-    }, [firestore, user]);
-    const { data: teachers } = useCollection<Teacher>(teachersQuery);
-
     const [editingPayment, setEditingPayment] = useState<Payment | null>(null);
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [editAmount, setEditAmount] = useState<number | string>('');
     const [editPaymentDate, setEditPaymentDate] = useState<Date | undefined>();
-    const [editTeacherId, setEditTeacherId] = useState('');
+    const [editCollectorName, setEditCollectorName] = useState('');
 
     const { dailyTotal, monthlyTotal, yearlyTotal } = useMemo(() => {
         if (!payments) return { dailyTotal: 0, monthlyTotal: 0, yearlyTotal: 0 };
@@ -449,16 +423,12 @@ function PaymentList() {
             return acc;
         }, { dailyTotal: 0, monthlyTotal: 0, yearlyTotal: 0 });
     }, [payments]);
-
-    const getTeacherName = (teacherId: string) => {
-        return teachers?.find(t => t.id === teacherId)?.name || 'N/A';
-    }
     
     const handleOpenEditDialog = (payment: Payment) => {
         setEditingPayment(payment);
         setEditAmount(payment.amount);
         setEditPaymentDate(parseISO(payment.paymentDate));
-        setEditTeacherId(payment.teacherId);
+        setEditCollectorName(payment.collectorName);
         setIsEditDialogOpen(true);
     };
 
@@ -468,7 +438,7 @@ function PaymentList() {
     };
 
     const handleUpdatePayment = async () => {
-        if (!firestore || !editingPayment || !editAmount || !editPaymentDate || !editTeacherId) {
+        if (!firestore || !editingPayment || !editAmount || !editPaymentDate || !editCollectorName) {
             toast({ variant: 'destructive', title: 'ত্রুটি', description: 'অনুগ্রহ করে সকল তথ্য পূরণ করুন।' });
             return;
         }
@@ -479,7 +449,7 @@ function PaymentList() {
             await updateDoc(paymentRef, {
                 amount: Number(editAmount),
                 paymentDate: editPaymentDate.toISOString(),
-                teacherId: editTeacherId,
+                collectorName: editCollectorName,
             });
             toast({ title: 'সফল', description: 'পেমেন্টের তথ্য আপডেট করা হয়েছে।' });
             handleCloseEditDialog();
@@ -563,7 +533,7 @@ function PaymentList() {
                                     <TableCell>{format(parseISO(p.paymentDate), 'MMMM yyyy', {locale: bn})}</TableCell>
                                     <TableCell>৳{p.amount}</TableCell>
                                     <TableCell>{format(parseISO(p.paymentDate), 'PP', {locale: bn})}</TableCell>
-                                    <TableCell>{getTeacherName(p.teacherId)}</TableCell>
+                                    <TableCell>{p.collectorName}</TableCell>
                                     <TableCell className="text-right">
                                         <DropdownMenu>
                                             <DropdownMenuTrigger asChild>
@@ -618,14 +588,7 @@ function PaymentList() {
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="edit-collector">আদায়কারী</Label>
-                            <Select value={editTeacherId} onValueChange={setEditTeacherId} disabled={isSaving}>
-                                <SelectTrigger id="edit-collector">
-                                    <SelectValue placeholder="আদায়কারীর নাম নির্বাচন করুন" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {teachers?.map(t => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
-                                </SelectContent>
-                            </Select>
+                            <Input id="edit-collector" value={editCollectorName} onChange={(e) => setEditCollectorName(e.target.value)} placeholder="আদায়কারীর নাম" disabled={isSaving} />
                         </div>
                     </div>
                     <DialogFooter>
@@ -644,32 +607,22 @@ function PaymentList() {
 function Expenses() {
     const firestore = useFirestore();
     const { toast } = useToast();
-    const { user } = useUser();
     
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [description, setDescription] = useState('');
     const [amount, setAmount] = useState<number | string>('');
     const [expenseDate, setExpenseDate] = useState<Date | undefined>(new Date());
+    const [spentByName, setSpentByName] = useState('');
 
     const expensesQuery = useMemoFirebase(() => {
-        if (!firestore || !user) return null;
+        if (!firestore) return null;
         return collection(firestore, 'expenses');
-    }, [firestore, user]);
+    }, [firestore]);
     const { data: expenses, isLoading: isLoadingExpenses } = useCollection<Expense>(expensesQuery);
 
-    const teachersQuery = useMemoFirebase(() => {
-        if (!firestore || !user) return null;
-        return collection(firestore, 'teachers');
-    }, [firestore, user]);
-    const { data: teachers } = useCollection<Teacher>(teachersQuery);
-
-    const getTeacherName = (teacherId: string) => {
-        return teachers?.find(t => t.id === teacherId)?.name || 'N/A';
-    }
-
     const handleSaveExpense = async () => {
-        if (!firestore || !description || !amount || !expenseDate || !user) {
+        if (!firestore || !description || !amount || !expenseDate || !spentByName) {
             toast({ variant: 'destructive', title: 'ত্রুটি', description: 'অনুগ্রহ করে সকল তথ্য পূরণ করুন।' });
             return;
         }
@@ -679,13 +632,14 @@ function Expenses() {
                 description,
                 amount: Number(amount),
                 expenseDate: expenseDate.toISOString(),
-                spentByTeacherId: user.uid // Assuming logged in user is a teacher
+                spentByName: spentByName
             });
             toast({ title: 'সফল', description: 'খরচ সফলভাবে যোগ করা হয়েছে।' });
             setIsDialogOpen(false);
             setDescription('');
             setAmount('');
             setExpenseDate(new Date());
+            setSpentByName('');
         } catch (error: any) {
             toast({ variant: 'destructive', title: 'ত্রুটি', description: `খরচ যোগ করতে সমস্যা হয়েছে: ${error.message}` });
         } finally {
@@ -720,6 +674,7 @@ function Expenses() {
                             <div className="space-y-4 py-4">
                                 <Input placeholder="খরচের বিবরণ" value={description} onChange={e => setDescription(e.target.value)} />
                                 <Input type="number" placeholder="টাকার পরিমাণ" value={amount} onChange={e => setAmount(e.target.value)} />
+                                <Input placeholder="খরচ করেছেন" value={spentByName} onChange={e => setSpentByName(e.target.value)} />
                                  <Popover>
                                     <PopoverTrigger asChild>
                                     <Button
@@ -766,7 +721,7 @@ function Expenses() {
                                         <TableCell>{e.description}</TableCell>
                                         <TableCell>৳{e.amount}</TableCell>
                                         <TableCell>{format(parseISO(e.expenseDate), 'PP', {locale: bn})}</TableCell>
-                                        <TableCell>{getTeacherName(e.spentByTeacherId)}</TableCell>
+                                        <TableCell>{e.spentByName}</TableCell>
                                         <TableCell className="text-right">
                                             <DropdownMenu>
                                                 <DropdownMenuTrigger asChild>
@@ -796,17 +751,16 @@ function Expenses() {
 
 function Report() {
     const firestore = useFirestore();
-    const { user } = useUser();
     const paymentsQuery = useMemoFirebase(() => {
-        if (!firestore || !user) return null;
+        if (!firestore) return null;
         return collection(firestore, 'payments');
-    }, [firestore, user]);
+    }, [firestore]);
     const { data: payments, isLoading: isLoadingPayments } = useCollection<Payment>(paymentsQuery);
 
     const expensesQuery = useMemoFirebase(() => {
-        if (!firestore || !user) return null;
+        if (!firestore) return null;
         return collection(firestore, 'expenses');
-    }, [firestore, user]);
+    }, [firestore]);
     const { data: expenses, isLoading: isLoadingExpenses } = useCollection<Expense>(expensesQuery);
     
     const totalIncome = useMemo(() => payments?.reduce((sum, p) => sum + p.amount, 0) || 0, [payments]);
@@ -889,8 +843,6 @@ function AccountingPage() {
 
 export default function AccountingPageContainer() {
     return (
-        <PermissionGuard requiredPermission="canManageAccounting">
-            <AccountingPage />
-        </PermissionGuard>
+        <AccountingPage />
     )
 }

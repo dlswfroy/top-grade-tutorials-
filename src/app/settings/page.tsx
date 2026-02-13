@@ -12,10 +12,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Save, Loader2 } from 'lucide-react';
-import { useFirestore, useDoc, useMemoFirebase, useUser } from '@/firebase';
+import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc, setDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
-import { PermissionGuard } from '@/components/permission-guard';
 
 type InstitutionSettings = {
     institutionName?: string;
@@ -24,16 +23,15 @@ type InstitutionSettings = {
 
 function SettingsPage() {
   const firestore = useFirestore();
-  const { user } = useUser();
   const { toast } = useToast();
   const [institutionName, setInstitutionName] = useState('টপ গ্রেড টিউটোরিয়ালস');
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   
   const settingsRef = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
+    if (!firestore) return null;
     return doc(firestore, 'institution_settings', 'default');
-  }, [firestore, user]);
+  }, [firestore]);
 
   const { data: settings, isLoading } = useDoc<InstitutionSettings>(settingsRef);
 
@@ -107,7 +105,7 @@ function SettingsPage() {
   };
 
   const handleSave = async () => {
-    if (!settingsRef || !user) return;
+    if (!settingsRef) return;
 
     setIsSaving(true);
     
@@ -202,8 +200,6 @@ function SettingsPage() {
 
 export default function SettingsPageContainer() {
     return (
-        <PermissionGuard requiredPermission="canManageSettings">
-            <SettingsPage />
-        </PermissionGuard>
+        <SettingsPage />
     )
 }

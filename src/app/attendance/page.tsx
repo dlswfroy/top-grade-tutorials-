@@ -27,7 +27,7 @@ import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { classNames, type Student, type Attendance } from '@/lib/data';
 import { Loader2, Save, ChevronsRight, Info } from 'lucide-react';
-import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where, doc, writeBatch } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -36,14 +36,12 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { PermissionGuard } from '@/components/permission-guard';
 
 
 type AttendanceStatus = 'present' | 'absent';
 
 function AttendancePage() {
   const firestore = useFirestore();
-  const { user } = useUser();
   const { toast } = useToast();
   
   const [selectedClass, setSelectedClass] = useState('');
@@ -57,16 +55,16 @@ function AttendancePage() {
 
   // Fetch students of the selected class
   const studentsQuery = useMemoFirebase(() => {
-    if (!firestore || !selectedClass || !user) return null;
+    if (!firestore || !selectedClass) return null;
     return query(collection(firestore, 'students'), where('classGrade', '==', selectedClass));
-  }, [firestore, selectedClass, user]);
+  }, [firestore, selectedClass]);
   const { data: students, isLoading: isLoadingStudents } = useCollection<Student>(studentsQuery);
 
   // Fetch existing attendance for the selected class and date
   const attendanceQuery = useMemoFirebase(() => {
-    if (!firestore || !selectedClass || !formattedDate || !user) return null;
+    if (!firestore || !selectedClass || !formattedDate) return null;
     return query(collection(firestore, 'attendance'), where('classGrade', '==', selectedClass), where('date', '==', formattedDate));
-  }, [firestore, selectedClass, formattedDate, user]);
+  }, [firestore, selectedClass, formattedDate]);
   const { data: existingAttendance, isLoading: isLoadingAttendance } = useCollection<Attendance>(attendanceQuery);
   
   const isAttendanceAlreadySaved = useMemo(() => {
@@ -92,7 +90,7 @@ function AttendancePage() {
   };
 
   const handleSaveAttendance = async () => {
-    if (!firestore || !user || !students || students.length === 0 || !formattedDate) {
+    if (!firestore || !students || students.length === 0 || !formattedDate) {
         toast({ variant: 'destructive', title: 'ত্রুটি', description: 'শ্রেণি ও তারিখ নির্বাচন করুন এবং অন্তত একজন শিক্ষার্থী থাকতে হবে।' });
         return;
     }
@@ -111,7 +109,6 @@ function AttendancePage() {
                 classGrade: selectedClass,
                 date: formattedDate,
                 status: status,
-                recordedByTeacherId: user.uid,
             };
             batch.set(attendanceRef, attendanceData, { merge: true });
         });
@@ -245,8 +242,6 @@ function AttendancePage() {
 
 export default function AttendancePageContainer() {
     return (
-        <PermissionGuard requiredPermission="canManageAttendance">
-            <AttendancePage />
-        </PermissionGuard>
+        <AttendancePage />
     )
 }
