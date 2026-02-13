@@ -78,15 +78,18 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const auth = useAuth();
   const router = useRouter();
   const { toast } = useToast();
-  const [user, setUser] = useState<User | null>(auth.currentUser);
+  const [user, setUser] = useState<User | null | undefined>(undefined);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setUser(user);
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+      if (!currentUser && pathname !== '/login') {
+        router.push('/login');
+      }
     });
     return () => unsubscribe();
-  }, [auth]);
+  }, [auth, pathname, router]);
 
   const settingsRef = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -107,6 +110,24 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   
   if (pathname === '/login') {
     return <>{children}</>;
+  }
+
+  // While checking auth state, show a loader
+  if (user === undefined) {
+    return (
+        <div className="flex h-screen items-center justify-center bg-background">
+            <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        </div>
+    );
+  }
+
+  // If user is not logged in, useEffect will redirect. Show loader in the meantime.
+  if (!user) {
+    return (
+        <div className="flex h-screen items-center justify-center bg-background">
+            <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        </div>
+    );
   }
 
   return (
