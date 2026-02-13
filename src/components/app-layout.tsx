@@ -98,10 +98,10 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                       <div className="flex items-center gap-2">
                           <Avatar className="h-8 w-8">
                             <AvatarImage src={user?.photoURL || undefined} />
-                            <AvatarFallback>{isUserLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : (user ? 'A' : 'G')}</AvatarFallback>
+                            <AvatarFallback>{isUserLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : (user ? (user.isAnonymous ? 'অ' : (user.displayName || 'ব').charAt(0)) : 'G')}</AvatarFallback>
                           </Avatar>
                           <div className="hidden sm:flex flex-col items-start">
-                              <p className="text-sm font-medium truncate">{isUserLoading ? 'Loading...' : (user ? 'Anonymous User' : 'Not Signed In')}</p>
+                              <p className="text-sm font-medium truncate">{isUserLoading ? 'লোড হচ্ছে...' : (user ? (user.isAnonymous ? 'অতিথি' : (user.displayName || 'ব্যবহারকারী')) : 'সাইন ইন নেই')}</p>
                           </div>
                       </div>
 
