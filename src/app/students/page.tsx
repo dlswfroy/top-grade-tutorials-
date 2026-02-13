@@ -44,7 +44,7 @@ import {
 import { useFirebaseApp, useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
 import { collection, doc, addDoc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
-import { getStorage, ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
+import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 const defaultStudentState: Omit<Student, 'id' | 'dateAdded'> = {
   name: '',
@@ -136,62 +136,39 @@ export default function StudentsPage() {
     setIsSaving(true);
 
     try {
-        const dataToSave = {
+        let finalImageUrl = editingStudent?.imageUrl || '';
+
+        if (imageFile) {
+            const storage = getStorage(firebaseApp);
+            const storageRef = ref(storage, `student_images/${user.uid}_${Date.now()}_${imageFile.name}`);
+            const uploadResult = await uploadBytes(storageRef, imageFile);
+            finalImageUrl = await getDownloadURL(uploadResult.ref);
+        }
+
+        const studentData = {
             name: formData.name,
             classGrade: formData.classGrade,
             rollNumber: formData.rollNumber,
             fatherName: formData.fatherName,
             mobileNumber: formData.mobileNumber,
             monthlyFee: Number(formData.monthlyFee) || 0,
-            imageUrl: formData.imageUrl,
+            imageUrl: finalImageUrl,
             imageHint: formData.imageHint || 'student person',
         };
 
-        let docRef;
-
         if (editingStudent) {
-            docRef = doc(firestore, 'students', editingStudent.id);
-            await updateDoc(docRef, dataToSave);
+            await updateDoc(doc(firestore, 'students', editingStudent.id), studentData);
             toast({ title: "সফল", description: `${formData.name}-এর তথ্য আপডেট করা হয়েছে।` });
         } else {
-            const finalData = { 
-                ...dataToSave, 
-                dateAdded: new Date().toISOString(),
-                imageUrl: `https://picsum.photos/seed/${formData.rollNumber}/200/200`,
-            };
-            docRef = await addDoc(collection(firestore, 'students'), finalData);
+            await addDoc(collection(firestore, 'students'), { 
+                ...studentData,
+                imageUrl: finalImageUrl || `https://picsum.photos/seed/${formData.rollNumber}/200/200`,
+                dateAdded: new Date().toISOString()
+            });
             toast({ title: "সফল", description: `${formData.name} কে শিক্ষার্থী হিসেবে যোগ করা হয়েছে।` });
         }
         
         handleCloseDialog();
-
-        if (imageFile) {
-            const { id: toastId, update } = toast({
-                title: "ছবি আপলোড হচ্ছে...",
-                description: "0% সম্পন্ন হয়েছে।",
-            });
-            
-            const storage = getStorage(firebaseApp);
-            const storageRef = ref(storage, `student_images/${docRef.id}_${imageFile.name}`);
-            const uploadTask = uploadBytesResumable(storageRef, imageFile);
-
-            uploadTask.on('state_changed',
-                (snapshot) => {
-                    const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-                    update({ description: `${Math.round(progress)}% সম্পন্ন হয়েছে।` });
-                },
-                (error) => {
-                    console.error("Upload failed:", error);
-                    update({ variant: 'destructive', title: 'ছবি আপলোডে ত্রুটি', description: 'পুনরায় চেষ্টা করুন।' });
-                },
-                async () => {
-                    const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-                    await updateDoc(docRef, { imageUrl: downloadURL });
-                    update({ title: 'আপলোড সফল', description: 'ছবি সফলভাবে আপলোড হয়েছে।' });
-                    setTimeout(() => { toast({ id: toastId }).dismiss() }, 3000);
-                }
-            );
-        }
 
     } catch (error: any) {
         console.error("Error saving student:", error);
