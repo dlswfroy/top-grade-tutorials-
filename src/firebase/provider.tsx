@@ -4,7 +4,7 @@
 import React, { DependencyList, createContext, useContext, ReactNode, useMemo, useState, useEffect } from 'react';
 import { FirebaseApp } from 'firebase/app';
 import { Firestore } from 'firebase/firestore';
-import { Auth, User, onAuthStateChanged, signInAnonymously } from 'firebase/auth';
+import { Auth, User, onAuthStateChanged } from 'firebase/auth';
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener'
 
 interface FirebaseProviderProps {
@@ -84,14 +84,8 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
           // User is signed in.
           setUserAuthState({ user: firebaseUser, isUserLoading: false, userError: null });
         } else {
-          // No user is signed in, so sign in anonymously.
-          // This is a quick way to get the app working without a full auth flow.
-          signInAnonymously(auth).catch((authError) => {
-            console.error("FirebaseProvider: Anonymous sign-in failed:", authError);
-            setUserAuthState({ user: null, isUserLoading: false, userError: authError });
-          });
-          // The onAuthStateChanged listener will be called again with the new user,
-          // so we don't need to set state here for the loading/user fields.
+          // No user is signed in.
+          setUserAuthState({ user: null, isUserLoading: false, userError: null });
         }
       },
       (error) => { // Auth listener error

@@ -1,8 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { useState, useMemo } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
+import { useState, useMemo, useEffect } from 'react';
 import Image from 'next/image';
 import {
   LayoutDashboard,
@@ -18,10 +18,19 @@ import {
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { useUser, useAuth, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { cn } from '@/lib/utils';
+import { signOut } from 'firebase/auth';
 
 const menuItems = [
   { href: '/', label: 'ড্যাসবোর্ড', icon: LayoutDashboard },
@@ -62,16 +71,41 @@ function Logo({ settings, isLoading, className }: { settings: InstitutionSetting
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
   const { user, isUserLoading } = useUser();
+  const auth = useAuth();
   const firestore = useFirestore();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const settingsRef = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
+    if (!firestore) return null;
     return doc(firestore, 'institution_settings', 'default');
-  }, [firestore, user]);
+  }, [firestore]);
 
   const { data: settings, isLoading: isLoadingSettings } = useDoc<InstitutionSettings>(settingsRef);
+  
+  useEffect(() => {
+    if (!isUserLoading && !user && pathname !== '/login') {
+      router.push('/login');
+    }
+  }, [isUserLoading, user, pathname, router]);
+
+  const handleLogout = async () => {
+    await signOut(auth);
+    router.push('/login');
+  }
+
+  if (isUserLoading || (!user && pathname !== '/login')) {
+      return (
+          <div className="flex h-screen items-center justify-center">
+              <Loader2 className="h-8 w-8 animate-spin" />
+          </div>
+      );
+  }
+
+  if (!user) {
+    return <>{children}</>;
+  }
 
   return (
       <div className="min-h-screen flex flex-col">
@@ -95,15 +129,31 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                   </nav>
 
                   <div className="flex flex-1 items-center justify-end space-x-2">
-                      <div className="flex items-center gap-2">
-                          <Avatar className="h-8 w-8">
-                            <AvatarImage src={user?.photoURL || undefined} />
-                            <AvatarFallback>{isUserLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : (user ? (user.isAnonymous ? 'অ' : (user.displayName || 'ব').charAt(0)) : 'G')}</AvatarFallback>
-                          </Avatar>
-                          <div className="hidden sm:flex flex-col items-start">
-                              <p className="text-sm font-medium truncate">{isUserLoading ? 'লোড হচ্ছে...' : (user ? (user.isAnonymous ? 'অতিথি' : (user.displayName || 'ব্যবহারকারী')) : 'সাইন ইন নেই')}</p>
-                          </div>
-                      </div>
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                                    <Avatar className="h-8 w-8">
+                                        <AvatarImage src={user?.photoURL || undefined} />
+                                        <AvatarFallback>{(user?.displayName || 'ব').charAt(0)}</AvatarFallback>
+                                    </Avatar>
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent className="w-56" align="end" forceMount>
+                                <DropdownMenuLabel className="font-normal">
+                                    <div className="flex flex-col space-y-1">
+                                        <p className="text-sm font-medium leading-none">{user?.displayName || 'ব্যবহারকারী'}</p>
+                                        <p className="text-xs leading-none text-muted-foreground">
+                                            {user?.email}
+                                        </p>
+                                    </div>
+                                </DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem onClick={handleLogout}>
+                                    <LogOut className="mr-2 h-4 w-4" />
+                                    <span>লগ আউট</span>
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
 
                       <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
                           <SheetTrigger asChild>
@@ -129,6 +179,17 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                                           <span>{item.label}</span>
                                       </Link>
                                   ))}
+                                  <DropdownMenuSeparator />
+                                   <button
+                                      onClick={() => {
+                                          handleLogout();
+                                          setMobileMenuOpen(false);
+                                      }}
+                                      className="flex items-center gap-3 rounded-md p-3 text-lg font-medium text-muted-foreground hover:bg-accent/80"
+                                    >
+                                      <LogOut className="h-5 w-5" />
+                                      <span>লগ আউট</span>
+                                    </button>
                               </div>
                           </SheetContent>
                       </Sheet>
