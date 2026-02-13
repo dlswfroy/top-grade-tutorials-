@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import {
   LayoutDashboard,
   Users,
@@ -12,6 +12,7 @@ import {
   Loader2,
   CalendarCheck,
   Menu,
+  GraduationCap,
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -23,6 +24,7 @@ import { cn } from '@/lib/utils';
 const menuItems = [
   { href: '/', label: 'ড্যাসবোর্ড', icon: LayoutDashboard },
   { href: '/students', label: 'শিক্ষার্থী', icon: Users },
+  { href: '/teachers', label: 'শিক্ষক', icon: GraduationCap },
   { href: '/accounting', label: 'হিসাব', icon: Calculator },
   { href: '/attendance', label: 'হাজিরা', icon: CalendarCheck },
   { href: '/questions', label: 'প্রশ্ন তৈরি', icon: BrainCircuit },
@@ -132,5 +134,3 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       </div>
   );
 }
-
-    

@@ -11,6 +11,17 @@ export type Student = {
   dateAdded: string;
 };
 
+export type Teacher = {
+  id: string;
+  name: string;
+  subject: string;
+  mobileNumber: string;
+  email?: string;
+  imageUrl?: string;
+  imageHint?: string;
+  dateAdded: string;
+};
+
 export type Payment = {
   id: string;
   studentId: string;

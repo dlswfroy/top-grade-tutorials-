@@ -56,6 +56,51 @@
         "dateAdded"
       ]
     },
+    "Teacher": {
+      "title": "Teacher",
+      "type": "object",
+      "description": "Represents a teacher at the institution, including their personal and contact details.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Teacher entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "The full name of the teacher."
+        },
+        "subject": {
+          "type": "string",
+          "description": "The primary subject taught by the teacher."
+        },
+        "mobileNumber": {
+          "type": "string",
+          "description": "The mobile contact number for the teacher."
+        },
+        "email": {
+          "type": "string",
+          "description": "The email address of the teacher.",
+          "format": "email"
+        },
+        "imageUrl": {
+          "type": "string",
+          "description": "URL to the teacher's profile image.",
+          "format": "uri"
+        },
+        "dateAdded": {
+          "type": "string",
+          "description": "The date and time when the teacher record was added.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "subject",
+        "mobileNumber",
+        "dateAdded"
+      ]
+    },
     "Payment": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Payment",
@@ -283,6 +328,22 @@
         }
       },
       {
+        "path": "/teachers/{teacherId}",
+        "definition": {
+          "entityName": "Teacher",
+          "schema": {
+            "$ref": "#/backend/entities/Teacher"
+          },
+          "description": "Contains records of all teachers at the institution.",
+          "params": [
+            {
+              "name": "teacherId",
+              "description": "The unique identifier for the teacher."
+            }
+          ]
+        }
+      },
+      {
         "path": "/payments/{paymentId}",
         "definition": {
           "entityName": "Payment",
@@ -365,5 +426,3 @@
     ]
   }
 }
-
-    
