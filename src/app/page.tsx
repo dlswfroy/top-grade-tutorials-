@@ -54,7 +54,7 @@ function Dashboard() {
     <div className="space-y-8 p-6 rounded-lg bg-blue-50 dark:bg-blue-950/30">
       <div>
         <h1 className="text-3xl font-bold font-headline">ড্যাসবোর্ড</h1>
-        <p className="text-muted-foreground">
+        <p className="text-slate-600 dark:text-slate-400">
           আপনার প্রতিষ্ঠানের তথ্যের সারসংক্ষেপ দেখুন।
         </p>
       </div>
