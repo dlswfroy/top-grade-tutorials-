@@ -24,10 +24,11 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
+  DialogTrigger,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { type Teacher } from '@/lib/data';
-import { MoreHorizontal, Pencil, Trash2, Loader2, Save } from 'lucide-react';
+import { MoreHorizontal, Pencil, Trash2, Loader2, Save, PlusCircle } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   DropdownMenu,
@@ -35,10 +36,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { useFirebaseApp, useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
-import { collection, doc, updateDoc, deleteDoc, DocumentReference, DocumentData } from 'firebase/firestore';
+import { useFirebaseApp, useFirestore, useCollection, useMemoFirebase, useUser, useAuth } from '@/firebase';
+import { collection, doc, updateDoc, deleteDoc, DocumentReference, DocumentData, setDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { getStorage, ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
+import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 
 const defaultTeacherState: Omit<Teacher, 'id' | 'dateAdded'> = {
     name: '',
@@ -50,6 +52,7 @@ const defaultTeacherState: Omit<Teacher, 'id' | 'dateAdded'> = {
 export default function TeachersPage() {
   const firebaseApp = useFirebaseApp();
   const firestore = useFirestore();
+  const auth = useAuth();
   const { user } = useUser();
   const { toast } = useToast();
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -58,6 +61,8 @@ export default function TeachersPage() {
   const [editingTeacher, setEditingTeacher] = useState<Teacher | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
 
   const teachersQuery = useMemoFirebase(() => {
       if (!firestore || !user) return null;
@@ -65,19 +70,6 @@ export default function TeachersPage() {
   }, [firestore, user]);
 
   const { data: teachers, isLoading } = useCollection<Teacher>(teachersQuery);
-
-  useEffect(() => {
-    if (editingTeacher) {
-        setFormData(editingTeacher);
-        if (editingTeacher.imageUrl) {
-            setImagePreview(editingTeacher.imageUrl);
-        }
-    } else {
-        setFormData(defaultTeacherState);
-        setImagePreview(null);
-    }
-    setImageFile(null);
-  }, [editingTeacher]);
 
   useEffect(() => {
     return () => {
@@ -101,7 +93,7 @@ export default function TeachersPage() {
   const uploadAndSaveUrl = (file: File, docRef: DocumentReference<DocumentData>) => {
     if (!firebaseApp) return;
     const storage = getStorage(firebaseApp);
-    const storageRef = ref(storage, `teacher_images/${Date.now()}_${file.name}`);
+    const storageRef = ref(storage, `teacher_images/${docRef.id}_${file.name}`);
     const uploadTask = uploadBytesResumable(storageRef, file);
 
     const { id: toastId, update: updateToast, dismiss: dismissToast } = toast({
@@ -122,23 +114,24 @@ export default function TeachersPage() {
           description: `ছবিটি আপলোড করা যায়নি।`,
         });
       },
-      async () => {
-        try {
-          const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-          await updateDoc(docRef, { imageUrl: downloadURL });
-          updateToast({
-            title: 'ছবি আপলোড সফল',
-            description: 'শিক্ষকের ছবিটি সফলভাবে আপলোড হয়েছে।',
-          });
-          setTimeout(() => dismissToast(), 5000);
-        } catch (error: any) {
-          console.error('Failed to update image URL:', error);
-          updateToast({
-            variant: 'destructive',
-            title: 'ত্রুটি',
-            description: `ছবিটির URL সেভ করতে সমস্যা হয়েছে: ${error.message}`,
-          });
-        }
+      () => {
+        getDownloadURL(uploadTask.snapshot.ref).then(async (downloadURL) => {
+           try {
+            await updateDoc(docRef, { imageUrl: downloadURL });
+             updateToast({
+                title: 'ছবি আপলোড সফল',
+                description: 'শিক্ষকের ছবিটি সফলভাবে আপলোড হয়েছে।',
+            });
+           } catch (error: any) {
+             updateToast({
+                variant: 'destructive',
+                title: 'ত্রুটি',
+                description: `ছবিটির URL সেভ করতে সমস্যা হয়েছে: ${error.message}`,
+            });
+           } finally {
+             setTimeout(() => dismissToast(), 5000);
+           }
+        });
       }
     );
   };
@@ -149,14 +142,7 @@ export default function TeachersPage() {
   };
 
   const handleSaveTeacher = async () => {
-    if (!firestore || !user || !editingTeacher) {
-         toast({
-            variant: "destructive",
-            title: "ত্রুটি",
-            description: "সম্পাদনা করার জন্য কোনো শিক্ষক নির্বাচন করা হয়নি।",
-        });
-        return;
-    };
+    if (!firestore || !user || !auth) return;
 
     if (!formData.name || !formData.mobileNumber) {
         toast({
@@ -168,31 +154,79 @@ export default function TeachersPage() {
     }
 
     setIsSaving(true);
-    
-    try {
-        const teacherData: Partial<Teacher> = {
-            ...formData,
-            imageUrl: imagePreview || `https://picsum.photos/seed/${formData.mobileNumber}/200/200`,
-        };
-        
-        const teacherRef = doc(firestore, 'teachers', editingTeacher.id);
-        await updateDoc(teacherRef, teacherData);
-        toast({ title: "সফল", description: `${formData.name}-এর তথ্য আপডেট করা হয়েছে।` });
 
-        if (imageFile) {
-            uploadAndSaveUrl(imageFile, teacherRef);
+    if (editingTeacher) {
+        // --- UPDATE LOGIC ---
+        try {
+            const teacherData: Partial<Omit<Teacher, 'id' | 'dateAdded'>> = {
+                name: formData.name,
+                mobileNumber: formData.mobileNumber,
+                imageUrl: formData.imageUrl,
+            };
+
+            const teacherRef = doc(firestore, 'teachers', editingTeacher.id);
+            await updateDoc(teacherRef, teacherData);
+            
+            if (imageFile) {
+                uploadAndSaveUrl(imageFile, teacherRef);
+            } else {
+                 toast({ title: "সফল", description: `${formData.name}-এর তথ্য আপডেট করা হয়েছে।` });
+            }
+            handleCloseDialog();
+        } catch (error: any) {
+            console.error("Error updating teacher:", error);
+            toast({
+                variant: "destructive",
+                title: "ত্রুটি",
+                description: `শিক্ষকের তথ্য আপডেট করতে সমস্যা হয়েছে: ${error.message}`,
+            });
+        } finally {
+            setIsSaving(false);
+        }
+    } else {
+        // --- CREATE LOGIC ---
+        if (!email || !password) {
+            toast({ variant: 'destructive', title: 'ত্রুটি', description: 'অনুগ্রহ করে ইমেইল এবং পাসওয়ার্ড দিন।' });
+            setIsSaving(false);
+            return;
         }
 
-        handleCloseDialog();
-    } catch (error: any) {
-        console.error("Error saving teacher:", error);
-        toast({
-            variant: "destructive",
-            title: "ত্রুটি",
-            description: `শিক্ষকের তথ্য সেভ করতে সমস্যা হয়েছে: ${error.message}`,
-        });
-    } finally {
-        setIsSaving(false);
+        try {
+            const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+            const newTeacherUser = userCredential.user;
+            await updateProfile(newTeacherUser, { displayName: formData.name });
+
+            const teacherRef = doc(firestore, 'teachers', newTeacherUser.uid);
+            const teacherData = {
+                name: formData.name,
+                mobileNumber: formData.mobileNumber,
+                imageUrl: `https://picsum.photos/seed/${newTeacherUser.uid}/200/200`,
+                imageHint: formData.imageHint || 'teacher person',
+                dateAdded: new Date().toISOString()
+            };
+            await setDoc(teacherRef, teacherData);
+
+            const teacherRoleRef = doc(firestore, 'roles_teacher', newTeacherUser.uid);
+            await setDoc(teacherRoleRef, { active: true });
+            
+            if (imageFile) {
+                uploadAndSaveUrl(imageFile, teacherRef);
+            } else {
+                toast({ title: "সফল", description: `${formData.name} কে শিক্ষক হিসেবে যোগ করা হয়েছে।` });
+            }
+            handleCloseDialog();
+        } catch (error: any) {
+            console.error("Error creating teacher:", error);
+            let errorMessage = 'শিক্ষক তৈরিতে একটি ত্রুটি হয়েছে।';
+            if (error.code === 'auth/email-already-in-use') {
+                errorMessage = 'এই ইমেইলটি ইতিমধ্যে ব্যবহার করা হয়েছে।';
+            } else if (error.code === 'auth/weak-password') {
+                errorMessage = 'পাসওয়ার্ডটি যথেষ্ট শক্তিশালী নয়। কমপক্ষে ৬টি অক্ষর থাকতে হবে।';
+            }
+            toast({ variant: "destructive", title: "ত্রুটি", description: errorMessage });
+        } finally {
+            setIsSaving(false);
+        }
     }
   };
 
@@ -200,6 +234,7 @@ export default function TeachersPage() {
     if (!firestore) return;
     try {
         await deleteDoc(doc(firestore, 'teachers', teacherId));
+        await deleteDoc(doc(firestore, 'roles_teacher', teacherId));
         toast({ title: "সফল", description: `${teacherName} কে তালিকা থেকে মুছে ফেলা হয়েছে।` });
     } catch (error: any) {
         console.error("Error deleting teacher:", error);
@@ -207,20 +242,26 @@ export default function TeachersPage() {
     }
   };
 
-  const handleOpenDialog = (teacher: Teacher) => {
+  const handleOpenDialog = (teacher: Teacher | null) => {
     setEditingTeacher(teacher);
+    if(teacher) {
+        setFormData(teacher);
+        setImagePreview(teacher.imageUrl || null);
+    }
     setIsDialogOpen(true);
   }
 
   const handleCloseDialog = () => {
     setIsDialogOpen(false);
     setEditingTeacher(null);
+    setFormData(defaultTeacherState);
     if (imagePreview && imagePreview.startsWith('blob:')) {
         URL.revokeObjectURL(imagePreview);
     }
-    setFormData(defaultTeacherState);
     setImagePreview(null);
     setImageFile(null);
+    setEmail('');
+    setPassword('');
   }
 
   return (
@@ -232,24 +273,30 @@ export default function TeachersPage() {
         </p>
       </div>
 
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>শিক্ষকদের তালিকা</CardTitle>
-              <CardDescription>
-                এখানে সকল নিবন্ধিত শিক্ষকের তালিকা দেখুন।
-              </CardDescription>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-            {isLoading ? (
-                <div className="flex justify-center items-center h-64">
-                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+       <Dialog open={isDialogOpen} onOpenChange={(open) => { if (!open) handleCloseDialog(); else setIsDialogOpen(true); }}>
+        <Card>
+            <CardHeader>
+            <div className="flex items-center justify-between">
+                <div>
+                <CardTitle>শিক্ষকদের তালিকা</CardTitle>
+                <CardDescription>
+                    এখানে সকল নিবন্ধিত শিক্ষকের তালিকা দেখুন।
+                </CardDescription>
                 </div>
-            ) : (
-                <>
+                <DialogTrigger asChild>
+                    <Button onClick={() => handleOpenDialog(null)}>
+                        <PlusCircle className="mr-2 h-4 w-4" />
+                        নতুন শিক্ষক
+                    </Button>
+                </DialogTrigger>
+            </div>
+            </CardHeader>
+            <CardContent>
+                {isLoading ? (
+                    <div className="flex justify-center items-center h-64">
+                        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                    </div>
+                ) : (
                     <Table>
                         <TableHeader>
                         <TableRow>
@@ -294,44 +341,54 @@ export default function TeachersPage() {
                         ))}
                         </TableBody>
                     </Table>
-                     <Dialog open={isDialogOpen} onOpenChange={(open) => { if (!open) handleCloseDialog(); else setIsDialogOpen(true); }}>
-                        <DialogContent className="sm:max-w-[425px]">
-                            <DialogHeader>
-                            <DialogTitle>শিক্ষকের তথ্য এডিট করুন</DialogTitle>
-                            </DialogHeader>
-                            <div className="grid gap-4 py-4">
-                            <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="name" className="text-right">নাম</Label>
-                                <Input id="name" value={formData.name} onChange={handleInputChange} placeholder="শিক্ষকের নাম" className="col-span-3" disabled={isSaving} />
-                            </div>
-                            <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="mobileNumber" className="text-right">মোবাইল</Label>
-                                <Input id="mobileNumber" value={formData.mobileNumber} onChange={handleInputChange} placeholder="মোবাইল নম্বর" className="col-span-3" disabled={isSaving} />
-                            </div>
-                            <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="picture" className="text-right">ছবি</Label>
-                                <Input id="picture" type="file" accept="image/*" onChange={handleImageChange} className="col-span-3" disabled={isSaving} />
-                            </div>
-                            {imagePreview && (
-                                <div className="grid grid-cols-4 items-center gap-4">
-                                <div className="col-start-2 col-span-3">
-                                    <Image src={imagePreview} alt="Image Preview" width={100} height={100} className="rounded-md object-cover" />
-                                </div>
-                                </div>
-                            )}
-                            </div>
-                            <DialogFooter>
-                                <Button onClick={handleSaveTeacher} disabled={isSaving} className="w-full">
-                                    {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                                    {isSaving ? 'সেভ হচ্ছে...' : 'সেভ করুন'}
-                                </Button>
-                            </DialogFooter>
-                        </DialogContent>
-                    </Dialog>
-                </>
-            )}
-        </CardContent>
-      </Card>
+                )}
+            </CardContent>
+        </Card>
+        <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+                <DialogTitle>{editingTeacher ? 'শিক্ষকের তথ্য এডিট করুন' : 'নতুন শিক্ষক যোগ করুন'}</DialogTitle>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+                {!editingTeacher && (
+                    <>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="email" className="text-right">ইমেইল</Label>
+                            <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="শিক্ষকের ইমেইল" className="col-span-3" disabled={isSaving} />
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="password" className="text-right">পাসওয়ার্ড</Label>
+                            <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="নতুন পাসওয়ার্ড" className="col-span-3" disabled={isSaving} />
+                        </div>
+                    </>
+                )}
+                <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="name" className="text-right">নাম</Label>
+                    <Input id="name" value={formData.name} onChange={handleInputChange} placeholder="শিক্ষকের নাম" className="col-span-3" disabled={isSaving} />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="mobileNumber" className="text-right">মোবাইল</Label>
+                    <Input id="mobileNumber" value={formData.mobileNumber} onChange={handleInputChange} placeholder="মোবাইল নম্বর" className="col-span-3" disabled={isSaving} />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="picture" className="text-right">ছবি</Label>
+                    <Input id="picture" type="file" accept="image/*" onChange={handleImageChange} className="col-span-3" disabled={isSaving} />
+                </div>
+                {imagePreview && (
+                    <div className="grid grid-cols-4 items-center gap-4">
+                    <div className="col-start-2 col-span-3">
+                        <Image src={imagePreview} alt="Image Preview" width={100} height={100} className="rounded-md object-cover" />
+                    </div>
+                    </div>
+                )}
+            </div>
+            <DialogFooter>
+                <Button onClick={handleSaveTeacher} disabled={isSaving} className="w-full">
+                    {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                    {isSaving ? 'সেভ হচ্ছে...' : 'সেভ করুন'}
+                </Button>
+            </DialogFooter>
+        </DialogContent>
+    </Dialog>
     </div>
   );
 }
