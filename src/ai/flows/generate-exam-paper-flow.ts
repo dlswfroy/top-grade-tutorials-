@@ -65,6 +65,26 @@ const prompt = ai.definePrompt({
 প্রতিটি প্রশ্নের মান ১ হবে।
 
 প্রশ্নপত্রটি অত্যন্ত সুসংগঠিত এবং পঠনযোগ্য হতে হবে।`,
+  config: {
+    safetySettings: [
+      {
+        category: 'HARM_CATEGORY_HATE_SPEECH',
+        threshold: 'BLOCK_NONE',
+      },
+      {
+        category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
+        threshold: 'BLOCK_NONE',
+      },
+      {
+        category: 'HARM_CATEGORY_HARASSMENT',
+        threshold: 'BLOCK_NONE',
+      },
+      {
+        category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
+        threshold: 'BLOCK_NONE',
+      },
+    ],
+  },
 });
 
 const generateExamPaperFlow = ai.defineFlow(

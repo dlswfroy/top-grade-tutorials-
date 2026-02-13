@@ -52,6 +52,9 @@ export async function handleGenerateExam(
 
   try {
     const result = await generateExamPaper(validatedFields.data);
+     if (!result || !result.examPaperText) {
+        return { message: 'AI একটি খালি প্রশ্নপত্র তৈরি করেছে। অনুগ্রহ করে আপনার ইনপুট পরিবর্তন করে আবার চেষ্টা করুন।' };
+    }
     return {
       message: 'প্রশ্নপত্র সফলভাবে তৈরি হয়েছে!',
       examPaper: result.examPaperText,
@@ -59,9 +62,21 @@ export async function handleGenerateExam(
   } catch (error: any) {
     console.error(error);
     let errorMessage = 'প্রশ্নপত্র তৈরিতে একটি ত্রুটি হয়েছে। অনুগ্রহ করে আবার চেষ্টা করুন।';
-    if (error.message && (error.message.includes('API_KEY_INVALID') || error.message.includes('API key') || error.message.includes('authentication'))) {
-        errorMessage = 'AI সংযোগের জন্য API কী সেট করা নেই অথবা ভুল। অনুগ্রহ করে আপনার .env ফাইলে একটি সঠিক GEMINI_API_KEY যোগ করুন।';
+    
+    if (error.message) {
+        if (error.message.includes('API_KEY_INVALID') || error.message.includes('API key not found') || error.message.includes('authentication')) {
+            errorMessage = 'AI সংযোগের জন্য API কী সেট করা নেই অথবা ভুল। অনুগ্রহ করে আপনার .env ফাইলে একটি সঠিক GEMINI_API_KEY যোগ করুন। একটি কী পেতে, এখানে যান: https://aistudio.google.com/app/apikey';
+        } else if (error.message.includes('SAFETY')) {
+            errorMessage = 'নিরাপত্তাজনিত কারণে AI কন্টেন্ট তৈরি করতে পারেনি। এটি হতে পারে যদি প্রশ্নটি কোনো সংবেদনশীল বিষয় নিয়ে হয়। অনুগ্রহ করে আপনার ইনপুট পরিবর্তন করে আবার চেষ্টা করুন।';
+        } else if (error.message.includes('429')) {
+             errorMessage = 'আপনি খুব অল্প সময়ে অনেকগুলো অনুরোধ করেছেন। অনুগ্রহ করে কিছুক্ষণ পর আবার চেষ্টা করুন।';
+        } else if (error.message.includes('output is not valid')) {
+            errorMessage = 'AI একটি অপ্রত্যাশিত ফরম্যাটে উত্তর দিয়েছে। আমরা এই সমস্যাটি সমাধানের চেষ্টা করছি। অনুগ্রহ করে কিছুক্ষণ পর আবার চেষ্টা করুন।';
+        } else {
+            errorMessage = `একটি অপ্রত্যাশিত ত্রুটি ঘটেছে। অনুগ্রহ করে আবার চেষ্টা করুন।`;
+        }
     }
+    
     return {
       message: errorMessage,
     };
