@@ -123,18 +123,18 @@ export default function LoginPage() {
         <TabsContent value="login">
           <Card>
             <CardHeader>
-              <CardTitle>লগইন করুন</CardTitle>
-              <CardDescription>
+              <CardTitle className="text-gray-800 dark:text-gray-200">লগইন করুন</CardTitle>
+              <CardDescription className="text-gray-600 dark:text-gray-400">
                 আপনার একাউন্টে প্রবেশ করতে ইমেইল ও পাসওয়ার্ড দিন।
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="login-email">ইমেইল</Label>
+                <Label htmlFor="login-email" className="text-gray-700 dark:text-gray-300">ইমেইল</Label>
                 <Input id="login-email" type="email" placeholder=" আপনার ইমেইল" value={email} onChange={(e) => setEmail(e.target.value)} required />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="login-password">পাসওয়ার্ড</Label>
+                <Label htmlFor="login-password" className="text-gray-700 dark:text-gray-300">পাসওয়ার্ড</Label>
                 <Input id="login-password" type="password" placeholder="আপনার পাসওয়ার্ড" value={password} onChange={(e) => setPassword(e.target.value)} required />
               </div>
               <Button onClick={handleLogin} disabled={isLoading} className="w-full">
@@ -151,22 +151,22 @@ export default function LoginPage() {
         <TabsContent value="signup">
           <Card>
             <CardHeader>
-              <CardTitle>নতুন একাউন্ট তৈরি করুন</CardTitle>
-              <CardDescription>
+              <CardTitle className="text-gray-800 dark:text-gray-200">নতুন একাউন্ট তৈরি করুন</CardTitle>
+              <CardDescription className="text-gray-600 dark:text-gray-400">
                 প্রথম ব্যবহারকারী স্বয়ংক্রিয়ভাবে 'এডমিন' হবেন।
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="name">নাম</Label>
+                <Label htmlFor="name" className="text-gray-700 dark:text-gray-300">নাম</Label>
                 <Input id="name" placeholder="আপনার পুরো নাম" value={name} onChange={(e) => setName(e.target.value)} required />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="signup-email">ইমেইল</Label>
+                <Label htmlFor="signup-email" className="text-gray-700 dark:text-gray-300">ইমেইল</Label>
                 <Input id="signup-email" type="email" placeholder="আপনার ইমেইল" value={email} onChange={(e) => setEmail(e.target.value)} required />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="signup-password">পাসওয়ার্ড</Label>
+                <Label htmlFor="signup-password" className="text-gray-700 dark:text-gray-300">পাসওয়ার্ড</Label>
                 <Input id="signup-password" type="password" placeholder="একটি শক্তিশালী পাসওয়ার্ড দিন" value={password} onChange={(e) => setPassword(e.target.value)} required />
               </div>
               <Button onClick={handleSignUp} disabled={isLoading} className="w-full">

@@ -230,7 +230,7 @@ function TeachersPage() {
   return (
     <div className="space-y-8 p-6 rounded-lg bg-indigo-50 dark:bg-indigo-950/30">
       <div>
-        <h1 className="text-3xl font-bold font-headline">শিক্ষক ম্যানেজমেন্ট</h1>
+        <h1 className="text-3xl font-bold font-headline text-indigo-800 dark:text-indigo-200">শিক্ষক ম্যানেজমেন্ট</h1>
       </div>
 
       <Card>
@@ -259,28 +259,28 @@ function TeachersPage() {
               </DialogTrigger>
               <DialogContent className="sm:max-w-[425px]">
                 <DialogHeader>
-                  <DialogTitle>{editingTeacher ? 'শিক্ষকের তথ্য এডিট করুন' : 'নতুন শিক্ষক যোগ করুন'}</DialogTitle>
+                  <DialogTitle className="text-slate-800 dark:text-slate-200">{editingTeacher ? 'শিক্ষকের তথ্য এডিট করুন' : 'নতুন শিক্ষক যোগ করুন'}</DialogTitle>
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
                   {/* Form Inputs */}
                   <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="name" className="text-right">নাম</Label>
+                    <Label htmlFor="name" className="text-right text-slate-700 dark:text-slate-300">নাম</Label>
                     <Input id="name" value={formData.name || ''} onChange={handleInputChange} placeholder="শিক্ষকের নাম" className="col-span-3" disabled={isSaving} />
                   </div>
                    <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="subject" className="text-right">বিষয়</Label>
+                    <Label htmlFor="subject" className="text-right text-slate-700 dark:text-slate-300">বিষয়</Label>
                     <Input id="subject" value={formData.subject || ''} onChange={handleInputChange} placeholder="বিষয়" className="col-span-3" disabled={isSaving} />
                   </div>
                   <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="mobileNumber" className="text-right">মোবাইল</Label>
+                    <Label htmlFor="mobileNumber" className="text-right text-slate-700 dark:text-slate-300">মোবাইল</Label>
                     <Input id="mobileNumber" value={formData.mobileNumber || ''} onChange={handleInputChange} placeholder="মোবাইল নম্বর" className="col-span-3" disabled={isSaving} />
                   </div>
                   <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="email" className="text-right">ইমেইল</Label>
+                    <Label htmlFor="email" className="text-right text-slate-700 dark:text-slate-300">ইমেইল</Label>
                     <Input id="email" type="email" value={formData.email || ''} onChange={handleInputChange} placeholder="ইমেইল" className="col-span-3" disabled={isSaving} />
                   </div>
                   <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="picture" className="text-right">ছবি</Label>
+                    <Label htmlFor="picture" className="text-right text-slate-700 dark:text-slate-300">ছবি</Label>
                     <Input id="picture" type="file" accept="image/*" onChange={handleImageChange} className="col-span-3" disabled={isSaving} />
                   </div>
                   {imagePreview && (
@@ -310,12 +310,12 @@ function TeachersPage() {
                 <Table>
                     <TableHeader>
                     <TableRow>
-                        <TableHead>ছবি</TableHead>
-                        <TableHead>নাম</TableHead>
-                        <TableHead>বিষয়</TableHead>
-                        <TableHead>মোবাইল</TableHead>
-                        <TableHead>ইমেইল</TableHead>
-                        <TableHead className="text-center">একশন</TableHead>
+                        <TableHead className="text-indigo-700 dark:text-indigo-300">ছবি</TableHead>
+                        <TableHead className="text-indigo-700 dark:text-indigo-300">নাম</TableHead>
+                        <TableHead className="text-indigo-700 dark:text-indigo-300">বিষয়</TableHead>
+                        <TableHead className="text-indigo-700 dark:text-indigo-300">মোবাইল</TableHead>
+                        <TableHead className="text-indigo-700 dark:text-indigo-300">ইমেইল</TableHead>
+                        <TableHead className="text-center text-indigo-700 dark:text-indigo-300">একশন</TableHead>
                     </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -327,10 +327,10 @@ function TeachersPage() {
                             <AvatarFallback>{teacher.name?.charAt(0)}</AvatarFallback>
                             </Avatar>
                         </TableCell>
-                        <TableCell className="font-medium">{teacher.name}</TableCell>
-                        <TableCell>{teacher.subject}</TableCell>
-                        <TableCell>{teacher.mobileNumber}</TableCell>
-                        <TableCell>{teacher.email || 'N/A'}</TableCell>
+                        <TableCell className="font-medium text-gray-800 dark:text-gray-200">{teacher.name}</TableCell>
+                        <TableCell className="text-gray-600 dark:text-gray-400">{teacher.subject}</TableCell>
+                        <TableCell className="text-gray-600 dark:text-gray-400">{teacher.mobileNumber}</TableCell>
+                        <TableCell className="text-gray-600 dark:text-gray-400">{teacher.email || 'N/A'}</TableCell>
                         <TableCell className="text-center">
                             <DropdownMenu>
                             <DropdownMenuTrigger asChild>

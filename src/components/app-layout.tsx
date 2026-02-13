@@ -58,7 +58,7 @@ function Logo({ settings, isLoading, className, iconClassName }: { settings: Ins
                   <path d="M2 12l10 5 10-5"></path>
                 </svg>
             )}
-            <h1 className="text-2xl font-headline font-bold">{institutionName}</h1>
+            <h1 className="text-2xl font-headline font-bold text-inherit">{institutionName}</h1>
         </Link>
     );
 }
@@ -88,7 +88,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                               href={item.href}
                               className={cn(
                                   "transition-colors",
-                                  pathname === item.href ? "text-primary-foreground font-semibold" : "text-primary-foreground/70 hover:text-primary-foreground"
+                                  pathname === item.href ? "text-primary-foreground font-semibold" : "text-primary-foreground/80 hover:text-primary-foreground"
                               )}
                           >
                               {item.label}
@@ -114,7 +114,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                                           onClick={() => setMobileMenuOpen(false)}
                                           className={cn(
                                               "flex items-center gap-3 rounded-md p-3 text-lg font-medium",
-                                              pathname === item.href ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:bg-accent/80"
+                                              pathname === item.href ? "bg-accent text-accent-foreground" : "text-slate-700 dark:text-slate-300 hover:bg-accent/80 hover:text-slate-900 dark:hover:text-slate-100"
                                           )}
                                       >
                                           <item.icon className="h-5 w-5" />

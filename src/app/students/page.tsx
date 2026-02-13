@@ -249,7 +249,7 @@ function StudentsPage() {
   return (
     <div className="space-y-8 p-6 rounded-lg bg-green-50 dark:bg-green-950/30">
       <div>
-        <h1 className="text-3xl font-bold font-headline">শিক্ষার্থী ম্যানেজমেন্ট</h1>
+        <h1 className="text-3xl font-bold font-headline text-green-800 dark:text-green-200">শিক্ষার্থী ম্যানেজমেন্ট</h1>
       </div>
 
       <Card>
@@ -289,20 +289,20 @@ function StudentsPage() {
               </DialogTrigger>
               <DialogContent className="sm:max-w-[425px]">
                 <DialogHeader>
-                  <DialogTitle>{editingStudent ? 'শিক্ষার্থীর তথ্য এডিট করুন' : 'নতুন শিক্ষার্থী যোগ করুন'}</DialogTitle>
+                  <DialogTitle className="text-slate-800 dark:text-slate-200">{editingStudent ? 'শিক্ষার্থীর তথ্য এডিট করুন' : 'নতুন শিক্ষার্থী যোগ করুন'}</DialogTitle>
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
                   {/* Form Inputs */}
                   <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="name" className="text-right">নাম</Label>
+                    <Label htmlFor="name" className="text-right text-slate-700 dark:text-slate-300">নাম</Label>
                     <Input id="name" value={formData.name || ''} onChange={handleInputChange} placeholder="শিক্ষার্থীর নাম" className="col-span-3" disabled={isSaving} />
                   </div>
                    <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="rollNumber" className="text-right">রোল</Label>
+                    <Label htmlFor="rollNumber" className="text-right text-slate-700 dark:text-slate-300">রোল</Label>
                     <Input id="rollNumber" value={formData.rollNumber || ''} onChange={handleInputChange} placeholder="রোল নম্বর" className="col-span-3" disabled={isSaving} />
                   </div>
                   <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="classGrade" className="text-right">শ্রেণি</Label>
+                    <Label htmlFor="classGrade" className="text-right text-slate-700 dark:text-slate-300">শ্রেণি</Label>
                     <Select value={formData.classGrade} onValueChange={handleSelectChange} disabled={isSaving}>
                       <SelectTrigger className="col-span-3">
                         <SelectValue placeholder="শ্রেণি নির্বাচন করুন" />
@@ -313,19 +313,19 @@ function StudentsPage() {
                     </Select>
                   </div>
                   <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="fatherName" className="text-right">পিতার নাম</Label>
+                    <Label htmlFor="fatherName" className="text-right text-slate-700 dark:text-slate-300">পিতার নাম</Label>
                     <Input id="fatherName" value={formData.fatherName || ''} onChange={handleInputChange} placeholder="পিতার নাম" className="col-span-3" disabled={isSaving} />
                   </div>
                   <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="mobileNumber" className="text-right">মোবাইল</Label>
+                    <Label htmlFor="mobileNumber" className="text-right text-slate-700 dark:text-slate-300">মোবাইল</Label>
                     <Input id="mobileNumber" value={formData.mobileNumber || ''} onChange={handleInputChange} placeholder="মোবাইল নম্বর" className="col-span-3" disabled={isSaving} />
                   </div>
                   <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="monthlyFee" className="text-right">মাসিক বেতন</Label>
+                    <Label htmlFor="monthlyFee" className="text-right text-slate-700 dark:text-slate-300">মাসিক বেতন</Label>
                     <Input id="monthlyFee" type="number" value={formData.monthlyFee || ''} onChange={handleInputChange} placeholder="মাসিক বেতন" className="col-span-3" disabled={isSaving} />
                   </div>
                   <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="picture" className="text-right">ছবি</Label>
+                    <Label htmlFor="picture" className="text-right text-slate-700 dark:text-slate-300">ছবি</Label>
                     <Input id="picture" type="file" accept="image/*" onChange={handleImageChange} className="col-span-3" disabled={isSaving} />
                   </div>
                   {imagePreview && (
@@ -355,14 +355,14 @@ function StudentsPage() {
                 <Table>
                     <TableHeader>
                     <TableRow>
-                        <TableHead>ছবি</TableHead>
-                        <TableHead>রোল</TableHead>
-                        <TableHead>নাম</TableHead>
-                        <TableHead>শ্রেণি</TableHead>
-                        <TableHead>পিতার নাম</TableHead>
-                        <TableHead>মোবাইল</TableHead>
-                        <TableHead className="text-right">বেতন</TableHead>
-                        <TableHead className="text-center">একশন</TableHead>
+                        <TableHead className="text-green-700 dark:text-green-300">ছবি</TableHead>
+                        <TableHead className="text-green-700 dark:text-green-300">রোল</TableHead>
+                        <TableHead className="text-green-700 dark:text-green-300">নাম</TableHead>
+                        <TableHead className="text-green-700 dark:text-green-300">শ্রেণি</TableHead>
+                        <TableHead className="text-green-700 dark:text-green-300">পিতার নাম</TableHead>
+                        <TableHead className="text-green-700 dark:text-green-300">মোবাইল</TableHead>
+                        <TableHead className="text-right text-green-700 dark:text-green-300">বেতন</TableHead>
+                        <TableHead className="text-center text-green-700 dark:text-green-300">একশন</TableHead>
                     </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -374,12 +374,12 @@ function StudentsPage() {
                             <AvatarFallback>{student.name?.charAt(0)}</AvatarFallback>
                             </Avatar>
                         </TableCell>
-                        <TableCell>{student.rollNumber}</TableCell>
-                        <TableCell className="font-medium">{student.name}</TableCell>
-                        <TableCell>{student.classGrade}</TableCell>
-                        <TableCell>{student.fatherName}</TableCell>
-                        <TableCell>{student.mobileNumber}</TableCell>
-                        <TableCell className="text-right">৳{student.monthlyFee}</TableCell>
+                        <TableCell className="text-gray-700 dark:text-gray-300">{student.rollNumber}</TableCell>
+                        <TableCell className="font-medium text-gray-800 dark:text-gray-200">{student.name}</TableCell>
+                        <TableCell className="text-gray-600 dark:text-gray-400">{student.classGrade}</TableCell>
+                        <TableCell className="text-gray-600 dark:text-gray-400">{student.fatherName}</TableCell>
+                        <TableCell className="text-gray-600 dark:text-gray-400">{student.mobileNumber}</TableCell>
+                        <TableCell className="text-right text-gray-700 dark:text-gray-300">৳{student.monthlyFee}</TableCell>
                         <TableCell className="text-center">
                             <DropdownMenu>
                             <DropdownMenuTrigger asChild>

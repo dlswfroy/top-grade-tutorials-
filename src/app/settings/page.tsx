@@ -88,14 +88,11 @@ function InstitutionSettingsCard() {
     return (
         <Card>
             <CardHeader>
-                <CardTitle>প্রতিষ্ঠানের তথ্য</CardTitle>
-                <CardDescription>
-                এখানে আপনার প্রতিষ্ঠানের নাম ও লোগো পরিবর্তন করতে পারবেন।
-                </CardDescription>
+                <CardTitle className="text-slate-900 dark:text-slate-100">প্রতিষ্ঠানের তথ্য</CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
                 <div className="space-y-2">
-                <Label htmlFor="institution-name">প্রতিষ্ঠানের নাম</Label>
+                <Label htmlFor="institution-name" className="text-slate-700 dark:text-slate-300">প্রতিষ্ঠানের নাম</Label>
                 <Input
                     id="institution-name"
                     value={institutionName}
@@ -104,7 +101,7 @@ function InstitutionSettingsCard() {
                 />
                 </div>
                 <div className="space-y-2">
-                <Label htmlFor="logo">প্রতিষ্ঠানের লোগো</Label>
+                <Label htmlFor="logo" className="text-slate-700 dark:text-slate-300">প্রতিষ্ঠানের লোগো</Label>
                 <div className="flex items-center gap-4">
                     {logoUrl && (
                     <div className="w-20 h-20 relative">
@@ -142,7 +139,7 @@ function SettingsPage() {
     return (
         <div className="space-y-8 p-6 rounded-lg bg-slate-50 dark:bg-slate-800/20">
             <div>
-                <h1 className="text-3xl font-bold font-headline">সেটিংস</h1>
+                <h1 className="text-3xl font-bold font-headline text-slate-800 dark:text-slate-200">সেটিংস</h1>
             </div>
             <InstitutionSettingsCard />
         </div>

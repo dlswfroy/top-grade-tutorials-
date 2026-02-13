@@ -53,53 +53,53 @@ function Dashboard() {
   return (
     <div className="space-y-8 p-6 rounded-lg bg-blue-50 dark:bg-blue-950/30">
       <div>
-        <h1 className="text-3xl font-bold font-headline">ড্যাসবোর্ড</h1>
+        <h1 className="text-3xl font-bold font-headline text-blue-800 dark:text-blue-200">ড্যাসবোর্ড</h1>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">মোট শিক্ষার্থী</CardTitle>
+            <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-300">মোট শিক্ষার্থী</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            {isLoadingStudents ? <Loader2 className="h-6 w-6 animate-spin" /> : <div className="text-2xl font-bold">{totalStudents}</div>}
-            <p className="text-xs text-muted-foreground">
+            {isLoadingStudents ? <Loader2 className="h-6 w-6 animate-spin" /> : <div className="text-2xl font-bold text-gray-800 dark:text-gray-200">{totalStudents}</div>}
+            <p className="text-xs text-gray-500 dark:text-gray-400">
               সকল শ্রেণির শিক্ষার্থী
             </p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">আজকের উপস্থিতি</CardTitle>
+            <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-300">আজকের উপস্থিতি</CardTitle>
             <UserCheck className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
              {isLoadingStudents || isLoadingAttendance ? <Loader2 className="h-6 w-6 animate-spin" /> : (
-                <div className="text-2xl font-bold flex items-center gap-4">
-                    <span>উপস্থিত: {presentStudents}</span>
+                <div className="text-2xl font-bold flex items-center gap-4 text-gray-800 dark:text-gray-200">
+                    <span>উপস্থিত: <span className="text-green-600 font-bold">{presentStudents}</span></span>
                     <span className="text-destructive flex items-center gap-1">
-                        <UserX className="h-5 w-5" /> {absentStudents}
+                        <UserX className="h-5 w-5" /> <span className="text-red-600 font-bold">{absentStudents}</span>
                     </span>
                 </div>
              )}
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-gray-500 dark:text-gray-400">
               আজকের উপস্থিত ও অনুপস্থিত শিক্ষার্থী
             </p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">মাসিক আয়</CardTitle>
-            <span className="text-2xl font-bold">৳</span>
+            <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-300">মাসিক আয়</CardTitle>
+            <span className="text-2xl font-bold text-gray-600 dark:text-gray-300">৳</span>
           </CardHeader>
           <CardContent>
             {isLoadingPayments ? <Loader2 className="h-6 w-6 animate-spin" /> :
-              <div className="text-2xl font-bold">
+              <div className="text-2xl font-bold text-gray-800 dark:text-gray-200">
                 {new Intl.NumberFormat('bn-BD').format(monthlyIncome)}
               </div>
             }
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-gray-500 dark:text-gray-400">
               চলতি মাসের মোট আদায়
             </p>
           </CardContent>

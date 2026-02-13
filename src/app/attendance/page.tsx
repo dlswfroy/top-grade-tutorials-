@@ -134,11 +134,10 @@ function TakeAttendance() {
   return (
       <Card>
         <CardHeader>
-          <CardTitle>নতুন হাজিরা নিন</CardTitle>
-          <CardDescription>শিক্ষার্থীদের উপস্থিতি নিতে শ্রেণি ও তারিখ নির্বাচন করুন।</CardDescription>
+          <CardTitle className="text-cyan-900 dark:text-cyan-100">নতুন হাজিরা নিন</CardTitle>
           <div className="flex flex-col sm:flex-row items-center gap-4 pt-4">
             <div className="w-full sm:w-auto flex-1 space-y-2">
-                <Label>শ্রেণি</Label>
+                <Label className="text-cyan-800 dark:text-cyan-300">শ্রেণি</Label>
                 <Select value={selectedClass} onValueChange={setSelectedClass}>
                 <SelectTrigger>
                     <SelectValue placeholder="শ্রেণি নির্বাচন করুন" />
@@ -149,7 +148,7 @@ function TakeAttendance() {
                 </Select>
             </div>
             <div className="w-full sm:w-auto flex-1 space-y-2">
-                <Label>তারিখ</Label>
+                <Label className="text-cyan-800 dark:text-cyan-300">তারিখ</Label>
                 <Popover>
                     <PopoverTrigger asChild>
                     <Button
@@ -189,16 +188,16 @@ function TakeAttendance() {
                 <Table>
                     <TableHeader>
                         <TableRow>
-                            <TableHead>রোল</TableHead>
-                            <TableHead>নাম</TableHead>
-                            <TableHead className="text-center">হাজিরা</TableHead>
+                            <TableHead className="text-cyan-700 dark:text-cyan-300">রোল</TableHead>
+                            <TableHead className="text-cyan-700 dark:text-cyan-300">নাম</TableHead>
+                            <TableHead className="text-center text-cyan-700 dark:text-cyan-300">হাজিরা</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
                         {students.map(student => (
                              <TableRow key={student.id}>
-                                <TableCell>{student.rollNumber}</TableCell>
-                                <TableCell className="font-medium">{student.name}</TableCell>
+                                <TableCell className="text-gray-700 dark:text-gray-300">{student.rollNumber}</TableCell>
+                                <TableCell className="font-medium text-gray-800 dark:text-gray-200">{student.name}</TableCell>
                                 <TableCell className="text-center">
                                     <RadioGroup 
                                         value={attendance[student.id] || ''} 
@@ -207,11 +206,11 @@ function TakeAttendance() {
                                     >
                                         <div className="flex items-center space-x-2">
                                             <RadioGroupItem value="present" id={`present-${student.id}`} />
-                                            <Label htmlFor={`present-${student.id}`}>হাজির</Label>
+                                            <Label htmlFor={`present-${student.id}`} className="text-gray-700 dark:text-gray-300">হাজির</Label>
                                         </div>
                                         <div className="flex items-center space-x-2">
                                             <RadioGroupItem value="absent" id={`absent-${student.id}`} />
-                                            <Label htmlFor={`absent-${student.id}`}>অনুপস্থিত</Label>
+                                            <Label htmlFor={`absent-${student.id}`} className="text-gray-700 dark:text-gray-300">অনুপস্থিত</Label>
                                         </div>
                                     </RadioGroup>
                                 </TableCell>
@@ -275,11 +274,10 @@ function AttendanceReport() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>হাজিরার রিপোর্ট দেখুন</CardTitle>
-        <CardDescription>যেকোনো তারিখের হাজিরা রিপোর্ট দেখতে শ্রেণি ও তারিখ নির্বাচন করুন।</CardDescription>
+        <CardTitle className="text-cyan-900 dark:text-cyan-100">হাজিরার রিপোর্ট দেখুন</CardTitle>
         <div className="flex flex-col sm:flex-row items-center gap-4 pt-4">
           <div className="w-full sm:w-auto flex-1 space-y-2">
-            <Label>শ্রেণি</Label>
+            <Label className="text-cyan-800 dark:text-cyan-300">শ্রেণি</Label>
             <Select value={selectedClass} onValueChange={setSelectedClass}>
               <SelectTrigger>
                 <SelectValue placeholder="শ্রেণি নির্বাচন করুন" />
@@ -290,7 +288,7 @@ function AttendanceReport() {
             </Select>
           </div>
           <div className="w-full sm:w-auto flex-1 space-y-2">
-            <Label>তারিখ</Label>
+            <Label className="text-cyan-800 dark:text-cyan-300">তারিখ</Label>
             <Popover>
               <PopoverTrigger asChild>
                 <Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !selectedDate && "text-muted-foreground")}>
@@ -315,38 +313,38 @@ function AttendanceReport() {
             <div className="mb-4 grid gap-4 md:grid-cols-3">
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">মোট শিক্ষার্থী</CardTitle>
+                        <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-300">মোট শিক্ষার্থী</CardTitle>
                         <Users className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{students.length}</div>
+                        <div className="text-2xl font-bold text-gray-800 dark:text-gray-200">{students.length}</div>
                     </CardContent>
                 </Card>
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">উপস্থিত</CardTitle>
+                        <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-300">উপস্থিত</CardTitle>
                         <UserCheck className="h-4 w-4 text-green-500" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{presentCount}</div>
+                        <div className="text-2xl font-bold text-gray-800 dark:text-gray-200">{presentCount}</div>
                     </CardContent>
                 </Card>
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">অনুপস্থিত</CardTitle>
+                        <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-300">অনুপস্থিত</CardTitle>
                         <UserX className="h-4 w-4 text-red-500" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{absentCount}</div>
+                        <div className="text-2xl font-bold text-gray-800 dark:text-gray-200">{absentCount}</div>
                     </CardContent>
                 </Card>
             </div>
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>রোল</TableHead>
-                  <TableHead>নাম</TableHead>
-                  <TableHead className="text-center">স্ট্যাটাস</TableHead>
+                  <TableHead className="text-cyan-700 dark:text-cyan-300">রোল</TableHead>
+                  <TableHead className="text-cyan-700 dark:text-cyan-300">নাম</TableHead>
+                  <TableHead className="text-center text-cyan-700 dark:text-cyan-300">স্ট্যাটাস</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -354,8 +352,8 @@ function AttendanceReport() {
                   const status = attendanceMap.get(student.id);
                   return (
                     <TableRow key={student.id}>
-                      <TableCell>{student.rollNumber}</TableCell>
-                      <TableCell className="font-medium">{student.name}</TableCell>
+                      <TableCell className="text-gray-700 dark:text-gray-300">{student.rollNumber}</TableCell>
+                      <TableCell className="font-medium text-gray-800 dark:text-gray-200">{student.name}</TableCell>
                       <TableCell className="text-center">
                         {status === 'present' ? (
                           <Badge variant="default" className="bg-green-500">হাজির</Badge>
@@ -386,7 +384,7 @@ export default function AttendancePageContainer() {
     return (
         <div className="space-y-8 p-6 rounded-lg bg-cyan-50 dark:bg-cyan-950/30">
             <div>
-                <h1 className="text-3xl font-bold font-headline">হাজিরা খাতা</h1>
+                <h1 className="text-3xl font-bold font-headline text-cyan-800 dark:text-cyan-200">হাজিরা খাতা</h1>
             </div>
 
             <Tabs defaultValue="take-attendance" className="space-y-4">
