@@ -50,10 +50,25 @@ export default function LoginPage() {
       router.push('/');
     } catch (error: any) {
       console.error(error);
+      let errorMessage;
+      switch (error.code) {
+        case 'auth/invalid-credential':
+          errorMessage = 'আপনার দেওয়া ইমেইল বা পাসওয়ার্ডটি সঠিক নয়।';
+          break;
+        case 'auth/email-already-in-use':
+          errorMessage = 'এই ইমেইলটি ইতিমধ্যে ব্যবহার করা হয়েছে। অন্য ইমেইল ব্যবহার করুন অথবা লগইন করুন।';
+          break;
+        case 'auth/weak-password':
+          errorMessage = 'পাসওয়ার্ডটি যথেষ্ট শক্তিশালী নয়। কমপক্ষে ৬টি অক্ষর থাকতে হবে।';
+          break;
+        default:
+          errorMessage = 'একটি অপ্রত্যাশিত ত্রুটি ঘটেছে। অনুগ্রহ করে আবার চেষ্টা করুন।';
+          break;
+      }
       toast({
         variant: 'destructive',
         title: 'ত্রুটি',
-        description: error.message,
+        description: errorMessage,
       });
     } finally {
       setIsLoading(false);
