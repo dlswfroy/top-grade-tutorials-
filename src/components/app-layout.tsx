@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useState } from 'react';
 import {
   LayoutDashboard,
@@ -9,6 +9,7 @@ import {
   Calculator,
   BrainCircuit,
   Settings,
+  LogOut,
   Loader2,
   CalendarCheck,
   Menu,
@@ -16,19 +17,23 @@ import {
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { doc } from 'firebase/firestore';
+import { useAuth, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { getAuth, signOut } from 'firebase/auth';
+import { doc, getDoc } from 'firebase/firestore';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
+import { useToast } from '@/hooks/use-toast';
+import { useUser } from '@/hooks/use-user';
 
-const menuItems = [
-  { href: '/', label: 'ড্যাসবোর্ড', icon: LayoutDashboard },
-  { href: '/students', label: 'শিক্ষার্থী', icon: Users },
-  { href: '/teachers', label: 'শিক্ষক', icon: GraduationCap },
-  { href: '/accounting', label: 'হিসাব', icon: Calculator },
-  { href: '/attendance', label: 'হাজিরা', icon: CalendarCheck },
-  { href: '/questions', label: 'প্রশ্ন তৈরি', icon: BrainCircuit },
-  { href: '/settings', label: 'সেটিংস', icon: Settings },
+
+const allMenuItems = [
+  { href: '/', label: 'ড্যাসবোর্ড', icon: LayoutDashboard, roles: ['admin', 'teacher'] },
+  { href: '/students', label: 'শিক্ষার্থী', icon: Users, roles: ['admin', 'teacher'] },
+  { href: '/teachers', label: 'শিক্ষক', icon: GraduationCap, roles: ['admin'] },
+  { href: '/accounting', label: 'হিসাব', icon: Calculator, roles: ['admin', 'teacher'] },
+  { href: '/attendance', label: 'হাজিরা', icon: CalendarCheck, roles: ['admin', 'teacher'] },
+  { href: '/questions', label: 'প্রশ্ন তৈরি', icon: BrainCircuit, roles: ['admin', 'teacher'] },
+  { href: '/settings', label: 'সেটিংস', icon: Settings, roles: ['admin'] },
 ];
 
 type InstitutionSettings = {
@@ -63,19 +68,44 @@ function Logo({ settings, isLoading, className, iconClassName }: { settings: Ins
     );
 }
 
-
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const firestore = useFirestore();
+  const { user, userRole, isLoading: isUserLoading } = useUser();
+  const router = useRouter();
+  const { toast } = useToast();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const settingsRef = useMemoFirebase(() => {
     if (!firestore) return null;
     return doc(firestore, 'institution_settings', 'default');
   }, [firestore]);
-
+  
   const { data: settings, isLoading: isLoadingSettings } = useDoc<InstitutionSettings>(settingsRef);
   
+  const handleLogout = async () => {
+    const auth = getAuth();
+    try {
+      await signOut(auth);
+      toast({ title: "সাফল্য", description: "আপনি সফলভাবে লগ আউট করেছেন।" });
+      router.push('/login');
+    } catch (error) {
+      toast({ variant: 'destructive', title: "ত্রুটি", description: "লগ আউট করার সময় একটি সমস্যা হয়েছে।" });
+    }
+  };
+
+  const menuItems = userRole
+    ? allMenuItems.filter(item => item.roles.includes(userRole))
+    : [];
+
+  if (isUserLoading) {
+      return (
+          <div className="flex h-screen items-center justify-center">
+              <Loader2 className="h-12 w-12 animate-spin text-primary" />
+          </div>
+      );
+  }
+
   return (
       <div className="min-h-screen flex flex-col">
           <header className="sticky top-0 z-40 w-full border-b bg-primary text-primary-foreground">
@@ -98,6 +128,10 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                   </nav>
 
                   <div className="flex flex-1 items-center justify-end space-x-4">
+                      <Button variant="ghost" size="icon" onClick={handleLogout}>
+                          <LogOut className="h-5 w-5" />
+                          <span className="sr-only">লগ আউট</span>
+                      </Button>
                       <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
                           <SheetTrigger asChild>
                               <Button variant="ghost" size="icon" className="md:hidden">

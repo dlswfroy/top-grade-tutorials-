@@ -42,7 +42,7 @@ export function QuestionGenerator() {
 
   useEffect(() => {
     if (state.message && !state.errors) {
-      formRef.current?.reset();
+      // formRef.current?.reset();
     }
   }, [state]);
 

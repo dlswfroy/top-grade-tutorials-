@@ -1,428 +1,160 @@
+
 {
   "entities": {
     "Student": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Student",
       "type": "object",
-      "description": "Represents a student enrolled in Top Grade Tutorials, including personal and academic details. This entity stores information necessary for student management, attendance, and accounting.",
+      "description": "Represents a student enrolled in Top Grade Tutorials.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Student entity."
-        },
-        "name": {
-          "type": "string",
-          "description": "The full name of the student."
-        },
-        "classGrade": {
-          "type": "string",
-          "description": "The current grade or class level of the student (e.g., '6th', '7th'). (Dropdown options: 6th to 10th grade)"
-        },
-        "rollNumber": {
-          "type": "string",
-          "description": "The unique roll number assigned to the student, used for identification, search, and attendance tracking."
-        },
-        "fatherName": {
-          "type": "string",
-          "description": "The full name of the student's father or primary guardian."
-        },
-        "mobileNumber": {
-          "type": "string",
-          "description": "The mobile contact number for the student or their guardian."
-        },
-        "monthlyFee": {
-          "type": "number",
-          "description": "The agreed monthly tuition fee for the student."
-        },
-        "imageUrl": {
-          "type": "string",
-          "description": "URL to the student's profile image.",
-          "format": "uri"
-        },
-        "dateAdded": {
-          "type": "string",
-          "description": "The date and time when the student record was initially added to the system.",
-          "format": "date-time"
-        }
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "classGrade": { "type": "string" },
+        "rollNumber": { "type": "string" },
+        "fatherName": { "type": "string" },
+        "mobileNumber": { "type": "string" },
+        "monthlyFee": { "type": "number" },
+        "imageUrl": { "type": "string", "format": "uri" },
+        "dateAdded": { "type": "string", "format": "date-time" }
       },
-      "required": [
-        "id",
-        "name",
-        "classGrade",
-        "rollNumber",
-        "fatherName",
-        "mobileNumber",
-        "monthlyFee",
-        "dateAdded"
-      ]
+      "required": ["name", "classGrade", "rollNumber", "fatherName", "mobileNumber", "monthlyFee", "dateAdded"]
     },
     "Teacher": {
       "title": "Teacher",
       "type": "object",
-      "description": "Represents a teacher at the institution, including their personal and contact details.",
+      "description": "Represents a teacher at the institution.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Teacher entity."
-        },
-        "name": {
-          "type": "string",
-          "description": "The full name of the teacher."
-        },
-        "subject": {
-          "type": "string",
-          "description": "The primary subject taught by the teacher."
-        },
-        "mobileNumber": {
-          "type": "string",
-          "description": "The mobile contact number for the teacher."
-        },
-        "email": {
-          "type": "string",
-          "description": "The email address of the teacher.",
-          "format": "email"
-        },
-        "imageUrl": {
-          "type": "string",
-          "description": "URL to the teacher's profile image.",
-          "format": "uri"
-        },
-        "dateAdded": {
-          "type": "string",
-          "description": "The date and time when the teacher record was added.",
-          "format": "date-time"
-        }
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "subject": { "type": "string" },
+        "mobileNumber": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "imageUrl": { "type": "string", "format": "uri" },
+        "dateAdded": { "type": "string", "format": "date-time" }
       },
-      "required": [
-        "id",
-        "name",
-        "subject",
-        "mobileNumber",
-        "dateAdded"
-      ]
+      "required": ["name", "subject", "mobileNumber", "dateAdded"]
     },
     "Payment": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Payment",
       "type": "object",
-      "description": "Records a payment made by a student for their monthly fees, detailing the amount, date of payment, and the teacher who collected it. This entity supports accounting and receipt generation.",
+      "description": "Records a payment made by a student.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Payment entity."
-        },
-        "studentId": {
-          "type": "string",
-          "description": "Reference to the Student who made the payment. (Relationship: Student 1:N Payment)"
-        },
-        "collectorName": {
-          "type": "string",
-          "description": "Name of the person who collected the payment."
-        },
-        "amount": {
-          "type": "number",
-          "description": "The amount of money paid in this transaction."
-        },
-        "paymentDate": {
-          "type": "string",
-          "description": "The date and time when the payment was recorded.",
-          "format": "date-time"
-        },
-        "paymentMonth": {
-          "type": "string",
-          "description": "The month and year for which the fee is being paid (e.g., 'YYYY-MM')."
-        },
-        "receiptNumber": {
-          "type": "string",
-          "description": "A unique identifier for the payment receipt, allowing for easy lookup and printing."
-        }
+        "id": { "type": "string" },
+        "studentId": { "type": "string" },
+        "collectorName": { "type": "string" },
+        "amount": { "type": "number" },
+        "paymentDate": { "type": "string", "format": "date-time" },
+        "paymentMonth": { "type": "string" },
+        "receiptNumber": { "type": "string" }
       },
-      "required": [
-        "id",
-        "studentId",
-        "collectorName",
-        "amount",
-        "paymentDate",
-        "paymentMonth",
-        "receiptNumber"
-      ]
-    },
-    "QuestionPaper": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "QuestionPaper",
-      "type": "object",
-      "description": "Stores details about a dynamically generated question paper by the AI tool, including its parameters and a link to the generated document for download.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the QuestionPaper entity."
-        },
-        "classGrade": {
-          "type": "string",
-          "description": "The class grade for which the question paper is generated."
-        },
-        "subject": {
-          "type": "string",
-          "description": "The subject of the question paper (e.g., 'Math', 'Science')."
-        },
-        "chapter": {
-          "type": "string",
-          "description": "The specific chapter(s) or topics covered by the question paper."
-        },
-        "questionType": {
-          "type": "string",
-          "description": "The type of questions included in the paper (e.g., 'Creative', 'MCQ')."
-        },
-        "numberOfQuestions": {
-          "type": "number",
-          "description": "The total number of questions in the generated paper."
-        },
-        "timeLimitMinutes": {
-          "type": "number",
-          "description": "The time limit in minutes allocated for students to complete the exam."
-        },
-        "totalMarks": {
-          "type": "number",
-          "description": "The total marks for the question paper."
-        },
-        "generatedPdfUrl": {
-          "type": "string",
-          "description": "URL to the downloadable PDF document of the generated question paper.",
-          "format": "uri"
-        },
-        "generationDate": {
-          "type": "string",
-          "description": "The date and time when the question paper was generated.",
-          "format": "date-time"
-        }
-      },
-      "required": [
-        "id",
-        "classGrade",
-        "subject",
-        "chapter",
-        "questionType",
-        "numberOfQuestions",
-        "timeLimitMinutes",
-        "totalMarks",
-        "generatedPdfUrl",
-        "generationDate"
-      ]
-    },
-    "InstitutionSettings": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "InstitutionSettings",
-      "type": "object",
-      "description": "Stores global settings and customizable information for the Top Grade Tutorials institution, such as its name and logo. This is expected to be a singleton entity.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the InstitutionSettings entity. (Expected to be a fixed ID like 'defaultSettings' as it's a singleton)."
-        },
-        "institutionName": {
-          "type": "string",
-          "description": "The official name of the institution (e.g., 'Top Grade Tutorials')."
-        },
-        "logoUrl": {
-          "type": "string",
-          "description": "URL to the institution's official logo image.",
-          "format": "uri"
-        },
-        "lastUpdated": {
-          "type": "string",
-          "description": "The date and time when the institution settings were last updated.",
-          "format": "date-time"
-        }
-      },
-      "required": [
-        "id",
-        "institutionName",
-        "logoUrl",
-        "lastUpdated"
-      ]
+      "required": ["studentId", "collectorName", "amount", "paymentDate", "paymentMonth", "receiptNumber"]
     },
     "Expense": {
       "title": "Expense",
       "type": "object",
       "description": "Records an expense made by the institution.",
       "properties": {
-        "id": {
-          "type": "string"
-        },
-        "description": {
-          "type": "string"
-        },
-        "amount": {
-          "type": "number"
-        },
-        "expenseDate": {
-          "type": "string",
-          "format": "date-time"
-        },
-        "spentByName": {
-          "type": "string"
-        }
+        "id": { "type": "string" },
+        "description": { "type": "string" },
+        "amount": { "type": "number" },
+        "expenseDate": { "type": "string", "format": "date-time" },
+        "spentByName": { "type": "string" }
       },
-      "required": [
-        "id",
-        "description",
-        "amount",
-        "expenseDate",
-        "spentByName"
-      ]
+      "required": ["description", "amount", "expenseDate", "spentByName"]
     },
     "Attendance": {
-      "title": "Attendance",
-      "type": "object",
-      "description": "Records student attendance for a specific date.",
-      "properties": {
-        "id": {
-          "type": "string"
+        "title": "Attendance",
+        "type": "object",
+        "description": "Records student attendance for a specific date.",
+        "properties": {
+            "id": { "type": "string" },
+            "studentId": { "type": "string" },
+            "classGrade": { "type": "string" },
+            "date": { "type": "string", "format": "date" },
+            "status": { "type": "string", "enum": ["present", "absent"] }
         },
-        "studentId": {
-          "type": "string"
+        "required": ["studentId", "classGrade", "date", "status"]
+    },
+    "QuestionPaper": {
+        "title": "QuestionPaper",
+        "type": "object",
+        "description": "Stores details about a generated question paper.",
+        "properties": {
+            "id": { "type": "string" },
+            "class": { "type": "string" },
+            "subject": { "type": "string" },
+            "chapter": { "type": "string" },
+            "questionType": { "type": "string" },
+            "numberOfQuestions": { "type": "number" },
+            "timeLimit": { "type": "string" },
+            "totalMarks": { "type": "number" },
+            "generatedContent": { "type": "string" },
+            "generatedAt": { "type": "string", "format": "date-time" }
         },
-        "classGrade": {
-          "type": "string"
+        "required": ["class", "subject", "chapter", "questionType", "numberOfQuestions", "timeLimit", "totalMarks", "generatedContent", "generatedAt"]
+    },
+    "UserRole": {
+        "title": "UserRole",
+        "type": "object",
+        "description": "Defines the role of a user in the system.",
+        "properties": {
+            "id": { "type": "string" },
+            "email": { "type": "string", "format": "email"},
+            "name": { "type": "string" },
+            "role": { "type": "string", "enum": ["admin", "teacher"] }
         },
-        "date": {
-          "type": "string",
-          "format": "date"
+        "required": ["email", "name", "role"]
+    },
+    "InstitutionSettings": {
+        "title": "InstitutionSettings",
+        "type": "object",
+        "description": "Stores global settings for the institution.",
+        "properties": {
+            "id": { "type": "string" },
+            "institutionName": { "type": "string" },
+            "logoUrl": { "type": "string", "format": "uri" },
+            "lastUpdated": { "type": "string", "format": "date-time" }
         },
-        "status": {
-          "type": "string",
-          "enum": [
-            "present",
-            "absent"
-          ]
-        }
-      },
-      "required": [
-        "id",
-        "studentId",
-        "classGrade",
-        "date",
-        "status"
-      ]
+        "required": ["institutionName", "lastUpdated"]
     }
   },
   "auth": {
-    "providers": []
+    "providers": ["password"]
   },
   "firestore": {
-    "structure": [
-      {
-        "path": "/students/{studentId}",
-        "definition": {
-          "entityName": "Student",
-          "schema": {
-            "$ref": "#/backend/entities/Student"
-          },
-          "description": "Contains records of all enrolled students.",
-          "params": [
-            {
-              "name": "studentId",
-              "description": "The unique identifier for the student."
-            }
-          ]
-        }
+    "rules": "rules_version = '2';\n\nservice cloud.firestore {\n  match /databases/{database}/documents {\n\n    function isAuth() {\n      return request.auth != null;\n    }\n\n    function isAdmin() {\n      return get(/databases/$(database)/documents/user_roles/$(request.auth.uid)).data.role == 'admin';\n    }\n\n    match /students/{studentId} {\n      allow read, write: if isAuth();\n    }\n\n    match /teachers/{teacherId} {\n        allow read: if isAuth();\n        allow write: if isAdmin();\n    }\n\n    match /payments/{paymentId} {\n        allow read, write: if isAuth();\n    }\n\n    match /expenses/{expenseId} {\n        allow read, write: if isAuth();\n    }\n\n    match /attendance/{attendanceId} {\n        allow read, write: if isAuth();\n    }\n    \n    match /question_papers/{paperId} {\n        allow read, write: if isAuth();\n    }\n\n    match /institution_settings/default {\n        allow read: if true;\n        allow write: if isAdmin();\n    }\n\n    match /user_roles/{userId} {\n        // Allow reading own role, and admins can read any role.\n        allow read: if isAuth() && (request.auth.uid == userId || isAdmin());\n        // Allow creating a role only if no admin exists (first user becomes admin).\n        allow create: if isAuth() && !exists(/databases/$(database)/documents/user_roles_by_role/admin);\n        // Allow admins to update roles.\n        allow write: if isAdmin();\n    }\n\n    // Helper collection to check for admin existence without scanning.\n    match /user_roles_by_role/{role} {\n        allow read: if isAuth();\n        allow write: if isAdmin();\n    }\n  }\n}",
+    "collections": {
+      "students": {
+        "schema": { "$ref": "#/entities/Student" },
+        "description": "Contains records of all enrolled students."
       },
-      {
-        "path": "/teachers/{teacherId}",
-        "definition": {
-          "entityName": "Teacher",
-          "schema": {
-            "$ref": "#/backend/entities/Teacher"
-          },
-          "description": "Contains records of all teachers at the institution.",
-          "params": [
-            {
-              "name": "teacherId",
-              "description": "The unique identifier for the teacher."
-            }
-          ]
-        }
+      "teachers": {
+        "schema": { "$ref": "#/entities/Teacher" },
+        "description": "Contains records of all teachers."
       },
-      {
-        "path": "/payments/{paymentId}",
-        "definition": {
-          "entityName": "Payment",
-          "schema": {
-            "$ref": "#/backend/entities/Payment"
-          },
-          "description": "Records all student fee payments.",
-          "params": [
-            {
-              "name": "paymentId",
-              "description": "The unique identifier for the payment transaction."
-            }
-          ]
-        }
+      "payments": {
+        "schema": { "$ref": "#/entities/Payment" },
+        "description": "Records all student fee payments."
       },
-      {
-        "path": "/question_papers/{paperId}",
-        "definition": {
-          "entityName": "QuestionPaper",
-          "schema": {
-            "$ref": "#/backend/entities/QuestionPaper"
-          },
-          "description": "Stores details of AI-generated question papers.",
-          "params": [
-            {
-              "name": "paperId",
-              "description": "The unique identifier for the question paper."
-            }
-          ]
-        }
+      "expenses": {
+        "schema": { "$ref": "#/entities/Expense" },
+        "description": "Records all institutional expenses."
       },
-      {
-        "path": "/institution_settings/{settingsId}",
-        "definition": {
-          "entityName": "InstitutionSettings",
-          "schema": {
-            "$ref": "#/backend/entities/InstitutionSettings"
-          },
-          "description": "Stores global institution settings, expected to be a singleton document (e.g., with ID 'defaultSettings').",
-          "params": [
-            {
-              "name": "settingsId",
-              "description": "The unique identifier for the institution settings document (expected to be a fixed ID like 'defaultSettings')."
-            }
-          ]
-        }
+      "attendance": {
+        "schema": { "$ref": "#/entities/Attendance" },
+        "description": "Contains daily student attendance records."
       },
-      {
-        "path": "/expenses/{expenseId}",
-        "definition": {
-          "entityName": "Expense",
-          "schema": {
-            "$ref": "#/backend/entities/Expense"
-          },
-          "description": "Contains records of all institutional expenses.",
-          "params": [
-            {
-              "name": "expenseId",
-              "description": "The unique identifier for the expense."
-            }
-          ]
-        }
+      "question_papers": {
+        "schema": { "$ref": "#/entities/QuestionPaper" },
+        "description": "Stores details of AI-generated question papers."
       },
-      {
-        "path": "/attendance/{attendanceId}",
-        "definition": {
-          "entityName": "Attendance",
-          "schema": {
-            "$ref": "#/backend/entities/Attendance"
-          },
-          "description": "Contains daily student attendance records. Document ID is a composite of studentId and date for easy lookup and updates.",
-          "params": [
-            {
-              "name": "attendanceId",
-              "description": "The unique identifier for the attendance record, typically studentId_YYYY-MM-DD."
-            }
-          ]
-        }
+      "user_roles": {
+          "schema": { "$ref": "#/entities/UserRole" },
+          "description": "Stores the role for each user."
+      },
+      "institution_settings": {
+        "schema": { "$ref": "#/entities/InstitutionSettings" },
+        "description": "Stores global institution settings as a singleton document."
       }
-    ]
+    }
   }
 }

@@ -57,6 +57,7 @@ export async function handleGenerateExam(
       examPaper: result.examPaperText,
     };
   } catch (error) {
+    console.error(error);
     return {
       message: 'প্রশ্নপত্র তৈরিতে একটি ত্রুটি হয়েছে। অনুগ্রহ করে আবার চেষ্টা করুন।',
     };
