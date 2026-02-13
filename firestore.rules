@@ -38,8 +38,8 @@ service cloud.firestore {
     
     // institution_settings collection
     match /institution_settings/{settingsId} {
-      // Any authenticated user can read the settings (for logo/name in header).
-      allow read: if isAuth();
+      // Allow anyone to read the settings (for logo/name in header).
+      allow read: if true;
       // Only admins can change settings.
       allow write: if isAdmin();
     }
