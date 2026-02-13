@@ -51,7 +51,7 @@ function Logo({ settings, isLoading, className, iconClassName, titleClassName }:
     const logoUrl = settings?.logoUrl;
 
     return (
-        <Link href="/" className={cn("flex items-center gap-4 ml-4", className)}>
+        <Link href="/" className={cn("flex items-center gap-4", className)}>
             {isLoading ? (
                 <Loader2 className={cn("h-16 w-16 animate-spin", iconClassName || "text-inherit")} />
             ) : logoUrl ? (
@@ -68,7 +68,7 @@ function Logo({ settings, isLoading, className, iconClassName, titleClassName }:
                   <path d="M2 12l10 5 10-5"></path>
                 </svg>
             )}
-            <h1 className={cn("text-3xl font-headline font-bold text-white", titleClassName)}>{institutionName}</h1>
+            <h1 className={cn("text-3xl font-headline font-bold", titleClassName)}>{institutionName}</h1>
         </Link>
     );
 }
@@ -146,16 +146,16 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                             </Button>
                         </SheetTrigger>
                         <SheetContent side="left" className="w-[300px] sm:w-[400px]">
-                            <Logo settings={settings} isLoading={isLoadingSettings} className="mb-8" iconClassName="text-primary" titleClassName="text-slate-900 dark:text-slate-100" />
-                            <div className="flex flex-col space-y-2">
+                            <Logo settings={settings} isLoading={isLoadingSettings} className="mb-8 ml-4" iconClassName="text-primary h-16 w-16" titleClassName="text-slate-900 dark:text-slate-100 text-3xl" />
+                            <div className="flex flex-col space-y-2 px-4">
                                 {menuItems.map((item) => (
                                     <Link
                                         key={item.href}
                                         href={item.href}
                                         onClick={() => setMobileMenuOpen(false)}
                                         className={cn(
-                                            "flex items-center gap-3 rounded-md p-3 text-lg font-medium",
-                                            pathname === item.href ? "bg-accent text-accent-foreground" : "text-slate-700 dark:text-slate-300 hover:bg-accent/80 hover:text-slate-900 dark:hover:text-slate-100"
+                                            "flex items-center gap-3 rounded-md p-3 text-lg font-medium transition-colors",
+                                            pathname === item.href ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
                                         )}
                                     >
                                         <item.icon className="h-5 w-5" />
@@ -168,15 +168,17 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                   </div>
                   
                   <div className="hidden md:flex items-center">
-                     <Logo settings={settings} isLoading={isLoadingSettings} className="mr-6" />
-                      <nav className="flex items-center space-x-6 text-sm font-medium">
+                     <Logo settings={settings} isLoading={isLoadingSettings} className="mr-6 ml-4" iconClassName="h-16 w-16" titleClassName="text-white text-3xl"/>
+                      <nav className="flex items-center space-x-2 text-sm font-medium">
                           {menuItems.map((item) => (
                               <Link
                                   key={item.href}
                                   href={item.href}
                                   className={cn(
-                                      "transition-colors",
-                                      pathname === item.href ? "text-primary-foreground font-semibold" : "text-primary-foreground/80 hover:text-primary-foreground"
+                                      "flex h-10 items-center justify-center rounded-md px-4 py-2 transition-colors",
+                                      pathname === item.href
+                                          ? "bg-primary-foreground/10 font-semibold text-primary-foreground"
+                                          : "text-primary-foreground/80 hover:bg-primary-foreground/10 hover:text-primary-foreground"
                                   )}
                               >
                                   {item.label}
