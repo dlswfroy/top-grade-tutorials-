@@ -14,7 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Save, Loader2 } from 'lucide-react';
 import { useFirebaseApp, useFirestore, useDoc, useMemoFirebase, useUser } from '@/firebase';
-import { doc, setDoc } from 'firebase/firestore';
+import { doc, setDoc, updateDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { getStorage, ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 
@@ -76,53 +76,45 @@ export default function SettingsPage() {
     setIsSaving(true);
     
     try {
-        let logoUrlToSave = settings?.logoUrl;
+        const settingsData = {
+            institutionName: institutionName,
+            lastUpdated: new Date().toISOString(),
+        };
+
+        await setDoc(settingsRef, settingsData, { merge: true });
+        
+        toast({
+            title: 'সফল',
+            description: 'প্রতিষ্ঠানের তথ্য সেভ করা হয়েছে।',
+        });
         
         if (logoFile) {
             const { id: toastId, update } = toast({
                 title: "লোগো আপলোড হচ্ছে...",
-                description: "অনুগ্রহ করে অপেক্ষা করুন...",
+                description: "0% সম্পন্ন হয়েছে।",
             });
             
             const storage = getStorage(firebaseApp);
             const storageRef = ref(storage, `institution_assets/logo_${Date.now()}`);
             const uploadTask = uploadBytesResumable(storageRef, logoFile);
 
-            await new Promise<void>((resolve, reject) => {
-                uploadTask.on('state_changed',
-                    (snapshot) => {
-                        const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-                        update({ description: `${Math.round(progress)}% সম্পন্ন হয়েছে।` });
-                    },
-                    (error) => {
-                        console.error("Upload failed:", error);
-                        reject(error);
-                    },
-                    async () => {
-                        logoUrlToSave = await getDownloadURL(uploadTask.snapshot.ref);
-                        resolve();
-                    }
-                );
-            });
-             update({ title: 'আপলোড সফল', description: 'লোগো সফলভাবে আপলোড হয়েছে।' });
-             setTimeout(() => { toast({ id: toastId }).dismiss() }, 3000);
+            uploadTask.on('state_changed',
+                (snapshot) => {
+                    const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                    update({ description: `${Math.round(progress)}% সম্পন্ন হয়েছে।` });
+                },
+                (error) => {
+                    console.error("Upload failed:", error);
+                    update({ variant: 'destructive', title: 'লোগো আপলোডে ত্রুটি', description: 'পুনরায় চেষ্টা করুন।' });
+                },
+                async () => {
+                    const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+                    await updateDoc(settingsRef, { logoUrl: downloadURL });
+                    update({ title: 'সফল', description: 'লোগো সফলভাবে আপলোড হয়েছে।' });
+                    setTimeout(() => { toast({ id: toastId }).dismiss() }, 3000);
+                }
+            );
         }
-        
-        const settingsData: { institutionName: string, lastUpdated: string, logoUrl?: string } = {
-            institutionName: institutionName,
-            lastUpdated: new Date().toISOString(),
-        };
-
-        if (logoUrlToSave) {
-            settingsData.logoUrl = logoUrlToSave;
-        }
-
-        await setDoc(settingsRef, settingsData, { merge: true });
-        
-        toast({
-            title: 'সফল',
-            description: 'সেটিংস সফলভাবে সেভ করা হয়েছে।',
-        });
         
         setLogoFile(null);
 

@@ -136,37 +136,6 @@ export default function StudentsPage() {
     setIsSaving(true);
 
     try {
-        let imageUrl = editingStudent ? editingStudent.imageUrl : `https://picsum.photos/seed/${formData.rollNumber}/200/200`;
-
-        if (imageFile) {
-            const { id: toastId, update } = toast({
-                title: "ছবি আপলোড হচ্ছে...",
-                description: "অনুগ্রহ করে অপেক্ষা করুন...",
-            });
-            const storage = getStorage(firebaseApp);
-            const storageRef = ref(storage, `student_images/${Date.now()}_${imageFile.name}`);
-            const uploadTask = uploadBytesResumable(storageRef, imageFile);
-            
-            await new Promise<void>((resolve, reject) => {
-                 uploadTask.on('state_changed',
-                    (snapshot) => {
-                        const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-                        update({ description: `${Math.round(progress)}% সম্পন্ন হয়েছে।` });
-                    },
-                    (error) => {
-                        console.error("Upload failed:", error);
-                        reject(error);
-                    },
-                    async () => {
-                        imageUrl = await getDownloadURL(uploadTask.snapshot.ref);
-                        resolve();
-                    }
-                );
-            });
-             update({ title: 'আপলোড সফল', description: 'ছবি সফলভাবে আপলোড হয়েছে।' });
-             setTimeout(() => { toast({ id: toastId }).dismiss() }, 2000);
-        }
-
         const dataToSave = {
             name: formData.name,
             classGrade: formData.classGrade,
@@ -174,24 +143,55 @@ export default function StudentsPage() {
             fatherName: formData.fatherName,
             mobileNumber: formData.mobileNumber,
             monthlyFee: Number(formData.monthlyFee) || 0,
-            imageUrl: imageUrl,
+            imageUrl: formData.imageUrl,
             imageHint: formData.imageHint || 'student person',
         };
 
+        let docRef;
+
         if (editingStudent) {
-            const docRef = doc(firestore, 'students', editingStudent.id);
+            docRef = doc(firestore, 'students', editingStudent.id);
             await updateDoc(docRef, dataToSave);
             toast({ title: "সফল", description: `${formData.name}-এর তথ্য আপডেট করা হয়েছে।` });
         } else {
             const finalData = { 
                 ...dataToSave, 
-                dateAdded: new Date().toISOString() 
+                dateAdded: new Date().toISOString(),
+                imageUrl: `https://picsum.photos/seed/${formData.rollNumber}/200/200`,
             };
-            await addDoc(collection(firestore, 'students'), finalData);
+            docRef = await addDoc(collection(firestore, 'students'), finalData);
             toast({ title: "সফল", description: `${formData.name} কে শিক্ষার্থী হিসেবে যোগ করা হয়েছে।` });
         }
         
         handleCloseDialog();
+
+        if (imageFile) {
+            const { id: toastId, update } = toast({
+                title: "ছবি আপলোড হচ্ছে...",
+                description: "0% সম্পন্ন হয়েছে।",
+            });
+            
+            const storage = getStorage(firebaseApp);
+            const storageRef = ref(storage, `student_images/${docRef.id}_${imageFile.name}`);
+            const uploadTask = uploadBytesResumable(storageRef, imageFile);
+
+            uploadTask.on('state_changed',
+                (snapshot) => {
+                    const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                    update({ description: `${Math.round(progress)}% সম্পন্ন হয়েছে।` });
+                },
+                (error) => {
+                    console.error("Upload failed:", error);
+                    update({ variant: 'destructive', title: 'ছবি আপলোডে ত্রুটি', description: 'পুনরায় চেষ্টা করুন।' });
+                },
+                async () => {
+                    const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+                    await updateDoc(docRef, { imageUrl: downloadURL });
+                    update({ title: 'আপলোড সফল', description: 'ছবি সফলভাবে আপলোড হয়েছে।' });
+                    setTimeout(() => { toast({ id: toastId }).dismiss() }, 3000);
+                }
+            );
+        }
 
     } catch (error: any) {
         console.error("Error saving student:", error);

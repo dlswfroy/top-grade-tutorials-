@@ -110,82 +110,68 @@ export default function TeachersPage() {
     setIsSaving(true);
 
     try {
-        let imageUrl = editingTeacher ? editingTeacher.imageUrl : undefined;
+        let docRef;
+
+        if (editingTeacher) {
+            docRef = doc(firestore, 'teachers', editingTeacher.id);
+            await updateDoc(docRef, {
+                name: formData.name,
+                mobileNumber: formData.mobileNumber,
+            });
+            toast({ title: "সফল", description: `${formData.name}-এর তথ্য আপডেট করা হয়েছে।` });
+        } else {
+            if (!email || !password) {
+                toast({ variant: 'destructive', title: 'ত্রুটি', description: 'অনুগ্রহ করে ইমেইল এবং পাসওয়ার্ড দিন।' });
+                setIsSaving(false);
+                return;
+            }
+            const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+            const newTeacherUser = userCredential.user;
+            await updateProfile(newTeacherUser, { displayName: formData.name });
+
+            docRef = doc(firestore, 'teachers', newTeacherUser.uid);
+            await setDoc(docRef, {
+                name: formData.name,
+                mobileNumber: formData.mobileNumber,
+                imageUrl: `https://picsum.photos/seed/${newTeacherUser.uid}/200/200`,
+                imageHint: formData.imageHint || 'teacher person',
+                dateAdded: new Date().toISOString()
+            });
+
+            const teacherRoleRef = doc(firestore, 'roles_teacher', newTeacherUser.uid);
+            await setDoc(teacherRoleRef, { active: true });
+            
+            toast({ title: "সফল", description: `${formData.name} কে শিক্ষক হিসেবে যোগ করা হয়েছে।` });
+        }
+        
+        handleCloseDialog();
 
         if (imageFile) {
             const { id: toastId, update } = toast({
                 title: "ছবি আপলোড হচ্ছে...",
-                description: "অনুগ্রহ করে অপেক্ষা করুন...",
+                description: "0% সম্পন্ন হয়েছে।",
             });
-
             const storage = getStorage(firebaseApp);
-            const storageRef = ref(storage, `teacher_images/${Date.now()}_${imageFile.name}`);
+            const storageRef = ref(storage, `teacher_images/${docRef.id}_${imageFile.name}`);
             const uploadTask = uploadBytesResumable(storageRef, imageFile);
-            
-            await new Promise<void>((resolve, reject) => {
-                 uploadTask.on('state_changed',
-                    (snapshot) => {
-                        const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-                        update({ description: `${Math.round(progress)}% সম্পন্ন হয়েছে।` });
-                    },
-                    (error) => {
-                        console.error("Upload failed:", error);
-                        reject(error);
-                    },
-                    async () => {
-                        imageUrl = await getDownloadURL(uploadTask.snapshot.ref);
-                        resolve();
-                    }
-                );
-            });
-            update({ title: 'আপলোড সফল', description: 'ছবি সফলভাবে আপলোড হয়েছে।' });
-            setTimeout(() => { toast({ id: toastId }).dismiss() }, 2000);
+
+            uploadTask.on('state_changed',
+                (snapshot) => {
+                    const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                    update({ description: `${Math.round(progress)}% সম্পন্ন হয়েছে।` });
+                },
+                (error) => {
+                    console.error("Upload failed:", error);
+                    update({ variant: "destructive", title: "ছবি আপলোডে ত্রুটি", description: "পুনরায় চেষ্টা করুন।" });
+                },
+                async () => {
+                    const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+                    await updateDoc(docRef, { imageUrl: downloadURL });
+                    update({ title: 'আপলোড সফল', description: 'ছবি সফলভাবে আপলোড হয়েছে।' });
+                    setTimeout(() => { toast({ id: toastId }).dismiss() }, 3000);
+                }
+            );
         }
-      
-      if (editingTeacher) {
-          // --- UPDATE LOGIC ---
-          const teacherDataToUpdate: {name: string, mobileNumber: string, imageUrl?: string} = {
-              name: formData.name,
-              mobileNumber: formData.mobileNumber,
-          };
-          if(imageUrl) {
-            teacherDataToUpdate.imageUrl = imageUrl;
-          }
-          
-          const docRef = doc(firestore, 'teachers', editingTeacher.id);
-          await updateDoc(docRef, teacherDataToUpdate);
-
-          toast({ title: "সফল", description: `${formData.name}-এর তথ্য আপডেট করা হয়েছে।` });
-      } else {
-          // --- CREATE LOGIC ---
-          if (!email || !password) {
-              toast({ variant: 'destructive', title: 'ত্রুটি', description: 'অনুগ্রহ করে ইমেইল এবং পাসওয়ার্ড দিন।' });
-              setIsSaving(false);
-              return;
-          }
-
-          const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-          const newTeacherUser = userCredential.user;
-          await updateProfile(newTeacherUser, { displayName: formData.name });
-          
-          const docRef = doc(firestore, 'teachers', newTeacherUser.uid);
-          
-          const teacherData = {
-              name: formData.name,
-              mobileNumber: formData.mobileNumber,
-              imageUrl: imageUrl || `https://picsum.photos/seed/${newTeacherUser.uid}/200/200`,
-              imageHint: formData.imageHint || 'teacher person',
-              dateAdded: new Date().toISOString()
-          };
-          await setDoc(docRef, teacherData);
-
-          const teacherRoleRef = doc(firestore, 'roles_teacher', newTeacherUser.uid);
-          await setDoc(teacherRoleRef, { active: true });
-          
-          toast({ title: "সফল", description: `${formData.name} কে শিক্ষক হিসেবে যোগ করা হয়েছে।` });
-      }
-      
-      handleCloseDialog();
       
     } catch (error: any) {
         console.error("Error saving teacher:", error);
