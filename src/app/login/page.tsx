@@ -85,7 +85,13 @@ export default function LoginPage() {
       router.push('/');
     } catch (error: any) {
         console.error("Login error", error);
-        toast({ variant: 'destructive', title: 'লগইন করতে সমস্যা হয়েছে', description: error.message });
+        let description = 'একটি অপ্রত্যাশিত ত্রুটি ঘটেছে।';
+        if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+            description = 'আপনার দেওয়া ইমেইল বা পাসওয়ার্ড সঠিক নয়। অনুগ্রহ করে আবার চেষ্টা করুন।';
+        } else {
+            description = error.message;
+        }
+        toast({ variant: 'destructive', title: 'লগইন করতে সমস্যা হয়েছে', description: description });
     } finally {
         setIsLoading(false);
     }
