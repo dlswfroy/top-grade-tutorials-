@@ -23,7 +23,7 @@ type InstitutionSettings = {
     logoUrl?: string;
 };
 
-const compressImage = (file: File, options: { maxWidth: number; maxHeight: number; quality: number }): Promise<string> => {
+const compressImage = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.readAsDataURL(file);
@@ -32,8 +32,8 @@ const compressImage = (file: File, options: { maxWidth: number; maxHeight: numbe
             img.src = event.target?.result as string;
             img.onload = () => {
                 const canvas = document.createElement('canvas');
-                const MAX_WIDTH = options.maxWidth;
-                const MAX_HEIGHT = options.maxHeight;
+                const MAX_WIDTH = 512;
+                const MAX_HEIGHT = 512;
                 let width = img.width;
                 let height = img.height;
 
@@ -55,7 +55,7 @@ const compressImage = (file: File, options: { maxWidth: number; maxHeight: numbe
                     return reject(new Error('Could not get canvas context'));
                 }
                 ctx.drawImage(img, 0, 0, width, height);
-                resolve(canvas.toDataURL('image/jpeg', options.quality));
+                resolve(canvas.toDataURL('image/jpeg', 0.9));
             };
             img.onerror = error => reject(error);
         };
@@ -87,7 +87,7 @@ function UserProfileCard() {
         if (file) {
             try {
               toast({ title: 'ছবি প্রসেস করা হচ্ছে...', description: 'ছবি সংকুচিত করতে কয়েক মুহূর্ত সময় লাগতে পারে।' });
-              const compressedDataUrl = await compressImage(file, { maxWidth: 128, maxHeight: 128, quality: 0.8 });
+              const compressedDataUrl = await compressImage(file);
               setImagePreview(compressedDataUrl);
             } catch (error) {
               console.error("Image compression failed:", error);
@@ -199,7 +199,7 @@ function InstitutionSettingsCard() {
         if (file) {
             try {
               toast({ title: 'ছবি প্রসেস করা হচ্ছে...', description: 'লোগো সংকুচিত করতে কয়েক মুহূর্ত সময় লাগতে পারে।' });
-              const compressedDataUrl = await compressImage(file, { maxWidth: 256, maxHeight: 256, quality: 0.9 });
+              const compressedDataUrl = await compressImage(file);
               setLogoUrl(compressedDataUrl);
             } catch (error) {
               console.error("Logo compression failed:", error);
