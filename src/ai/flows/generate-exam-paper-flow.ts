@@ -104,6 +104,11 @@ const generateExamPaperFlow = ai.defineFlow(
     };
 
     const {output} = await prompt(promptInput);
-    return output!;
+    
+    if (!output) {
+        throw new Error('failed to generate a valid question paper');
+    }
+
+    return output;
   }
 );

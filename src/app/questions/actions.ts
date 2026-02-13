@@ -76,10 +76,8 @@ export async function handleGenerateExam(
             errorMessage = 'নিরাপত্তাজনিত কারণে AI কন্টেন্ট তৈরি করতে পারেনি। এটি হতে পারে যদি প্রশ্নটি কোনো সংবেদনশীল বিষয় নিয়ে হয়। অনুগ্রহ করে আপনার ইনপুট পরিবর্তন করে আবার চেষ্টা করুন।';
         } else if (error.message.includes('429')) {
              errorMessage = 'আপনি খুব অল্প সময়ে অনেকগুলো অনুরোধ করেছেন। অনুগ্রহ করে কিছুক্ষণ পর আবার চেষ্টা করুন।';
-        } else if (error.message.includes('output is not valid')) {
-            errorMessage = 'AI একটি অপ্রত্যাশিত ফরম্যাটে উত্তর দিয়েছে। আমরা এই সমস্যাটি সমাধানের চেষ্টা করছি। অনুগ্রহ করে কিছুক্ষণ পর আবার চেষ্টা করুন।';
-        } else {
-            errorMessage = `একটি অপ্রত্যাশিত ত্রুটি ঘটেছে। অনুগ্রহ করে আবার চেষ্টা করুন।`;
+        } else if (error.message.includes('output is not valid') || error.message.includes('failed to generate a valid question paper')) {
+            errorMessage = 'AI একটি অপ্রত্যাশিত ফরম্যাটে উত্তর দিয়েছে। অনুগ্রহ করে আপনার ইনপুট পরিবর্তন করে আবার চেষ্টা করুন অথবা কিছুক্ষণ পর আবার চেষ্টা করুন।';
         }
     }
     
