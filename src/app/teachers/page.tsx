@@ -73,7 +73,7 @@ export default function TeachersPage() {
         const reader = new FileReader();
         reader.readAsDataURL(file);
         reader.onload = (event) => {
-            const img = new Image();
+            const img = new window.Image();
             img.src = event.target?.result as string;
             img.onload = () => {
                 const canvas = document.createElement('canvas');
@@ -111,7 +111,7 @@ export default function TeachersPage() {
   const handleImageChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      if (file.size > 1000000) { // Approx 1MB
+      if (file.size > 1048487) { // Approx 1MB
         try {
           toast({ title: 'ছবি প্রসেস করা হচ্ছে...', description: 'বড় ছবি সংকুচিত করতে কয়েক মুহূর্ত সময় লাগতে পারে।' });
           const compressedDataUrl = await compressImage(file);
@@ -172,6 +172,7 @@ export default function TeachersPage() {
                 setIsSaving(false);
                 return;
             }
+            // This is a temporary auth instance to create the user, then we sign out.
             const userCredential = await createUserWithEmailAndPassword(auth, email, password);
             const newTeacherUser = userCredential.user;
             await updateProfile(newTeacherUser, { displayName: formData.name });
@@ -218,6 +219,8 @@ export default function TeachersPage() {
 
   const handleDeleteTeacher = async (teacherId: string, teacherName: string) => {
     if (!firestore) return;
+    // TODO: Should also delete the user from Firebase Auth, which requires a server-side function.
+    // For now, we just delete the Firestore documents.
     try {
         await deleteDoc(doc(firestore, 'teachers', teacherId));
         await deleteDoc(doc(firestore, 'roles_teacher', teacherId));

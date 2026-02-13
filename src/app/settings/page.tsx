@@ -53,7 +53,7 @@ export default function SettingsPage() {
         const reader = new FileReader();
         reader.readAsDataURL(file);
         reader.onload = (event) => {
-            const img = new Image();
+            const img = new window.Image();
             img.src = event.target?.result as string;
             img.onload = () => {
                 const canvas = document.createElement('canvas');
@@ -91,8 +91,7 @@ export default function SettingsPage() {
   const handleLogoChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      // Firestore document field size limit is approx 1MB. We check for a slightly smaller size.
-      if (file.size > 1000000) { 
+      if (file.size > 1048487) { 
         try {
           toast({ title: 'ছবি প্রসেস করা হচ্ছে...', description: 'বড় ছবি সংকুচিত করতে কয়েক মুহূর্ত সময় লাগতে পারে।' });
           const compressedDataUrl = await compressImage(file);
