@@ -14,7 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Save, Loader2 } from 'lucide-react';
 import { useFirebaseApp, useFirestore, useDoc, useMemoFirebase, useUser } from '@/firebase';
-import { doc, setDoc, DocumentReference, DocumentData, updateDoc } from 'firebase/firestore';
+import { doc, setDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { getStorage, ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 
@@ -70,49 +70,44 @@ export default function SettingsPage() {
     }
   };
 
-  const uploadAndSaveUrl = (file: File, docRef: DocumentReference<DocumentData>) => {
-    if (!firebaseApp) return;
-    const storage = getStorage(firebaseApp);
-    const storageRef = ref(storage, `institution_assets/logo_${Date.now()}`);
-    const uploadTask = uploadBytesResumable(storageRef, file);
-
-    const { id: toastId, update: updateToast, dismiss: dismissToast } = toast({
-      title: "লোগো আপলোড হচ্ছে...",
-      description: `0% সম্পন্ন হয়েছে।`,
-    });
-
-    uploadTask.on('state_changed',
-      (snapshot) => {
-        const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-        updateToast({ description: `${Math.round(progress)}% সম্পন্ন হয়েছে।` });
-      },
-      (error) => {
-        console.error('Upload failed:', error);
-        updateToast({
-          variant: 'destructive',
-          title: 'লোগো আপলোড ব্যর্থ',
-          description: `লোগোটি আপলোড করা যায়নি।`,
-        });
-      },
-      async () => {
-        try {
-          const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-          await updateDoc(docRef, { logoUrl: downloadURL });
-          updateToast({
-            title: 'লোগো আপলোড সফল',
-            description: 'প্রতিষ্ঠানের লোগো সফলভাবে আপলোড হয়েছে।',
-          });
-          setTimeout(() => dismissToast(), 5000);
-        } catch (error: any) {
-          console.error('Failed to update logo URL:', error);
-          updateToast({
-            variant: 'destructive',
-            title: 'ত্রুটি',
-            description: `লোগোর URL সেভ করতে সমস্যা হয়েছে: ${error.message}`,
-          });
+ const uploadFileAndGetURL = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+        if (!firebaseApp) {
+            return reject(new Error('Firebase app not available'));
         }
-      }
-    );
+        const storage = getStorage(firebaseApp);
+        const storageRef = ref(storage, `institution_assets/logo_${Date.now()}`);
+        const uploadTask = uploadBytesResumable(storageRef, file);
+
+        const { id: toastId, update: updateToast, dismiss: dismissToast } = toast({
+            title: "লোগো আপলোড হচ্ছে...",
+            description: "অনুগ্রহ করে অপেক্ষা করুন।",
+        });
+
+        uploadTask.on('state_changed',
+            (snapshot) => {
+                const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                updateToast({ description: `${Math.round(progress)}% সম্পন্ন হয়েছে।` });
+            },
+            (error) => {
+                console.error('Upload failed:', error);
+                updateToast({ variant: 'destructive', title: 'আপলোড ব্যর্থ', description: `লোগোটি আপলোড করা যায়নি।` });
+                reject(error);
+            },
+            async () => {
+                try {
+                    const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+                    updateToast({ title: 'আপলোড সফল', description: 'লোগো সফলভাবে আপলোড হয়েছে।' });
+                    setTimeout(() => dismissToast(toastId), 2000);
+                    resolve(downloadURL);
+                } catch (error) {
+                    console.error('Failed to get download URL:', error);
+                    updateToast({ variant: 'destructive', title: 'URL পেতে ব্যর্থ', description: `লোগোর URL পাওয়া যায়নি।` });
+                    reject(error);
+                }
+            }
+        );
+    });
   };
 
   const handleSave = async () => {
@@ -121,10 +116,16 @@ export default function SettingsPage() {
     setIsSaving(true);
     
     try {
+        let finalLogoUrl = settings?.logoUrl || '';
+
+        if (logoFile) {
+           finalLogoUrl = await uploadFileAndGetURL(logoFile);
+        }
+
         const settingsData = {
             institutionName: institutionName,
             lastUpdated: new Date().toISOString(),
-            logoUrl: logoPreview,
+            logoUrl: finalLogoUrl,
         };
 
         await setDoc(settingsRef, settingsData, { merge: true });
@@ -133,9 +134,6 @@ export default function SettingsPage() {
             description: 'সেটিংস সফলভাবে সেভ করা হয়েছে।',
         });
         
-        if (logoFile) {
-            uploadAndSaveUrl(logoFile, settingsRef);
-        }
         setLogoFile(null);
 
     } catch (error: any) {

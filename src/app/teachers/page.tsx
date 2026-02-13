@@ -37,7 +37,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useFirebaseApp, useFirestore, useCollection, useMemoFirebase, useUser, useAuth } from '@/firebase';
-import { collection, doc, updateDoc, deleteDoc, DocumentReference, DocumentData, setDoc } from 'firebase/firestore';
+import { collection, doc, updateDoc, deleteDoc, setDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { getStorage, ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
@@ -90,50 +90,44 @@ export default function TeachersPage() {
     }
   };
   
-  const uploadAndSaveUrl = (file: File, docRef: DocumentReference<DocumentData>) => {
-    if (!firebaseApp) return;
-    const storage = getStorage(firebaseApp);
-    const storageRef = ref(storage, `teacher_images/${docRef.id}_${file.name}`);
-    const uploadTask = uploadBytesResumable(storageRef, file);
+  const uploadFileAndGetURL = (file: File, teacherId: string): Promise<string> => {
+    return new Promise((resolve, reject) => {
+        if (!firebaseApp) {
+            return reject(new Error('Firebase app not available'));
+        }
+        const storage = getStorage(firebaseApp);
+        const storageRef = ref(storage, `teacher_images/${teacherId}_${file.name}`);
+        const uploadTask = uploadBytesResumable(storageRef, file);
 
-    const { update: updateToast, dismiss: dismissToast } = toast({
-      title: "ছবি আপলোড হচ্ছে...",
-      description: `0% সম্পন্ন হয়েছে।`,
+        const { id: toastId, update: updateToast, dismiss: dismissToast } = toast({
+            title: "ছবি আপলোড হচ্ছে...",
+            description: "অনুগ্রহ করে অপেক্ষা করুন।",
+        });
+
+        uploadTask.on('state_changed',
+            (snapshot) => {
+                const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                updateToast({ description: `${Math.round(progress)}% সম্পন্ন হয়েছে।` });
+            },
+            (error) => {
+                console.error('Upload failed:', error);
+                updateToast({ variant: 'destructive', title: 'আপলোড ব্যর্থ', description: `ছবিটি আপলোড করা যায়নি।` });
+                reject(error);
+            },
+            async () => {
+                try {
+                    const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+                    updateToast({ title: 'আপলোড সফল', description: 'ছবি সফলভাবে আপলোড হয়েছে।' });
+                    setTimeout(() => dismissToast(toastId), 2000);
+                    resolve(downloadURL);
+                } catch (error) {
+                    console.error('Failed to get download URL:', error);
+                    updateToast({ variant: 'destructive', title: 'URL পেতে ব্যর্থ', description: `ছবিটির URL পাওয়া যায়নি।` });
+                    reject(error);
+                }
+            }
+        );
     });
-
-    uploadTask.on('state_changed',
-      (snapshot) => {
-        const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-        updateToast({ description: `${Math.round(progress)}% সম্পন্ন হয়েছে।` });
-      },
-      (error) => {
-        console.error('Upload failed:', error);
-        updateToast({
-          variant: 'destructive',
-          title: 'ছবি আপলোড ব্যর্থ',
-          description: `ছবিটি আপলোড করা যায়নি।`,
-        });
-      },
-      () => {
-        getDownloadURL(uploadTask.snapshot.ref).then(async (downloadURL) => {
-           try {
-            await updateDoc(docRef, { imageUrl: downloadURL });
-             updateToast({
-                title: 'ছবি আপলোড সফল',
-                description: 'শিক্ষকের ছবিটি সফলভাবে আপলোড হয়েছে।',
-            });
-           } catch (error: any) {
-             updateToast({
-                variant: 'destructive',
-                title: 'ত্রুটি',
-                description: `ছবিটির URL সেভ করতে সমস্যা হয়েছে: ${error.message}`,
-            });
-           } finally {
-             setTimeout(() => dismissToast(), 5000);
-           }
-        });
-      }
-    );
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -155,96 +149,79 @@ export default function TeachersPage() {
 
     setIsSaving(true);
 
-    if (editingTeacher) {
-        // --- UPDATE LOGIC ---
-        try {
-            const teacherData: Partial<Omit<Teacher, 'id' | 'dateAdded'>> = {
-                name: formData.name,
-                mobileNumber: formData.mobileNumber,
-                imageUrl: formData.imageUrl,
-            };
-            
-            const teacherRef = doc(firestore, 'teachers', editingTeacher.id);
-            if (imageFile) {
-                uploadAndSaveUrl(imageFile, teacherRef);
-            }
-            await updateDoc(teacherRef, {
-                ...teacherData,
-                imageUrl: imagePreview,
-            });
+    try {
+      if (editingTeacher) {
+          // --- UPDATE LOGIC ---
+          let finalImageUrl = editingTeacher.imageUrl || '';
+          if (imageFile) {
+              finalImageUrl = await uploadFileAndGetURL(imageFile, editingTeacher.id);
+          }
+          
+          const teacherData = {
+              name: formData.name,
+              mobileNumber: formData.mobileNumber,
+              imageUrl: finalImageUrl,
+          };
+          
+          const teacherRef = doc(firestore, 'teachers', editingTeacher.id);
+          await updateDoc(teacherRef, teacherData);
 
-            toast({ title: "সফল", description: `${formData.name}-এর তথ্য আপডেট করা হয়েছে।` });
-            handleCloseDialog();
-        } catch (error: any) {
-            console.error("Error updating teacher:", error);
-            toast({
-                variant: "destructive",
-                title: "ত্রুটি",
-                description: `শিক্ষকের তথ্য আপডেট করতে সমস্যা হয়েছে: ${error.message}`,
-            });
-        } finally {
-            setIsSaving(false);
+          toast({ title: "সফল", description: `${formData.name}-এর তথ্য আপডেট করা হয়েছে।` });
+      } else {
+          // --- CREATE LOGIC ---
+          if (!email || !password) {
+              toast({ variant: 'destructive', title: 'ত্রুটি', description: 'অনুগ্রহ করে ইমেইল এবং পাসওয়ার্ড দিন।' });
+              setIsSaving(false);
+              return;
+          }
+
+          const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+          const newTeacherUser = userCredential.user;
+          await updateProfile(newTeacherUser, { displayName: formData.name });
+
+          let finalImageUrl = `https://picsum.photos/seed/${newTeacherUser.uid}/200/200`;
+          if(imageFile) {
+            finalImageUrl = await uploadFileAndGetURL(imageFile, newTeacherUser.uid);
+          }
+
+          const teacherData = {
+              name: formData.name,
+              mobileNumber: formData.mobileNumber,
+              imageUrl: finalImageUrl,
+              imageHint: formData.imageHint || 'teacher person',
+              dateAdded: new Date().toISOString()
+          };
+          
+          const teacherRef = doc(firestore, 'teachers', newTeacherUser.uid);
+          await setDoc(teacherRef, teacherData);
+
+          const teacherRoleRef = doc(firestore, 'roles_teacher', newTeacherUser.uid);
+          await setDoc(teacherRoleRef, { active: true });
+          
+          toast({ title: "সফল", description: `${formData.name} কে শিক্ষক হিসেবে যোগ করা হয়েছে।` });
+      }
+      handleCloseDialog();
+    } catch (error: any) {
+        console.error("Error saving teacher:", error);
+        let errorMessage = 'একটি অপ্রত্যাশিত ত্রুটি ঘটেছে। অনুগ্রহ করে আবার চেষ্টা করুন।';
+        switch (error.code) {
+            case 'auth/email-already-in-use':
+                errorMessage = 'এই ইমেইল ঠিকানাটি দিয়ে ইতিমধ্যে একটি একাউন্ট তৈরি করা আছে।';
+                break;
+            case 'auth/weak-password':
+                errorMessage = 'পাসওয়ার্ডটি যথেষ্ট শক্তিশালী নয়। কমপক্ষে ৬টি অক্ষর ব্যবহার করুন।';
+                break;
+            case 'auth/invalid-email':
+                errorMessage = 'আপনার দেওয়া ইমেইল ঠিকানাটি সঠিক নয়।';
+                break;
         }
-    } else {
-        // --- CREATE LOGIC ---
-        if (!email || !password) {
-            toast({ variant: 'destructive', title: 'ত্রুটি', description: 'অনুগ্রহ করে ইমেইল এবং পাসওয়ার্ড দিন।' });
-            setIsSaving(false);
-            return;
-        }
-
-        try {
-            const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-            const newTeacherUser = userCredential.user;
-            await updateProfile(newTeacherUser, { displayName: formData.name });
-
-            const teacherRef = doc(firestore, 'teachers', newTeacherUser.uid);
-            const teacherData = {
-                name: formData.name,
-                mobileNumber: formData.mobileNumber,
-                imageUrl: `https://picsum.photos/seed/${newTeacherUser.uid}/200/200`,
-                imageHint: formData.imageHint || 'teacher person',
-                dateAdded: new Date().toISOString()
-            };
-            
-            if (imageFile) {
-                uploadAndSaveUrl(imageFile, teacherRef);
-            }
-
-            await setDoc(teacherRef, {
-                ...teacherData,
-                imageUrl: imagePreview || teacherData.imageUrl,
-            });
-
-            const teacherRoleRef = doc(firestore, 'roles_teacher', newTeacherUser.uid);
-            await setDoc(teacherRoleRef, { active: true });
-            
-            toast({ title: "সফল", description: `${formData.name} কে শিক্ষক হিসেবে যোগ করা হয়েছে।` });
-            handleCloseDialog();
-        } catch (error: any) {
-            let errorMessage;
-            switch (error.code) {
-                case 'auth/email-already-in-use':
-                    errorMessage = 'এই ইমেইল ঠিকানাটি দিয়ে ইতিমধ্যে একটি একাউন্ট তৈরি করা আছে।';
-                    break;
-                case 'auth/weak-password':
-                    errorMessage = 'পাসওয়ার্ডটি যথেষ্ট শক্তিশালী নয়। কমপক্ষে ৬টি অক্ষর ব্যবহার করুন।';
-                    break;
-                case 'auth/invalid-email':
-                    errorMessage = 'আপনার দেওয়া ইমেইল ঠিকানাটি সঠিক নয়।';
-                    break;
-                default:
-                    errorMessage = 'একটি অপ্রত্যাশিত ত্রুটি ঘটেছে। অনুগ্রহ করে আবার চেষ্টা করুন।';
-                    break;
-            }
-            toast({ 
-                variant: "destructive", 
-                title: "ত্রুটি", 
-                description: errorMessage 
-            });
-        } finally {
-            setIsSaving(false);
-        }
+        toast({ 
+            variant: "destructive", 
+            title: "ত্রুটি", 
+            description: errorMessage 
+        });
+    } finally {
+        setIsSaving(false);
     }
   };
 

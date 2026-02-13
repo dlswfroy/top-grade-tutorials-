@@ -42,7 +42,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useFirebaseApp, useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
-import { collection, doc, addDoc, updateDoc, deleteDoc, DocumentReference, DocumentData } from 'firebase/firestore';
+import { collection, doc, addDoc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { getStorage, ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 
@@ -112,51 +112,45 @@ export default function StudentsPage() {
     }
   };
   
-  const uploadAndSaveUrl = (file: File, docRef: DocumentReference<DocumentData>) => {
-    if (!firebaseApp) return;
-    const storage = getStorage(firebaseApp);
-    const storageRef = ref(storage, `student_images/${Date.now()}_${file.name}`);
-    const uploadTask = uploadBytesResumable(storageRef, file);
-
-    const { id: toastId, update: updateToast, dismiss: dismissToast } = toast({
-      title: "ছবি আপলোড হচ্ছে...",
-      description: `0% সম্পন্ন হয়েছে।`,
-    });
-
-    uploadTask.on('state_changed',
-      (snapshot) => {
-        const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-        updateToast({ description: `${Math.round(progress)}% সম্পন্ন হয়েছে।` });
-      },
-      (error) => {
-        console.error('Upload failed:', error);
-        updateToast({
-          variant: 'destructive',
-          title: 'ছবি আপলোড ব্যর্থ',
-          description: `ছবিটি আপলোড করা যায়নি।`,
-        });
-      },
-      async () => {
-        try {
-          const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-          await updateDoc(docRef, { imageUrl: downloadURL });
-          updateToast({
-            title: 'ছবি আপলোড সফল',
-            description: 'শিক্ষার্থীর ছবিটি সফলভাবে আপলোড হয়েছে।',
-          });
-          setTimeout(() => dismissToast(), 5000);
-        } catch (error: any) {
-          console.error('Failed to update image URL:', error);
-          updateToast({
-            variant: 'destructive',
-            title: 'ত্রুটি',
-            description: `ছবিটির URL সেভ করতে সমস্যা হয়েছে: ${error.message}`,
-          });
+  const uploadFileAndGetURL = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+        if (!firebaseApp) {
+            return reject(new Error('Firebase app not available'));
         }
-      }
-    );
-  };
+        const storage = getStorage(firebaseApp);
+        const storageRef = ref(storage, `student_images/${Date.now()}_${file.name}`);
+        const uploadTask = uploadBytesResumable(storageRef, file);
 
+        const { id: toastId, update: updateToast, dismiss: dismissToast } = toast({
+            title: "ছবি আপলোড হচ্ছে...",
+            description: "অনুগ্রহ করে অপেক্ষা করুন।",
+        });
+
+        uploadTask.on('state_changed',
+            (snapshot) => {
+                const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                updateToast({ description: `${Math.round(progress)}% সম্পন্ন হয়েছে।` });
+            },
+            (error) => {
+                console.error('Upload failed:', error);
+                updateToast({ variant: 'destructive', title: 'আপলোড ব্যর্থ', description: `ছবিটি আপলোড করা যায়নি।` });
+                reject(error);
+            },
+            async () => {
+                try {
+                    const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+                    updateToast({ title: 'আপলোড সফল', description: 'ছবি সফলভাবে আপলোড হয়েছে।' });
+                    setTimeout(() => dismissToast(toastId), 2000);
+                    resolve(downloadURL);
+                } catch (error) {
+                    console.error('Failed to get download URL:', error);
+                    updateToast({ variant: 'destructive', title: 'URL পেতে ব্যর্থ', description: `ছবিটির URL পাওয়া যায়নি।` });
+                    reject(error);
+                }
+            }
+        );
+    });
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { id, value } = e.target;
@@ -182,10 +176,17 @@ export default function StudentsPage() {
     setIsSaving(true);
 
     try {
+        let finalImageUrl = editingStudent?.imageUrl || '';
+        if (imageFile) {
+            finalImageUrl = await uploadFileAndGetURL(imageFile);
+        } else if (!finalImageUrl) {
+            finalImageUrl = `https://picsum.photos/seed/${formData.rollNumber}/200/200`;
+        }
+
         const studentData = {
             ...formData,
             monthlyFee: Number(formData.monthlyFee) || 0,
-            imageUrl: imagePreview || `https://picsum.photos/seed/${formData.rollNumber}/200/200`,
+            imageUrl: finalImageUrl,
             imageHint: formData.imageHint || 'student person',
         };
 
@@ -193,16 +194,10 @@ export default function StudentsPage() {
             const studentRef = doc(firestore, 'students', editingStudent.id);
             await updateDoc(studentRef, studentData);
             toast({ title: "সফল", description: `${formData.name}-এর তথ্য আপডেট করা হয়েছে।` });
-            if (imageFile) {
-                uploadAndSaveUrl(imageFile, studentRef);
-            }
         } else {
             const finalData = { ...studentData, dateAdded: new Date().toISOString() };
-            const docRef = await addDoc(collection(firestore, 'students'), finalData);
+            await addDoc(collection(firestore, 'students'), finalData);
             toast({ title: "সফল", description: `${formData.name} কে শিক্ষার্থী হিসেবে যোগ করা হয়েছে।` });
-            if (imageFile) {
-                uploadAndSaveUrl(imageFile, docRef);
-            }
         }
         
         handleCloseDialog();
