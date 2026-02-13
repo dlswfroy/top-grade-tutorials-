@@ -47,18 +47,18 @@ type InstitutionSettings = {
     logoUrl?: string;
 };
 
-function Logo({ settings, isLoading, className }: { settings: InstitutionSettings | null, isLoading: boolean, className?: string }) {
+function Logo({ settings, isLoading, className, iconClassName }: { settings: InstitutionSettings | null, isLoading: boolean, className?: string, iconClassName?: string }) {
     const institutionName = settings?.institutionName || 'টপ গ্রেড টিউটোরিয়ালস';
     const logoUrl = settings?.logoUrl;
 
     return (
         <Link href="/" className={cn("flex items-center gap-2", className)}>
             {isLoading ? (
-                <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                <Loader2 className={cn("w-6 h-6 animate-spin", iconClassName || "text-primary")} />
             ) : logoUrl ? (
                 <Image src={logoUrl} alt={institutionName} width={28} height={28} className="rounded-sm object-cover" />
             ) : (
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-7 h-7 text-primary">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={cn("w-7 h-7", iconClassName || "text-primary")}>
                   <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
                   <path d="M2 17l10 5 10-5"></path>
                   <path d="M2 12l10 5 10-5"></path>
@@ -109,9 +109,9 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
       <div className="min-h-screen flex flex-col">
-          <header className="sticky top-0 z-40 w-full border-b bg-background">
+          <header className="sticky top-0 z-40 w-full border-b bg-primary text-primary-foreground">
               <div className="container flex h-16 items-center">
-                  <Logo settings={settings} isLoading={isLoadingSettings} className="mr-6"/>
+                  <Logo settings={settings} isLoading={isLoadingSettings} className="mr-6" iconClassName="text-primary-foreground"/>
                   
                   <nav className="hidden md:flex items-center space-x-6 text-sm font-medium">
                       {menuItems.map((item) => (
@@ -119,8 +119,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                               key={item.href}
                               href={item.href}
                               className={cn(
-                                  "transition-colors hover:text-primary",
-                                  pathname === item.href ? "text-primary font-semibold" : "text-muted-foreground"
+                                  "transition-colors",
+                                  pathname === item.href ? "text-primary-foreground font-semibold" : "text-primary-foreground/70 hover:text-primary-foreground"
                               )}
                           >
                               {item.label}
@@ -131,7 +131,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                   <div className="flex flex-1 items-center justify-end space-x-2">
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                                <Button variant="ghost" className="relative h-8 w-8 rounded-full hover:bg-black/10">
                                     <Avatar className="h-8 w-8">
                                         <AvatarImage src={user?.photoURL || undefined} />
                                         <AvatarFallback>{(user?.displayName || 'ব').charAt(0)}</AvatarFallback>
