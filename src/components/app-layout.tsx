@@ -177,8 +177,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                                   className={cn(
                                       "flex h-10 items-center justify-center rounded-md px-4 py-2 transition-colors",
                                       pathname === item.href
-                                          ? "bg-primary-foreground/10 font-semibold text-primary-foreground"
-                                          : "text-primary-foreground/80 hover:bg-primary-foreground/10 hover:text-primary-foreground"
+                                          ? "bg-black/20 font-semibold text-primary-foreground"
+                                          : "text-primary-foreground/80 hover:bg-black/20 hover:text-primary-foreground"
                                   )}
                               >
                                   {item.label}
