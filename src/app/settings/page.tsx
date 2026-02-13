@@ -140,7 +140,7 @@ function InstitutionSettingsCard() {
 
 function SettingsPage() {
     return (
-        <div className="space-y-8">
+        <div className="space-y-8 p-6 rounded-lg bg-slate-50 dark:bg-slate-800/20">
             <div>
                 <h1 className="text-3xl font-bold font-headline">সেটিংস</h1>
                 <p className="text-muted-foreground">
@@ -157,5 +157,3 @@ export default function SettingsPageContainer() {
         <SettingsPage />
     )
 }
-
-    

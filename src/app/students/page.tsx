@@ -247,7 +247,7 @@ function StudentsPage() {
   
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 p-6 rounded-lg bg-green-50 dark:bg-green-950/30">
       <div>
         <h1 className="text-3xl font-bold font-headline">শিক্ষার্থী ম্যানেজমেন্ট</h1>
         <p className="text-muted-foreground">

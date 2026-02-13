@@ -1164,7 +1164,7 @@ function Report() {
 
 function AccountingPage() {
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 p-6 rounded-lg bg-amber-50 dark:bg-amber-950/30">
       <div>
         <h1 className="text-3xl font-bold font-headline">হিসাবরক্ষণ</h1>
         <p className="text-muted-foreground">শিক্ষার্থীদের মাসিক বেতন আদায়, খরচ এবং আয়-ব্যয়ের রিপোর্ট দেখুন।</p>

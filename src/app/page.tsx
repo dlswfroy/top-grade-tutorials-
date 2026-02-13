@@ -51,7 +51,7 @@ function Dashboard() {
   }, [payments]);
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 p-6 rounded-lg bg-blue-50 dark:bg-blue-950/30">
       <div>
         <h1 className="text-3xl font-bold font-headline">ড্যাসবোর্ড</h1>
         <p className="text-muted-foreground">

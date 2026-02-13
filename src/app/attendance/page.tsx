@@ -384,7 +384,7 @@ function AttendanceReport() {
 
 export default function AttendancePageContainer() {
     return (
-        <div className="space-y-8">
+        <div className="space-y-8 p-6 rounded-lg bg-cyan-50 dark:bg-cyan-950/30">
             <div>
                 <h1 className="text-3xl font-bold font-headline">হাজিরা খাতা</h1>
                 <p className="text-muted-foreground">শিক্ষার্থীদের দৈনিক উপস্থিতি নিন এবং পূর্ববর্তী হাজিরার রেকর্ড দেখুন।</p>
