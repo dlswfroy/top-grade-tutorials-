@@ -54,7 +54,7 @@ service cloud.firestore {
     
     match /teacher_permissions/{teacherId} {
       // A teacher can read their own permissions. A head teacher can read any.
-      allow get: if isHeadTeacher() || (isTeacher() && request.auth.uid == teacherId);
+      allow get: if isHeadTeacher() || request.auth.uid == teacherId;
       // Only a head teacher can modify permissions.
       allow list, write: if isHeadTeacher();
     }
