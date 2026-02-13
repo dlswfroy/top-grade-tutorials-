@@ -439,7 +439,7 @@ function SettingsPage() {
     const { data: userRole } = useDoc<UserRole>(userRoleRef);
 
     return (
-        <div className="space-y-8 p-8 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700">
+        <div className="space-y-8 p-8 rounded-xl bg-slate-100 dark:bg-slate-900/30 border border-slate-200 dark:border-slate-800">
             <div>
                 <h1 className="text-3xl font-bold font-headline text-slate-800 dark:text-slate-200">সেটিংস</h1>
             </div>
