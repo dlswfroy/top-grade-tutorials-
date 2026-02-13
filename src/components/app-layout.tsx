@@ -52,7 +52,7 @@ function Logo({ settings, isLoading, className, iconClassName }: { settings: Ins
     return (
         <Link href="/" className={cn("flex items-center gap-3", className)}>
             {isLoading ? (
-                <Loader2 className={cn("h-10 w-10 animate-spin", iconClassName || "text-primary")} />
+                <Loader2 className={cn("h-10 w-10 animate-spin", iconClassName || "text-inherit")} />
             ) : logoUrl ? (
                 <div className="w-10 h-10 relative">
                     <Avatar className="h-10 w-10">
@@ -61,7 +61,7 @@ function Logo({ settings, isLoading, className, iconClassName }: { settings: Ins
                     </Avatar>
                 </div>
             ) : (
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={cn("w-10 h-10", iconClassName || "text-primary")}>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={cn("w-10 h-10", iconClassName || "text-inherit")}>
                   <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
                   <path d="M2 17l10 5 10-5"></path>
                   <path d="M2 12l10 5 10-5"></path>
@@ -111,18 +111,18 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
       <div className="min-h-screen flex flex-col bg-muted/40">
-          <header className="sticky top-0 z-40 w-full border-b bg-white dark:bg-gray-900">
+          <header className="sticky top-0 z-40 w-full border-b border-primary-foreground/20 bg-primary text-primary-foreground">
               <div className="container flex h-16 items-center">
                   <div className="md:hidden mr-4">
                     <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
                         <SheetTrigger asChild>
-                            <Button variant="ghost" size="icon">
+                            <Button variant="ghost" size="icon" className="hover:bg-primary/90 focus:bg-primary/90">
                                 <Menu className="h-5 w-5" />
                                 <span className="sr-only">Open Menu</span>
                             </Button>
                         </SheetTrigger>
                         <SheetContent side="left" className="w-[300px] sm:w-[400px]">
-                            <Logo settings={settings} isLoading={isLoadingSettings} className="mb-8" />
+                            <Logo settings={settings} isLoading={isLoadingSettings} className="mb-8 text-foreground" iconClassName="text-primary" />
                             <div className="flex flex-col space-y-2">
                                 {menuItems.map((item) => (
                                     <Link
@@ -144,7 +144,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                   </div>
                   
                   <div className="hidden md:flex items-center">
-                     <Logo settings={settings} isLoading={isLoadingSettings} className="mr-6 text-foreground" iconClassName="text-primary"/>
+                     <Logo settings={settings} isLoading={isLoadingSettings} className="mr-6" iconClassName="text-inherit"/>
                       <nav className="flex items-center space-x-6 text-sm font-medium">
                           {menuItems.map((item) => (
                               <Link
@@ -152,7 +152,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                                   href={item.href}
                                   className={cn(
                                       "transition-colors",
-                                      pathname === item.href ? "text-foreground font-semibold" : "text-muted-foreground hover:text-foreground"
+                                      pathname === item.href ? "text-primary-foreground font-semibold" : "text-primary-foreground/80 hover:text-primary-foreground"
                                   )}
                               >
                                   {item.label}
@@ -165,7 +165,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                     {user ? (
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" className="relative h-10 w-10 rounded-full">
+                                <Button variant="ghost" className="relative h-10 w-10 rounded-full hover:bg-primary/90 focus-visible:ring-primary-foreground">
                                     <Avatar className="h-10 w-10">
                                         <AvatarImage src={user.photoURL || `https://i.pravatar.cc/150?u=${user.uid}`} alt={user.displayName || 'User'} />
                                         <AvatarFallback>{user.displayName?.charAt(0) || user.email?.charAt(0)}</AvatarFallback>
@@ -187,7 +187,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                             </DropdownMenuContent>
                         </DropdownMenu>
                     ) : (
-                        <Button asChild>
+                        <Button asChild variant="secondary">
                             <Link href="/login">লগইন করুন</Link>
                         </Button>
                     )}
