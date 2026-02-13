@@ -2,18 +2,8 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import {
-  SidebarProvider,
-  Sidebar,
-  SidebarHeader,
-  SidebarTrigger,
-  SidebarMenu,
-  SidebarMenuItem,
-  SidebarMenuButton,
-  SidebarInset,
-  SidebarContent,
-  SidebarFooter,
-} from '@/components/ui/sidebar';
+import { useState, useMemo } from 'react';
+import Image from 'next/image';
 import {
   LayoutDashboard,
   Users,
@@ -21,17 +11,17 @@ import {
   Calculator,
   BrainCircuit,
   Settings,
-  MoreVertical,
   LogOut,
   Loader2,
   CalendarCheck,
+  Menu,
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
-import Image from 'next/image';
-import { useMemo } from 'react';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { cn } from '@/lib/utils';
 
 const menuItems = [
   { href: '/', label: 'ড্যাসবোর্ড', icon: LayoutDashboard },
@@ -48,10 +38,33 @@ type InstitutionSettings = {
     logoUrl?: string;
 };
 
+function Logo({ settings, isLoading, className }: { settings: InstitutionSettings | null, isLoading: boolean, className?: string }) {
+    const institutionName = settings?.institutionName || 'টপ গ্রেড টিউটোরিয়ালস';
+    const logoUrl = settings?.logoUrl;
+
+    return (
+        <Link href="/" className={cn("flex items-center gap-2", className)}>
+            {isLoading ? (
+                <Loader2 className="w-6 h-6 animate-spin text-primary" />
+            ) : logoUrl ? (
+                <Image src={logoUrl} alt={institutionName} width={28} height={28} className="rounded-sm object-cover" />
+            ) : (
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-7 h-7 text-primary">
+                  <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
+                  <path d="M2 17l10 5 10-5"></path>
+                  <path d="M2 12l10 5 10-5"></path>
+                </svg>
+            )}
+            <h1 className="text-lg font-headline font-semibold">{institutionName}</h1>
+        </Link>
+    );
+}
+
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const settingsRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
@@ -60,92 +73,71 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
   const { data: settings, isLoading: isLoadingSettings } = useDoc<InstitutionSettings>(settingsRef);
 
-  const institutionName = settings?.institutionName || 'টপ গ্রেড টিউটোরিয়ালস';
-  const logoUrl = settings?.logoUrl;
-  
-  const shortInstitutionName = useMemo(() => {
-    if (isLoadingSettings) return '';
-    const nameParts = institutionName.split(' ');
-    return nameParts.length > 1 ? nameParts.slice(0, 2).join(' ') : nameParts[0];
-  }, [institutionName, isLoadingSettings]);
-
-
   return (
-    <SidebarProvider>
-      <Sidebar>
-        <SidebarContent>
-          <SidebarMenu>
-            {menuItems.map((item) => (
-              <SidebarMenuItem key={item.href}>
-                <SidebarMenuButton
-                  asChild
-                  isActive={pathname === item.href}
-                  tooltip={{children: item.label, side: 'right', align: 'center'}}
-                >
-                  <Link href={item.href}>
-                    <item.icon />
-                    <span>{item.label}</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            ))}
-          </SidebarMenu>
-        </SidebarContent>
-        <SidebarFooter>
-          <div className="flex items-center gap-3 p-2">
-            <Avatar>
-              <AvatarImage src={user?.photoURL || undefined} />
-              <AvatarFallback>{isUserLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : (user ? 'A' : 'G')}</AvatarFallback>
-            </Avatar>
-            <div className="flex-1 overflow-hidden">
-                <p className="text-sm font-medium truncate">{isUserLoading ? 'Loading...' : (user ? 'Anonymous User' : 'Not Signed In')}</p>
-                <p className="text-xs text-muted-foreground truncate">{user?.uid}</p>
-            </div>
-            <Button variant="ghost" size="icon" className="shrink-0 group-data-[collapsible=icon]:hidden">
-                <LogOut className="w-4 h-4"/>
-            </Button>
-          </div>
-        </SidebarFooter>
-      </Sidebar>
-      <SidebarInset>
-        <header className="flex items-center justify-between p-2 border-b bg-background/80 backdrop-blur-sm sticky top-0 z-10">
-            <div className="flex items-center gap-2">
-                <div className="hidden md:flex items-center gap-2">
-                    <SidebarTrigger />
-                    {isLoadingSettings ? (
-                        <Loader2 className="w-6 h-6 animate-spin text-primary" />
-                    ) : logoUrl ? (
-                        <Image src={logoUrl} alt={institutionName} width={24} height={24} className="rounded-sm object-cover" />
-                    ) : (
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6 text-primary">
-                          <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
-                          <path d="M2 17l10 5 10-5"></path>
-                          <path d="M2 12l10 5 10-5"></path>
-                        </svg>
-                    )}
-                    <h1 className="text-lg font-headline font-semibold">{institutionName}</h1>
-                </div>
-                 <Link href="/" className="flex items-center gap-2 md:hidden">
-                    {isLoadingSettings ? (
-                        <Loader2 className="w-6 h-6 animate-spin text-primary" />
-                    ) : logoUrl ? (
-                        <Image src={logoUrl} alt={institutionName} width={24} height={24} className="rounded-sm object-cover" />
-                    ) : (
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6 text-primary">
-                        <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
-                        <path d="M2 17l10 5 10-5"></path>
-                        <path d="M2 12l10 5 10-5"></path>
-                        </svg>
-                    )}
-                    <h1 className="text-lg font-headline font-semibold">{shortInstitutionName}</h1>
-                </Link>
-            </div>
-            <SidebarTrigger className="md:hidden">
-                <MoreVertical />
-            </SidebarTrigger>
-        </header>
-        <div className="p-4 sm:p-6 lg:p-8">{children}</div>
-      </SidebarInset>
-    </SidebarProvider>
+      <div className="min-h-screen flex flex-col">
+          <header className="sticky top-0 z-40 w-full border-b bg-background">
+              <div className="container flex h-16 items-center">
+                  <Logo settings={settings} isLoading={isLoadingSettings} className="mr-6"/>
+                  
+                  <nav className="hidden md:flex items-center space-x-6 text-sm font-medium">
+                      {menuItems.map((item) => (
+                          <Link
+                              key={item.href}
+                              href={item.href}
+                              className={cn(
+                                  "transition-colors hover:text-primary",
+                                  pathname === item.href ? "text-primary font-semibold" : "text-muted-foreground"
+                              )}
+                          >
+                              {item.label}
+                          </Link>
+                      ))}
+                  </nav>
+
+                  <div className="flex flex-1 items-center justify-end space-x-2">
+                      <div className="flex items-center gap-2">
+                          <Avatar className="h-8 w-8">
+                            <AvatarImage src={user?.photoURL || undefined} />
+                            <AvatarFallback>{isUserLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : (user ? 'A' : 'G')}</AvatarFallback>
+                          </Avatar>
+                          <div className="hidden sm:flex flex-col items-start">
+                              <p className="text-sm font-medium truncate">{isUserLoading ? 'Loading...' : (user ? 'Anonymous User' : 'Not Signed In')}</p>
+                          </div>
+                      </div>
+
+                      <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+                          <SheetTrigger asChild>
+                              <Button variant="ghost" size="icon" className="md:hidden">
+                                  <Menu className="h-5 w-5" />
+                                  <span className="sr-only">Open Menu</span>
+                              </Button>
+                          </SheetTrigger>
+                          <SheetContent side="left" className="w-[300px] sm:w-[400px]">
+                              <Logo settings={settings} isLoading={isLoadingSettings} className="mb-8" />
+                              <div className="flex flex-col space-y-2">
+                                  {menuItems.map((item) => (
+                                      <Link
+                                          key={item.href}
+                                          href={item.href}
+                                          onClick={() => setMobileMenuOpen(false)}
+                                          className={cn(
+                                              "flex items-center gap-3 rounded-md p-3 text-lg font-medium",
+                                              pathname === item.href ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:bg-accent/80"
+                                          )}
+                                      >
+                                          <item.icon className="h-5 w-5" />
+                                          <span>{item.label}</span>
+                                      </Link>
+                                  ))}
+                              </div>
+                          </SheetContent>
+                      </Sheet>
+                  </div>
+              </div>
+          </header>
+          <main className="flex-1 container p-4 sm:p-6 lg:p-8">
+              {children}
+          </main>
+      </div>
   );
 }
