@@ -96,7 +96,7 @@ export default function TeachersPage() {
     const storageRef = ref(storage, `teacher_images/${docRef.id}_${file.name}`);
     const uploadTask = uploadBytesResumable(storageRef, file);
 
-    const { id: toastId, update: updateToast, dismiss: dismissToast } = toast({
+    const { update: updateToast, dismiss: dismissToast } = toast({
       title: "ছবি আপলোড হচ্ছে...",
       description: `0% সম্পন্ন হয়েছে।`,
     });
@@ -163,15 +163,17 @@ export default function TeachersPage() {
                 mobileNumber: formData.mobileNumber,
                 imageUrl: formData.imageUrl,
             };
-
-            const teacherRef = doc(firestore, 'teachers', editingTeacher.id);
-            await updateDoc(teacherRef, teacherData);
             
+            const teacherRef = doc(firestore, 'teachers', editingTeacher.id);
             if (imageFile) {
                 uploadAndSaveUrl(imageFile, teacherRef);
-            } else {
-                 toast({ title: "সফল", description: `${formData.name}-এর তথ্য আপডেট করা হয়েছে।` });
             }
+            await updateDoc(teacherRef, {
+                ...teacherData,
+                imageUrl: imagePreview,
+            });
+
+            toast({ title: "সফল", description: `${formData.name}-এর তথ্য আপডেট করা হয়েছে।` });
             handleCloseDialog();
         } catch (error: any) {
             console.error("Error updating teacher:", error);
@@ -204,26 +206,42 @@ export default function TeachersPage() {
                 imageHint: formData.imageHint || 'teacher person',
                 dateAdded: new Date().toISOString()
             };
-            await setDoc(teacherRef, teacherData);
+            
+            if (imageFile) {
+                uploadAndSaveUrl(imageFile, teacherRef);
+            }
+
+            await setDoc(teacherRef, {
+                ...teacherData,
+                imageUrl: imagePreview || teacherData.imageUrl,
+            });
 
             const teacherRoleRef = doc(firestore, 'roles_teacher', newTeacherUser.uid);
             await setDoc(teacherRoleRef, { active: true });
             
-            if (imageFile) {
-                uploadAndSaveUrl(imageFile, teacherRef);
-            } else {
-                toast({ title: "সফল", description: `${formData.name} কে শিক্ষক হিসেবে যোগ করা হয়েছে।` });
-            }
+            toast({ title: "সফল", description: `${formData.name} কে শিক্ষক হিসেবে যোগ করা হয়েছে।` });
             handleCloseDialog();
         } catch (error: any) {
-            console.error("Error creating teacher:", error);
-            let errorMessage = 'শিক্ষক তৈরিতে একটি ত্রুটি হয়েছে।';
-            if (error.code === 'auth/email-already-in-use') {
-                errorMessage = 'এই ইমেইলটি ইতিমধ্যে ব্যবহার করা হয়েছে।';
-            } else if (error.code === 'auth/weak-password') {
-                errorMessage = 'পাসওয়ার্ডটি যথেষ্ট শক্তিশালী নয়। কমপক্ষে ৬টি অক্ষর থাকতে হবে।';
+            let errorMessage;
+            switch (error.code) {
+                case 'auth/email-already-in-use':
+                    errorMessage = 'এই ইমেইল ঠিকানাটি দিয়ে ইতিমধ্যে একটি একাউন্ট তৈরি করা আছে।';
+                    break;
+                case 'auth/weak-password':
+                    errorMessage = 'পাসওয়ার্ডটি যথেষ্ট শক্তিশালী নয়। কমপক্ষে ৬টি অক্ষর ব্যবহার করুন।';
+                    break;
+                case 'auth/invalid-email':
+                    errorMessage = 'আপনার দেওয়া ইমেইল ঠিকানাটি সঠিক নয়।';
+                    break;
+                default:
+                    errorMessage = 'একটি অপ্রত্যাশিত ত্রুটি ঘটেছে। অনুগ্রহ করে আবার চেষ্টা করুন।';
+                    break;
             }
-            toast({ variant: "destructive", title: "ত্রুটি", description: errorMessage });
+            toast({ 
+                variant: "destructive", 
+                title: "ত্রুটি", 
+                description: errorMessage 
+            });
         } finally {
             setIsSaving(false);
         }
