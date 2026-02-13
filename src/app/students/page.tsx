@@ -298,11 +298,11 @@ function StudentsPage() {
                   {/* Form Inputs */}
                   <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="name" className="text-right">নাম</Label>
-                    <Input id="name" value={formData.name} onChange={handleInputChange} placeholder="শিক্ষার্থীর নাম" className="col-span-3" disabled={isSaving} />
+                    <Input id="name" value={formData.name || ''} onChange={handleInputChange} placeholder="শিক্ষার্থীর নাম" className="col-span-3" disabled={isSaving} />
                   </div>
                    <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="rollNumber" className="text-right">রোল</Label>
-                    <Input id="rollNumber" value={formData.rollNumber} onChange={handleInputChange} placeholder="রোল নম্বর" className="col-span-3" disabled={isSaving} />
+                    <Input id="rollNumber" value={formData.rollNumber || ''} onChange={handleInputChange} placeholder="রোল নম্বর" className="col-span-3" disabled={isSaving} />
                   </div>
                   <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="classGrade" className="text-right">শ্রেণি</Label>
@@ -317,15 +317,15 @@ function StudentsPage() {
                   </div>
                   <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="fatherName" className="text-right">পিতার নাম</Label>
-                    <Input id="fatherName" value={formData.fatherName} onChange={handleInputChange} placeholder="পিতার নাম" className="col-span-3" disabled={isSaving} />
+                    <Input id="fatherName" value={formData.fatherName || ''} onChange={handleInputChange} placeholder="পিতার নাম" className="col-span-3" disabled={isSaving} />
                   </div>
                   <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="mobileNumber" className="text-right">মোবাইল</Label>
-                    <Input id="mobileNumber" value={formData.mobileNumber} onChange={handleInputChange} placeholder="মোবাইল নম্বর" className="col-span-3" disabled={isSaving} />
+                    <Input id="mobileNumber" value={formData.mobileNumber || ''} onChange={handleInputChange} placeholder="মোবাইল নম্বর" className="col-span-3" disabled={isSaving} />
                   </div>
                   <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="monthlyFee" className="text-right">মাসিক বেতন</Label>
-                    <Input id="monthlyFee" type="number" value={formData.monthlyFee} onChange={handleInputChange} placeholder="মাসিক বেতন" className="col-span-3" disabled={isSaving} />
+                    <Input id="monthlyFee" type="number" value={formData.monthlyFee || ''} onChange={handleInputChange} placeholder="মাসিক বেতন" className="col-span-3" disabled={isSaving} />
                   </div>
                   <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="picture" className="text-right">ছবি</Label>

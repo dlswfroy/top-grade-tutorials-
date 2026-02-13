@@ -268,15 +268,15 @@ function TeachersPage() {
                   {/* Form Inputs */}
                   <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="name" className="text-right">নাম</Label>
-                    <Input id="name" value={formData.name} onChange={handleInputChange} placeholder="শিক্ষকের নাম" className="col-span-3" disabled={isSaving} />
+                    <Input id="name" value={formData.name || ''} onChange={handleInputChange} placeholder="শিক্ষকের নাম" className="col-span-3" disabled={isSaving} />
                   </div>
                    <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="subject" className="text-right">বিষয়</Label>
-                    <Input id="subject" value={formData.subject} onChange={handleInputChange} placeholder="বিষয়" className="col-span-3" disabled={isSaving} />
+                    <Input id="subject" value={formData.subject || ''} onChange={handleInputChange} placeholder="বিষয়" className="col-span-3" disabled={isSaving} />
                   </div>
                   <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="mobileNumber" className="text-right">মোবাইল</Label>
-                    <Input id="mobileNumber" value={formData.mobileNumber} onChange={handleInputChange} placeholder="মোবাইল নম্বর" className="col-span-3" disabled={isSaving} />
+                    <Input id="mobileNumber" value={formData.mobileNumber || ''} onChange={handleInputChange} placeholder="মোবাইল নম্বর" className="col-span-3" disabled={isSaving} />
                   </div>
                   <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="email" className="text-right">ইমেইল</Label>
@@ -333,7 +333,7 @@ function TeachersPage() {
                         <TableCell className="font-medium">{teacher.name}</TableCell>
                         <TableCell>{teacher.subject}</TableCell>
                         <TableCell>{teacher.mobileNumber}</TableCell>
-                        <TableCell>{teacher.email}</TableCell>
+                        <TableCell>{teacher.email || 'N/A'}</TableCell>
                         <TableCell className="text-center">
                             <DropdownMenu>
                             <DropdownMenuTrigger asChild>
