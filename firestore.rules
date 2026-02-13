@@ -21,9 +21,11 @@ service cloud.firestore {
 
     // user_roles collection
     match /user_roles/{userId} {
-      // Allow any authenticated user to read roles. This is needed for the app to
-      // determine user permissions and for an admin to manage roles on the settings page.
-      allow read: if isAuth();
+      // Allow a user to read their own role document.
+      allow get: if isOwner(userId);
+      
+      // Allow admins to list all users on the settings page.
+      allow list: if isAdmin();
       
       // Only admins can update roles.
       allow update: if isAdmin();
