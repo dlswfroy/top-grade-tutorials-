@@ -19,7 +19,7 @@ import {
   updateProfile,
   signOut,
 } from 'firebase/auth';
-import { collection, doc, setDoc, runTransaction, getDoc } from 'firebase/firestore';
+import { collection, doc, setDoc, runTransaction, getDoc, query, where, getDocs } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -49,13 +49,32 @@ export default function LoginPage() {
     }
     setIsLoading(true);
     try {
+        const adminMarkerRef = doc(firestore, 'user_roles_by_role', 'admin');
+        const adminMarkerSnap = await getDoc(adminMarkerRef);
+        const isFirstUser = !adminMarkerSnap.exists();
+
+        if (!isFirstUser) {
+            const teachersRef = collection(firestore, 'teachers');
+            const q = query(teachersRef, where('email', '==', email));
+            const querySnapshot = await getDocs(q);
+            if (querySnapshot.empty) {
+                toast({
+                    variant: 'destructive',
+                    title: 'সাইন আপ ব্যর্থ হয়েছে',
+                    description: 'এই ইমেইলটি শিক্ষক হিসেবে নিবন্ধন করা নেই। প্রথমে এডমিনের সাথে যোগাযোগ করে শিক্ষক হিসেবে নিবন্ধন সম্পন্ন করুন, তারপর সাইন আপ করুন।',
+                    duration: 5000,
+                });
+                setIsLoading(false);
+                return;
+            }
+        }
+
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         const user = userCredential.user;
         
         await updateProfile(user, { displayName: name });
         
         const userRoleRef = doc(firestore, 'user_roles', user.uid);
-        const adminMarkerRef = doc(firestore, 'user_roles_by_role', 'admin');
 
         await runTransaction(firestore, async (transaction) => {
             const adminMarkerDoc = await transaction.get(adminMarkerRef);
@@ -192,7 +211,7 @@ export default function LoginPage() {
             <CardHeader>
               <CardTitle className="text-gray-800 dark:text-gray-200">নতুন একাউন্ট তৈরি করুন</CardTitle>
               <CardDescription className="text-gray-600 dark:text-gray-400">
-                প্রথম ব্যবহারকারী স্বয়ংক্রিয়ভাবে 'এডমিন' হবেন।
+                শুধুমাত্র নিবন্ধিত শিক্ষকরাই সাইন আপ করতে পারবেন। প্রথম ব্যবহারকারী স্বয়ংক্রিয়ভাবে 'এডমিন' হবেন।
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
