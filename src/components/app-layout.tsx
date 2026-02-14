@@ -57,12 +57,12 @@ function Logo({ settings, isLoading }: { settings: InstitutionSettings | null, i
             {isLoading ? (
                 <Loader2 className="h-10 w-10 animate-spin text-white" />
             ) : (
-                <Avatar className="h-10 w-10 border-2 border-white/50">
-                    <AvatarImage src={logoUrl} alt={institutionName} className="object-cover" />
+                <Avatar className="h-12 w-12 border-2 border-white/50 bg-white">
+                    <AvatarImage src={logoUrl} alt={institutionName} className="object-contain" />
                     <AvatarFallback>{institutionName.slice(0, 2)}</AvatarFallback>
                 </Avatar>
             )}
-            <h1 className="text-xl font-headline font-bold text-white whitespace-nowrap">{institutionName}</h1>
+            <h1 className="text-2xl font-headline font-bold text-yellow-300 [text-shadow:1px_1px_3px_rgba(160,82,45,0.7)] whitespace-nowrap">{institutionName}</h1>
         </Link>
     );
 }
@@ -143,17 +143,67 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
       <div className="min-h-screen flex flex-col bg-muted/40">
-          <header className="sticky top-0 z-40 w-full bg-red-800 dark:bg-red-900 text-white shadow-lg">
-              <div className="container mx-auto flex h-20 items-center justify-between relative">
-                  <div className="flex items-center">
+          <header className="sticky top-0 z-40 w-full bg-[#1C77CC] text-white shadow-lg">
+              <div className="flex h-16 items-center justify-between px-4">
+                  <div className="flex items-center gap-6">
+                    <Logo settings={settings} isLoading={isLoadingSettings} />
+                  </div>
+                  
+                  <nav className="hidden md:flex items-center space-x-2">
+                        {visibleMenuItems.map((item) => (
+                            <Link
+                                key={item.href}
+                                href={item.href}
+                                className={cn(
+                                    "flex items-center justify-center rounded-md px-3 py-1.5 text-sm font-semibold transition-colors border-2",
+                                    pathname === item.href 
+                                        ? "border-yellow-400 bg-black/20" 
+                                        : "border-transparent hover:bg-white/20"
+                                )}
+                            >
+                                <span>{item.label}</span>
+                            </Link>
+                        ))}
+                    </nav>
+
+                  <div className="flex items-center justify-end gap-4">
+                    {user ? (
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" className="relative h-11 w-11 rounded-full p-0 ring-2 ring-offset-2 ring-yellow-400 ring-offset-[#1C77CC] focus-visible:ring-white">
+                                    <Avatar className="h-11 w-11">
+                                        <AvatarImage src={userRole?.imageUrl || user.photoURL || `https://i.pravatar.cc/150?u=${user.uid}`} alt={user.displayName || 'User'} />
+                                        <AvatarFallback>{user.displayName?.charAt(0) || user.email?.charAt(0)}</AvatarFallback>
+                                    </Avatar>
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent className="w-56" align="end" forceMount>
+                                <DropdownMenuLabel className="font-normal">
+                                    <div className="flex flex-col space-y-1">
+                                        <p className="text-sm font-medium leading-none">{user.displayName}</p>
+                                        <p className="text-xs leading-none text-muted-foreground">{user.email}</p>
+                                    </div>
+                                </DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem onClick={handleLogout}>
+                                    <LogOut className="mr-2 h-4 w-4" />
+                                    <span>লগ আউট</span>
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    ) : (
+                        <Button asChild variant="secondary">
+                            <Link href="/login">লগইন করুন</Link>
+                        </Button>
+                    )}
                     <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
                         <SheetTrigger asChild>
-                            <Button variant="ghost" size="icon" className="hover:bg-white/10 focus:bg-white/10 md:hidden mr-2">
+                            <Button variant="ghost" size="icon" className="hover:bg-white/10 focus:bg-white/10 md:hidden">
                                 <Menu className="h-6 w-6" />
                                 <span className="sr-only">Open Menu</span>
                             </Button>
                         </SheetTrigger>
-                        <SheetContent side="left" className="w-[300px] bg-red-800 dark:bg-red-900 text-white border-r-0 p-0">
+                        <SheetContent side="left" className="w-[300px] bg-[#1C77CC] text-white border-r-0 p-0">
                             <div className="p-4 border-b border-white/20">
                                 <Logo settings={settings} isLoading={isLoadingSettings} />
                             </div>
@@ -176,58 +226,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                             </nav>
                         </SheetContent>
                     </Sheet>
-                    <nav className="hidden md:flex items-center space-x-1">
-                        {visibleMenuItems.map((item) => (
-                            <Link
-                                key={item.href}
-                                href={item.href}
-                                className={cn(
-                                    "flex flex-col h-16 w-20 items-center justify-center rounded-md px-2 py-1.5 text-xs font-semibold transition-colors hover:bg-white/20",
-                                    pathname === item.href && "bg-white/10"
-                                )}
-                            >
-                                <item.icon className="h-6 w-6 mb-1" />
-                                <span>{item.label}</span>
-                            </Link>
-                        ))}
-                    </nav>
-                  </div>
-                  
-                  <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 hidden md:flex">
-                     <Logo settings={settings} isLoading={isLoadingSettings} />
-                  </div>
-
-                  <div className="flex items-center justify-end">
-                    {user ? (
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" className="flex items-center gap-2 p-1 h-auto rounded-full hover:bg-white/20 focus-visible:ring-white">
-                                    <Avatar className="h-10 w-10">
-                                        <AvatarImage src={userRole?.imageUrl || user.photoURL || `https://i.pravatar.cc/150?u=${user.uid}`} alt={user.displayName || 'User'} />
-                                        <AvatarFallback>{user.displayName?.charAt(0) || user.email?.charAt(0)}</AvatarFallback>
-                                    </Avatar>
-                                    <span className="hidden md:inline font-semibold">{user.displayName}</span>
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent className="w-56" align="end" forceMount>
-                                <DropdownMenuLabel className="font-normal">
-                                    <div className="flex flex-col space-y-1">
-                                        <p className="text-sm font-medium leading-none">{user.displayName}</p>
-                                        <p className="text-xs leading-none text-muted-foreground">{user.email}</p>
-                                    </div>
-                                </DropdownMenuLabel>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem onClick={handleLogout}>
-                                    <LogOut className="mr-2 h-4 w-4" />
-                                    <span>লগ আউট</span>
-                                </DropdownMenuItem>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-                    ) : (
-                        <Button asChild variant="secondary">
-                            <Link href="/login">লগইন করুন</Link>
-                        </Button>
-                    )}
                   </div>
               </div>
           </header>
