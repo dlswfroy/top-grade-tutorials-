@@ -41,7 +41,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase, errorEmitter, FirestorePermissionError } from '@/firebase';
 import { collection, doc, addDoc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 
@@ -160,7 +160,7 @@ function StudentsPage() {
     setFormData(prev => ({ ...prev, classGrade: value }));
   };
   
-  const handleSaveStudent = async () => {
+  const handleSaveStudent = () => {
     if (!firestore) return;
 
     if (!formData.name || !formData.classGrade || !formData.rollNumber) {
@@ -174,52 +174,67 @@ function StudentsPage() {
 
     setIsSaving(true);
 
-    try {
-        const studentData = {
-            name: formData.name,
-            classGrade: formData.classGrade,
-            rollNumber: formData.rollNumber,
-            fatherName: formData.fatherName,
-            mobileNumber: formData.mobileNumber,
-            monthlyFee: Number(formData.monthlyFee) || 0,
-            imageUrl: formData.imageUrl,
-            imageHint: formData.imageHint || 'student person',
-        };
+    const studentData = {
+        name: formData.name,
+        classGrade: formData.classGrade,
+        rollNumber: formData.rollNumber,
+        fatherName: formData.fatherName,
+        mobileNumber: formData.mobileNumber,
+        monthlyFee: Number(formData.monthlyFee) || 0,
+        imageUrl: formData.imageUrl,
+        imageHint: formData.imageHint || 'student person',
+    };
 
-        if (editingStudent) {
-            await updateDoc(doc(firestore, 'students', editingStudent.id), studentData);
-            toast({ title: "সফল", description: `${formData.name}-এর তথ্য আপডেট করা হয়েছে।` });
-        } else {
-            await addDoc(collection(firestore, 'students'), { 
-                ...studentData,
-                dateAdded: new Date().toISOString()
+    if (editingStudent) {
+        const studentRef = doc(firestore, 'students', editingStudent.id);
+        updateDoc(studentRef, studentData)
+            .then(() => {
+                toast({ title: "সফল", description: `${formData.name}-এর তথ্য আপডেট করা হয়েছে।` });
+                handleCloseDialog();
+            })
+            .catch(() => {
+                errorEmitter.emit('permission-error', new FirestorePermissionError({
+                    path: studentRef.path,
+                    operation: 'update',
+                    requestResourceData: studentData,
+                }));
+            })
+            .finally(() => {
+                setIsSaving(false);
             });
-            toast({ title: "সফল", description: `${formData.name} কে শিক্ষার্থী হিসেবে যোগ করা হয়েছে।` });
-        }
-        
-        handleCloseDialog();
-
-    } catch (error: any) {
-        console.error("Error saving student:", error);
-        toast({
-            variant: "destructive",
-            title: "ত্রুটি",
-            description: `শিক্ষার্থীর তথ্য সেভ করতে সমস্যা হয়েছে: ${error.message}`,
-        });
-    } finally {
-        setIsSaving(false);
+    } else {
+        const studentRef = collection(firestore, 'students');
+        addDoc(studentRef, { ...studentData, dateAdded: new Date().toISOString() })
+            .then(() => {
+                toast({ title: "সফল", description: `${formData.name} কে শিক্ষার্থী হিসেবে যোগ করা হয়েছে।` });
+                handleCloseDialog();
+            })
+            .catch(() => {
+                errorEmitter.emit('permission-error', new FirestorePermissionError({
+                    path: studentRef.path,
+                    operation: 'create',
+                    requestResourceData: studentData,
+                }));
+            })
+            .finally(() => {
+                setIsSaving(false);
+            });
     }
   };
 
-  const handleDeleteStudent = async (studentId: string, studentName: string) => {
+  const handleDeleteStudent = (studentId: string, studentName: string) => {
     if (!firestore) return;
-    try {
-        await deleteDoc(doc(firestore, 'students', studentId));
-        toast({ title: "সফল", description: `${studentName} কে তালিকা থেকে মুছে ফেলা হয়েছে।` });
-    } catch(error: any) {
-        console.error("Error deleting student:", error);
-        toast({ variant: "destructive", title: "ত্রুটি", description: `শিক্ষার্থীকে মুছে ফেলতে সমস্যা হয়েছে: ${error.message}` });
-    }
+    const studentRef = doc(firestore, 'students', studentId);
+    deleteDoc(studentRef)
+        .then(() => {
+            toast({ title: "সফল", description: `${studentName} কে তালিকা থেকে মুছে ফেলা হয়েছে।` });
+        })
+        .catch(() => {
+            errorEmitter.emit('permission-error', new FirestorePermissionError({
+                path: studentRef.path,
+                operation: 'delete',
+            }));
+        });
   };
 
   const handleOpenDialog = (student: Student | null) => {
@@ -418,5 +433,3 @@ function StudentsPage() {
 }
 
 export default StudentsPage;
-
-    

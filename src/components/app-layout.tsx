@@ -125,8 +125,12 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     if (userRole.role === 'admin') {
       return menuItems;
     }
-    if (userRole.role === 'teacher' && userRole.permissions) {
-      return menuItems.filter(item => userRole.permissions![item.key]);
+    if (userRole.role === 'teacher') {
+      if (userRole.permissions) {
+        return menuItems.filter(item => userRole.permissions![item.key]);
+      }
+      // Default permissions for teacher if not set
+      return menuItems.filter(item => item.key !== 'settings');
     }
     return [];
   }, [userRole]);

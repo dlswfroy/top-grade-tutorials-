@@ -21,7 +21,7 @@ import { Label } from '@/components/ui/label';
 import { classNames, type Student, type Payment, type Expense, type Teacher } from '@/lib/data';
 import { Search, Printer, Loader2, DollarSign, Save, PlusCircle, TrendingDown, ChevronsRight, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
+import { useFirestore, useCollection, useDoc, useMemoFirebase, errorEmitter, FirestorePermissionError } from '@/firebase';
 import { collection, where, query, getDocs, doc, addDoc, setDoc, writeBatch, updateDoc, deleteDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { format, isToday, isThisMonth, isThisYear, parseISO } from 'date-fns';
@@ -318,41 +318,42 @@ function PaymentRecord({ student }: { student: Student }) {
         setIsPayDialogOpen(true);
     };
 
-    const handleCollectPayment = async () => {
+    const handleCollectPayment = () => {
         if (!firestore || !selectedMonth || !paymentAmount || !collectorName) {
             toast({ variant: 'destructive', title: 'ত্রুটি', description: 'অনুগ্রহ করে সকল তথ্য পূরণ করুন।' });
             return;
         }
         
         setIsSaving(true);
-        try {
-            const paymentData: Omit<Payment, 'id'> = {
-                studentId: student.id,
-                collectorName: collectorName,
-                amount: Number(paymentAmount),
-                paymentMonth: selectedMonth,
-                paymentDate: new Date().toISOString(),
-                receiptNumber: `RCPT-${Date.now()}`
-            };
-    
-            const docRef = await addDoc(collection(firestore, 'payments'), paymentData);
-            toast({ title: 'সফল', description: 'বেতন সফলভাবে আদায় করা হয়েছে।' });
-            setIsPayDialogOpen(false);
-            
-            const newPayment: Payment = { id: docRef.id, ...paymentData };
-            setLastPayment(newPayment);
-            setIsReceiptOpen(true);
+        const paymentData: Omit<Payment, 'id'> = {
+            studentId: student.id,
+            collectorName: collectorName,
+            amount: Number(paymentAmount),
+            paymentMonth: selectedMonth,
+            paymentDate: new Date().toISOString(),
+            receiptNumber: `RCPT-${Date.now()}`
+        };
 
-        } catch (error: any) {
-            console.error("Error collecting payment:", error);
-            toast({
-                variant: 'destructive',
-                title: 'ত্রুটি',
-                description: `বেতন আদায় করতে সমস্যা হয়েছে: ${error.message}`,
+        const paymentsCollection = collection(firestore, 'payments');
+        addDoc(paymentsCollection, paymentData)
+            .then((docRef) => {
+                toast({ title: 'সফল', description: 'বেতন সফলভাবে আদায় করা হয়েছে।' });
+                setIsPayDialogOpen(false);
+                
+                const newPayment: Payment = { id: docRef.id, ...paymentData };
+                setLastPayment(newPayment);
+                setIsReceiptOpen(true);
+            })
+            .catch(() => {
+                errorEmitter.emit('permission-error', new FirestorePermissionError({
+                    path: paymentsCollection.path,
+                    operation: 'create',
+                    requestResourceData: paymentData,
+                }));
+            })
+            .finally(() => {
+                setIsSaving(false);
             });
-        } finally {
-            setIsSaving(false);
-        }
     };
 
     const handlePrint = () => {
@@ -600,37 +601,51 @@ function PaymentList() {
         setEditingPayment(null);
     };
 
-    const handleUpdatePayment = async () => {
+    const handleUpdatePayment = () => {
         if (!firestore || !editingPayment || !editAmount || !editPaymentDate || !editCollectorName) {
             toast({ variant: 'destructive', title: 'ত্রুটি', description: 'অনুগ্রহ করে সকল তথ্য পূরণ করুন।' });
             return;
         }
 
         setIsSaving(true);
-        try {
-            const paymentRef = doc(firestore, 'payments', editingPayment.id);
-            await updateDoc(paymentRef, {
-                amount: Number(editAmount),
-                paymentDate: editPaymentDate.toISOString(),
-                collectorName: editCollectorName,
+        const paymentRef = doc(firestore, 'payments', editingPayment.id);
+        const updatedData = {
+            amount: Number(editAmount),
+            paymentDate: editPaymentDate.toISOString(),
+            collectorName: editCollectorName,
+        };
+
+        updateDoc(paymentRef, updatedData)
+            .then(() => {
+                toast({ title: 'সফল', description: 'পেমেন্টের তথ্য আপডেট করা হয়েছে।' });
+                handleCloseEditDialog();
+            })
+            .catch(() => {
+                errorEmitter.emit('permission-error', new FirestorePermissionError({
+                    path: paymentRef.path,
+                    operation: 'update',
+                    requestResourceData: updatedData,
+                }));
+            })
+            .finally(() => {
+                setIsSaving(false);
             });
-            toast({ title: 'সফল', description: 'পেমেন্টের তথ্য আপডেট করা হয়েছে।' });
-            handleCloseEditDialog();
-        } catch (error: any) {
-            toast({ variant: 'destructive', title: 'ত্রুটি', description: `আপডেট করতে সমস্যা হয়েছে: ${error.message}` });
-        } finally {
-            setIsSaving(false);
-        }
     };
     
-    const handleDeletePayment = async (paymentId: string) => {
+    const handleDeletePayment = (paymentId: string) => {
         if (!firestore) return;
-        try {
-            await deleteDoc(doc(firestore, 'payments', paymentId));
-            toast({ title: 'সফল', description: 'পেমেন্ট মুছে ফেলা হয়েছে।' });
-        } catch (error: any) {
-            toast({ variant: 'destructive', title: 'ত্রুটি', description: `মুছে ফেলতে সমস্যা হয়েছে: ${error.message}` });
-        }
+        
+        const paymentRef = doc(firestore, 'payments', paymentId);
+        deleteDoc(paymentRef)
+            .then(() => {
+                toast({ title: 'সফল', description: 'পেমেন্ট মুছে ফেলা হয়েছে।' });
+            })
+            .catch(() => {
+                errorEmitter.emit('permission-error', new FirestorePermissionError({
+                    path: paymentRef.path,
+                    operation: 'delete',
+                }));
+            });
     };
 
     return (
@@ -798,40 +813,54 @@ function Expenses() {
     }, [firestore]);
     const { data: expenses, isLoading: isLoadingExpenses } = useCollection<Expense>(expensesQuery);
 
-    const handleSaveExpense = async () => {
+    const handleSaveExpense = () => {
         if (!firestore || !description || !amount || !expenseDate || !spentByName) {
             toast({ variant: 'destructive', title: 'ত্রুটি', description: 'অনুগ্রহ করে সকল তথ্য পূরণ করুন।' });
             return;
         }
         setIsSaving(true);
-        try {
-            await addDoc(collection(firestore, 'expenses'), {
-                description,
-                amount: Number(amount),
-                expenseDate: expenseDate.toISOString(),
-                spentByName: spentByName,
+        
+        const expenseData = {
+            description,
+            amount: Number(amount),
+            expenseDate: expenseDate.toISOString(),
+            spentByName: spentByName,
+        };
+        const expensesCollection = collection(firestore, 'expenses');
+        addDoc(expensesCollection, expenseData)
+            .then(() => {
+                toast({ title: 'সফল', description: 'খরচ সফলভাবে যোগ করা হয়েছে।' });
+                setIsDialogOpen(false);
+                setDescription('');
+                setAmount('');
+                setSpentByName('');
+                setExpenseDate(new Date());
+            })
+            .catch(() => {
+                errorEmitter.emit('permission-error', new FirestorePermissionError({
+                    path: expensesCollection.path,
+                    operation: 'create',
+                    requestResourceData: expenseData,
+                }));
+            })
+            .finally(() => {
+                setIsSaving(false);
             });
-            toast({ title: 'সফল', description: 'খরচ সফলভাবে যোগ করা হয়েছে।' });
-            setIsDialogOpen(false);
-            setDescription('');
-            setAmount('');
-            setSpentByName('');
-            setExpenseDate(new Date());
-        } catch (error: any) {
-            toast({ variant: 'destructive', title: 'ত্রুটি', description: `খরচ যোগ করতে সমস্যা হয়েছে: ${error.message}` });
-        } finally {
-            setIsSaving(false);
-        }
     }
     
-    const handleDeleteExpense = async (expenseId: string) => {
+    const handleDeleteExpense = (expenseId: string) => {
         if (!firestore) return;
-        try {
-            await deleteDoc(doc(firestore, 'expenses', expenseId));
-            toast({ title: 'সফল', description: 'খরচ মুছে ফেলা হয়েছে।' });
-        } catch (error: any) {
-            toast({ variant: 'destructive', title: 'ত্রুটি', description: `খরচ মুছে ফেলতে সমস্যা হয়েছে: ${error.message}` });
-        }
+        const expenseRef = doc(firestore, 'expenses', expenseId);
+        deleteDoc(expenseRef)
+            .then(() => {
+                toast({ title: 'সফল', description: 'খরচ মুছে ফেলা হয়েছে।' });
+            })
+            .catch(() => {
+                errorEmitter.emit('permission-error', new FirestorePermissionError({
+                    path: expenseRef.path,
+                    operation: 'delete',
+                }));
+            });
     };
 
 

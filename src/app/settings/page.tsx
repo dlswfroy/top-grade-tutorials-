@@ -13,7 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Save, Loader2, User as UserIcon, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
-import { useFirestore, useDoc, useMemoFirebase, useAuth, useCollection } from '@/firebase';
+import { useFirestore, useDoc, useMemoFirebase, useAuth, useCollection, errorEmitter, FirestorePermissionError } from '@/firebase';
 import { doc, setDoc, updateDoc, collection, deleteDoc, query, where, getDocs } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { onAuthStateChanged, updateProfile, type User } from 'firebase/auth';
@@ -136,20 +136,29 @@ function ManagePermissionsDialog({ user, isOpen, onOpenChange, onSaveSuccess }: 
         setPermissions(prev => ({ ...prev, [permissionId]: checked }));
     };
 
-    const handleSave = async () => {
-        if (!firestore) return;
+    const handleSave = () => {
+        if (!firestore || !user) return;
         setIsSaving(true);
-        try {
-            const userRoleRef = doc(firestore, 'user_roles', user.id);
-            await updateDoc(userRoleRef, { permissions });
-            toast({ title: 'সফল', description: `${user.name}-এর পারমিশন আপডেট করা হয়েছে।` });
-            onSaveSuccess();
-            onOpenChange(false);
-        } catch (error: any) {
-            toast({ variant: 'destructive', title: 'ত্রুটি', description: `পারমিশন আপডেট করতে সমস্যা হয়েছে: ${error.message}` });
-        } finally {
-            setIsSaving(false);
-        }
+        
+        const userRoleRef = doc(firestore, 'user_roles', user.id);
+        const updatedPermissions = { permissions };
+        
+        updateDoc(userRoleRef, updatedPermissions)
+            .then(() => {
+                toast({ title: 'সফল', description: `${user.name}-এর পারমিশন আপডেট করা হয়েছে।` });
+                onSaveSuccess();
+                onOpenChange(false);
+            })
+            .catch(() => {
+                errorEmitter.emit('permission-error', new FirestorePermissionError({
+                    path: userRoleRef.path,
+                    operation: 'update',
+                    requestResourceData: updatedPermissions,
+                }));
+            })
+            .finally(() => {
+                setIsSaving(false);
+            });
     };
     
     return (
@@ -211,43 +220,49 @@ function UserManagementCard() {
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
     
-    const handleRoleChange = async (userId: string, newRole: 'admin' | 'teacher') => {
+    const handleRoleChange = (userId: string, newRole: 'admin' | 'teacher') => {
         if (!firestore) return;
 
         setIsSavingRole(prev => ({ ...prev, [userId]: true }));
-        try {
-            const userRoleRef = doc(firestore, 'user_roles', userId);
-            await updateDoc(userRoleRef, { role: newRole });
-            toast({ title: 'সফল', description: 'ব্যবহারকারীর ভূমিকা আপডেট করা হয়েছে।' });
-        } catch (error: any) {
-            toast({
-                variant: "destructive",
-                title: "ত্রুটি",
-                description: `ভূমিকা আপডেট করতে সমস্যা হয়েছে: ${error.message}`,
+        const userRoleRef = doc(firestore, 'user_roles', userId);
+        const updatedRole = { role: newRole };
+        
+        updateDoc(userRoleRef, updatedRole)
+            .then(() => {
+                toast({ title: 'সফল', description: 'ব্যবহারকারীর ভূমিকা আপডেট করা হয়েছে।' });
+            })
+            .catch(() => {
+                errorEmitter.emit('permission-error', new FirestorePermissionError({
+                    path: userRoleRef.path,
+                    operation: 'update',
+                    requestResourceData: updatedRole,
+                }));
+            })
+            .finally(() => {
+                setIsSavingRole(prev => ({ ...prev, [userId]: false }));
             });
-        } finally {
-            setIsSavingRole(prev => ({ ...prev, [userId]: false }));
-        }
     };
     
-    const handleDeleteUser = async () => {
+    const handleDeleteUser = () => {
         if (!firestore || !userToDelete) return;
         setIsDeleting(true);
-        try {
-            const userRoleRef = doc(firestore, 'user_roles', userToDelete.id);
-            await deleteDoc(userRoleRef);
-            toast({ title: 'সফল', description: `${userToDelete.name}-কে সফলভাবে ডিলিট করা হয়েছে।` });
-            setIsDeleteDialogOpen(false);
-            setUserToDelete(null);
-        } catch (error: any) {
-             toast({
-                variant: "destructive",
-                title: "ত্রুটি",
-                description: `ব্যবহারকারীকে ডিলিট করতে সমস্যা হয়েছে: ${error.message}`,
+        const userRoleRef = doc(firestore, 'user_roles', userToDelete.id);
+        
+        deleteDoc(userRoleRef)
+            .then(() => {
+                toast({ title: 'সফল', description: `${userToDelete.name}-কে সফলভাবে ডিলিট করা হয়েছে।` });
+                setIsDeleteDialogOpen(false);
+                setUserToDelete(null);
+            })
+            .catch(() => {
+                errorEmitter.emit('permission-error', new FirestorePermissionError({
+                    path: userRoleRef.path,
+                    operation: 'delete',
+                }));
+            })
+            .finally(() => {
+                setIsDeleting(false);
             });
-        } finally {
-            setIsDeleting(false);
-        }
     };
 
     if (isLoadingUserRoles) {
@@ -459,30 +474,42 @@ function UserProfileCard() {
     const handleSave = async () => {
         if (!user || !userRoleRef) return;
         setIsSaving(true);
+    
         try {
             await updateProfile(user, { displayName: name });
-            
+    
             const userData: Partial<UserRole> = {
                 name: name,
                 email: user.email!,
             };
-
+    
             if (imagePreview) {
                 userData.imageUrl = imagePreview;
                 userData.imageHint = 'person face';
             }
-
-            await setDoc(userRoleRef, userData, { merge: true });
-
-            await user.getIdToken(true);
-            toast({ title: 'সফল', description: 'আপনার প্রোফাইল সফলভাবে আপডেট করা হয়েছে।' });
+    
+            setDoc(userRoleRef, userData, { merge: true })
+                .then(async () => {
+                    await user.getIdToken(true);
+                    toast({ title: 'সফল', description: 'আপনার প্রোফাইল সফলভাবে আপডেট করা হয়েছে।' });
+                })
+                .catch(() => {
+                    errorEmitter.emit('permission-error', new FirestorePermissionError({
+                        path: userRoleRef.path,
+                        operation: 'update',
+                        requestResourceData: userData,
+                    }));
+                })
+                .finally(() => {
+                    setIsSaving(false);
+                });
+    
         } catch (error: any) {
             toast({
                 variant: "destructive",
                 title: "ত্রুটি",
                 description: `প্রোফাইল আপডেট করতে সমস্যা হয়েছে: ${error.message}`,
             });
-        } finally {
             setIsSaving(false);
         }
     };
@@ -538,13 +565,15 @@ function UserProfileCard() {
 }
 
 
-function InstitutionSettingsCard() {
+function InstitutionSettingsCard({ userRole, isLoadingUserRole }: { userRole: UserRole | null | undefined, isLoadingUserRole: boolean }) {
     const firestore = useFirestore();
     const { toast } = useToast();
     const [institutionName, setInstitutionName] = useState('টপ গ্রেড টিউটোরিয়ালস');
     const [logoUrl, setLogoUrl] = useState<string | null>(null);
     const [isSaving, setIsSaving] = useState(false);
     const [isCompressing, setIsCompressing] = useState(false);
+
+    const isAdmin = userRole?.role === 'admin';
   
     const settingsRef = useMemoFirebase(() => {
         if (!firestore) return null;
@@ -585,32 +614,34 @@ function InstitutionSettingsCard() {
         }
     };
 
-    const handleSave = async () => {
-        if (!settingsRef) return;
+    const handleSave = () => {
+        if (!settingsRef || !isAdmin) return;
         setIsSaving(true);
-        try {
-            const settingsData: Partial<InstitutionSettings & {lastUpdated: string}> = {
-                institutionName: institutionName,
-                lastUpdated: new Date().toISOString(),
-                logoUrl: logoUrl,
-            };
-            await setDoc(settingsRef, settingsData, { merge: true });
-            toast({
-                title: 'সফল',
-                description: 'প্রতিষ্ঠানের তথ্য সেভ করা হয়েছে।',
+        const settingsData: Partial<InstitutionSettings & {lastUpdated: string}> = {
+            institutionName: institutionName,
+            lastUpdated: new Date().toISOString(),
+            logoUrl: logoUrl,
+        };
+        setDoc(settingsRef, settingsData, { merge: true })
+            .then(() => {
+                toast({
+                    title: 'সফল',
+                    description: 'প্রতিষ্ঠানের তথ্য সেভ করা হয়েছে।',
+                });
+            })
+            .catch(() => {
+                errorEmitter.emit('permission-error', new FirestorePermissionError({
+                    path: settingsRef.path,
+                    operation: 'write',
+                    requestResourceData: settingsData,
+                }))
+            })
+            .finally(() => {
+                setIsSaving(false);
             });
-        } catch (error: any) {
-            toast({
-                variant: "destructive",
-                title: "ত্রুটি",
-                description: `সেটিংস সেভ করতে সমস্যা হয়েছে: ${error.message}`,
-            });
-        } finally {
-            setIsSaving(false);
-        }
     };
 
-    const isButtonLoading = isSaving || isLoading || isCompressing;
+    const isButtonLoading = isSaving || isLoading || isCompressing || isLoadingUserRole;
     const buttonText = isSaving || isLoading ? 'সেভ হচ্ছে...' : isCompressing ? 'লোগো প্রসেস হচ্ছে...' : 'সেভ করুন';
 
 
@@ -626,7 +657,7 @@ function InstitutionSettingsCard() {
                     id="institution-name"
                     value={institutionName}
                     onChange={(e) => setInstitutionName(e.target.value)}
-                    disabled={isButtonLoading}
+                    disabled={isButtonLoading || !isAdmin}
                 />
                 </div>
                 <div className="space-y-2">
@@ -648,18 +679,20 @@ function InstitutionSettingsCard() {
                         accept="image/*"
                         onChange={handleLogoChange}
                         className="max-w-xs"
-                        disabled={isButtonLoading}
+                        disabled={isButtonLoading || !isAdmin}
                     />
                     </div>
                 </div>
                 </div>
             </CardContent>
-            <CardFooter>
-                <Button onClick={handleSave} disabled={isButtonLoading}>
-                    {isButtonLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                    {buttonText}
-                </Button>
-            </CardFooter>
+            {isAdmin && (
+                <CardFooter>
+                    <Button onClick={handleSave} disabled={isButtonLoading}>
+                        {isButtonLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                        {buttonText}
+                    </Button>
+                </CardFooter>
+            )}
         </Card>
     )
 }
@@ -693,7 +726,7 @@ function SettingsPage() {
                 <h1 className="text-3xl font-bold font-headline text-slate-800 dark:text-slate-200">সেটিংস</h1>
             </div>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
-                 <InstitutionSettingsCard />
+                 <InstitutionSettingsCard userRole={userRole} isLoadingUserRole={isLoadingUserRole} />
                  <UserProfileCard />
             </div>
             {isLoading ? (
@@ -719,5 +752,3 @@ export default function SettingsPageContainer() {
         <SettingsPage />
     )
 }
-
-    

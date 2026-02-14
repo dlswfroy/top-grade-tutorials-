@@ -34,7 +34,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase, errorEmitter, FirestorePermissionError } from '@/firebase';
 import { collection, doc, addDoc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 
@@ -145,7 +145,7 @@ function TeachersPage() {
     setFormData(prev => ({ ...prev, [id]: value }));
   };
   
-  const handleSaveTeacher = async () => {
+  const handleSaveTeacher = () => {
     if (!firestore) return;
 
     if (!formData.name || !formData.subject) {
@@ -159,50 +159,69 @@ function TeachersPage() {
 
     setIsSaving(true);
 
-    try {
-        const teacherData = {
-            name: formData.name,
-            subject: formData.subject,
-            mobileNumber: formData.mobileNumber,
-            email: formData.email,
-            imageUrl: formData.imageUrl,
-            imageHint: formData.imageHint || 'teacher person',
-        };
+    const teacherData = {
+        name: formData.name,
+        subject: formData.subject,
+        mobileNumber: formData.mobileNumber,
+        email: formData.email,
+        imageUrl: formData.imageUrl,
+        imageHint: formData.imageHint || 'teacher person',
+    };
 
-        if (editingTeacher) {
-            await updateDoc(doc(firestore, 'teachers', editingTeacher.id), teacherData);
-            toast({ title: "সফল", description: `${formData.name}-এর তথ্য আপডেট করা হয়েছে।` });
-        } else {
-            await addDoc(collection(firestore, 'teachers'), { 
-                ...teacherData,
-                dateAdded: new Date().toISOString()
+    if (editingTeacher) {
+        const teacherRef = doc(firestore, 'teachers', editingTeacher.id);
+        updateDoc(teacherRef, teacherData)
+            .then(() => {
+                toast({ title: "সফল", description: `${formData.name}-এর তথ্য আপডেট করা হয়েছে।` });
+                handleCloseDialog();
+            })
+            .catch(() => {
+                errorEmitter.emit('permission-error', new FirestorePermissionError({
+                    path: teacherRef.path,
+                    operation: 'update',
+                    requestResourceData: teacherData,
+                }));
+            })
+            .finally(() => {
+                setIsSaving(false);
             });
-            toast({ title: "সফল", description: `${formData.name} কে শিক্ষক হিসেবে যোগ করা হয়েছে।` });
-        }
-        
-        handleCloseDialog();
-
-    } catch (error: any) {
-        console.error("Error saving teacher:", error);
-        toast({
-            variant: "destructive",
-            title: "ত্রুটি",
-            description: `শিক্ষকের তথ্য সেভ করতে সমস্যা হয়েছে: ${error.message}`,
-        });
-    } finally {
-        setIsSaving(false);
+    } else {
+        const teachersCollection = collection(firestore, 'teachers');
+        addDoc(teachersCollection, { 
+            ...teacherData,
+            dateAdded: new Date().toISOString()
+        })
+            .then(() => {
+                toast({ title: "সফল", description: `${formData.name} কে শিক্ষক হিসেবে যোগ করা হয়েছে।` });
+                handleCloseDialog();
+            })
+            .catch(() => {
+                errorEmitter.emit('permission-error', new FirestorePermissionError({
+                    path: teachersCollection.path,
+                    operation: 'create',
+                    requestResourceData: teacherData,
+                }));
+            })
+            .finally(() => {
+                setIsSaving(false);
+            });
     }
   };
 
-  const handleDeleteTeacher = async (teacherId: string, teacherName: string) => {
+  const handleDeleteTeacher = (teacherId: string, teacherName: string) => {
     if (!firestore) return;
-    try {
-        await deleteDoc(doc(firestore, 'teachers', teacherId));
-        toast({ title: "সফল", description: `${teacherName} কে তালিকা থেকে মুছে ফেলা হয়েছে।` });
-    } catch(error: any) {
-        console.error("Error deleting teacher:", error);
-        toast({ variant: "destructive", title: "ত্রুটি", description: `শিক্ষককে মুছে ফেলতে সমস্যা হয়েছে: ${error.message}` });
-    }
+
+    const teacherRef = doc(firestore, 'teachers', teacherId);
+    deleteDoc(teacherRef)
+        .then(() => {
+            toast({ title: "সফল", description: `${teacherName} কে তালিকা থেকে মুছে ফেলা হয়েছে।` });
+        })
+        .catch(() => {
+            errorEmitter.emit('permission-error', new FirestorePermissionError({
+                path: teacherRef.path,
+                operation: 'delete',
+            }));
+        });
   };
 
   const handleOpenDialog = (teacher: Teacher | null) => {
@@ -369,5 +388,3 @@ function TeachersPage() {
 }
 
 export default TeachersPage;
-
-    
