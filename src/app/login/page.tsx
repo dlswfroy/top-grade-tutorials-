@@ -1,4 +1,3 @@
-
 'use client';
 import { useState } from 'react';
 import {
@@ -17,9 +16,10 @@ import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   sendPasswordResetEmail,
-  updateProfile
+  updateProfile,
+  signOut,
 } from 'firebase/auth';
-import { collection, doc, setDoc, runTransaction } from 'firebase/firestore';
+import { collection, doc, setDoc, runTransaction, getDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -48,44 +48,33 @@ export default function LoginPage() {
         
         await updateProfile(user, { displayName: name });
         
-        let userRole = 'teacher';
-
         try {
             await runTransaction(firestore, async (transaction) => {
                 const adminMarkerRef = doc(firestore, 'user_roles_by_role', 'admin');
                 const adminMarkerDoc = await transaction.get(adminMarkerRef);
 
                 const userRoleRef = doc(firestore, 'user_roles', user.uid);
+                let userRole = 'teacher';
 
                 if (adminMarkerDoc.exists()) {
-                    // Admin already exists, create this user as a teacher.
                     userRole = 'teacher';
-                    transaction.set(userRoleRef, {
-                        role: 'teacher',
-                        email: user.email,
-                        name: name,
-                    });
                 } else {
-                    // No admin exists, create this user as admin and set the marker.
                     userRole = 'admin';
-                    transaction.set(userRoleRef, {
-                        role: 'admin',
-                        email: user.email,
-                        name: name,
-                    });
                     transaction.set(adminMarkerRef, { exists: true });
                 }
-            });
-            
-             if(userRole === 'admin') {
-                toast({ title: 'সফল', description: 'আপনার এডমিন একাউন্ট সফলভাবে তৈরি হয়েছে।' });
-             } else {
-                toast({ title: 'সফল', description: 'আপনার শিক্ষক একাউন্ট সফলভাবে তৈরি হয়েছে।' });
-             }
+                
+                transaction.set(userRoleRef, {
+                    role: userRole,
+                    email: user.email,
+                    name: name,
+                });
+                
+                toast({ title: 'সফল', description: `আপনার ${userRole === 'admin' ? 'এডমিন' : 'শিক্ষক'} একাউন্ট সফলভাবে তৈরি হয়েছে।` });
 
+            });
         } catch(e) {
             console.error("Transaction to create user role failed: ", e);
-            // If transaction fails, it's safer to not grant admin rights.
+            // Fallback for safety
             await setDoc(doc(firestore, 'user_roles', user.uid), {
                 role: 'teacher',
                 email: user.email,
@@ -98,22 +87,43 @@ export default function LoginPage() {
 
     } catch (error: any) {
         console.error("Signup error", error);
-        toast({ variant: 'destructive', title: 'সাইন আপ করতে সমস্যা হয়েছে', description: error.message });
+        let description = 'একটি অপ্রত্যাশিত ত্রুটি ঘটেছে।';
+        if (error.code === 'auth/email-already-in-use') {
+            description = 'এই ইমেইল দিয়ে ইতিমধ্যে একটি একাউন্ট তৈরি করা আছে।';
+        } else {
+            description = error.message;
+        }
+        toast({ variant: 'destructive', title: 'সাইন আপ করতে সমস্যা হয়েছে', description });
     } finally {
         setIsLoading(false);
     }
   };
 
-  const handleLogin = async () => {
+  const handleLogin = async (role: 'teacher' | 'admin') => {
     if (!email || !password) {
         toast({ variant: 'destructive', title: 'ত্রুটি', description: 'অনুগ্রহ করে ইমেইল এবং পাসওয়ার্ড দিন।' });
         return;
       }
     setIsLoading(true);
     try {
-      await signInWithEmailAndPassword(auth, email, password);
-      toast({ title: 'সফল', description: 'সফলভাবে লগইন করেছেন।' });
-      router.push('/');
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+
+      const userRoleRef = doc(firestore, 'user_roles', user.uid);
+      const userRoleSnap = await getDoc(userRoleRef);
+
+      if (userRoleSnap.exists() && userRoleSnap.data().role === role) {
+        toast({ title: 'সফল', description: 'সফলভাবে লগইন করেছেন।' });
+        router.push('/');
+      } else {
+        await signOut(auth);
+        const expectedRoleText = role === 'admin' ? 'এডমিন' : 'শিক্ষক';
+        toast({ 
+            variant: 'destructive', 
+            title: 'লগইন ব্যর্থ হয়েছে', 
+            description: `আপনি '${expectedRoleText}' হিসেবে লগইন করার চেষ্টা করছেন। আপনার ভূমিকা সঠিক নয়।` 
+        });
+      }
     } catch (error: any) {
         console.error("Login error", error);
         let description = 'একটি অপ্রত্যাশিত ত্রুটি ঘটেছে।';
@@ -122,7 +132,7 @@ export default function LoginPage() {
         } else {
             description = error.message;
         }
-        toast({ variant: 'destructive', title: 'লগইন করতে সমস্যা হয়েছে', description: description });
+        toast({ variant: 'destructive', title: 'লগইন করতে সমস্যা হয়েছে', description });
     } finally {
         setIsLoading(false);
     }
@@ -144,40 +154,48 @@ export default function LoginPage() {
     }
   };
 
+  const LoginForm = ({ role }: { role: 'teacher' | 'admin' }) => (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-gray-800 dark:text-gray-200">{role === 'teacher' ? 'শিক্ষক লগইন' : 'এডমিন লগইন'}</CardTitle>
+        <CardDescription className="text-gray-600 dark:text-gray-400">
+          আপনার একাউন্টে প্রবেশ করতে ইমেইল ও পাসওয়ার্ড দিন।
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor={`${role}-email`} className="text-gray-700 dark:text-gray-300">ইমেইল</Label>
+          <Input id={`${role}-email`} type="email" placeholder="আপনার ইমেইল" value={email} onChange={(e) => setEmail(e.target.value)} required />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor={`${role}-password`} className="text-gray-700 dark:text-gray-300">পাসওয়ার্ড</Label>
+          <Input id={`${role}-password`} type="password" placeholder="আপনার পাসওয়ার্ড" value={password} onChange={(e) => setPassword(e.target.value)} required />
+        </div>
+        <Button onClick={() => handleLogin(role)} disabled={isLoading} className="w-full">
+          {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          লগইন করুন
+        </Button>
+         <Button variant="link" onClick={handlePasswordReset} disabled={isResettingPassword} className="w-full">
+          {isResettingPassword && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          পাসওয়ার্ড ভুলে গেছেন?
+        </Button>
+      </CardContent>
+    </Card>
+  );
+
   return (
     <div className="flex items-center justify-center min-h-screen bg-background">
-      <Tabs defaultValue="login" className="w-[400px]">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="login">লগইন</TabsTrigger>
+      <Tabs defaultValue="teacher-login" className="w-[400px]">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="teacher-login">শিক্ষক লগইন</TabsTrigger>
+          <TabsTrigger value="admin-login">এডমিন লগইন</TabsTrigger>
           <TabsTrigger value="signup">সাইন আপ</TabsTrigger>
         </TabsList>
-        <TabsContent value="login">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-gray-800 dark:text-gray-200">লগইন করুন</CardTitle>
-              <CardDescription className="text-gray-600 dark:text-gray-400">
-                আপনার একাউন্টে প্রবেশ করতে ইমেইল ও পাসওয়ার্ড দিন।
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="login-email" className="text-gray-700 dark:text-gray-300">ইমেইল</Label>
-                <Input id="login-email" type="email" placeholder=" আপনার ইমেইল" value={email} onChange={(e) => setEmail(e.target.value)} required />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="login-password" className="text-gray-700 dark:text-gray-300">পাসওয়ার্ড</Label>
-                <Input id="login-password" type="password" placeholder="আপনার পাসওয়ার্ড" value={password} onChange={(e) => setPassword(e.target.value)} required />
-              </div>
-              <Button onClick={handleLogin} disabled={isLoading} className="w-full">
-                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                লগইন করুন
-              </Button>
-               <Button variant="link" onClick={handlePasswordReset} disabled={isResettingPassword} className="w-full">
-                {isResettingPassword && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                পাসওয়ার্ড ভুলে গেছেন?
-              </Button>
-            </CardContent>
-          </Card>
+        <TabsContent value="teacher-login">
+          <LoginForm role="teacher" />
+        </TabsContent>
+        <TabsContent value="admin-login">
+          <LoginForm role="admin" />
         </TabsContent>
         <TabsContent value="signup">
           <Card>
