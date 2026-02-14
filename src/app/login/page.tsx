@@ -18,6 +18,7 @@ import {
   sendPasswordResetEmail,
   updateProfile,
   signOut,
+  deleteUser,
 } from 'firebase/auth';
 import { collection, doc, setDoc, runTransaction, getDoc, query, where, getDocs } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
@@ -54,65 +55,82 @@ export default function LoginPage() {
     }
     setIsLoading(true);
     try {
-        const adminMarkerRef = doc(firestore, 'user_roles_by_role', 'admin');
-        const adminMarkerSnap = await getDoc(adminMarkerRef);
-        const isFirstUser = !adminMarkerSnap.exists();
+        // Step 1: Create user first to be able to read firestore.
+        const userCredential = await createUserWithEmailAndPassword(auth, signupEmail, signupPassword);
+        const user = userCredential.user;
 
-        if (!isFirstUser) {
-            const teachersRef = collection(firestore, 'teachers');
-            const q = query(teachersRef, where('email', '==', signupEmail));
-            const querySnapshot = await getDocs(q);
-            if (querySnapshot.empty) {
+        try {
+            // Step 2: Check if user is first user or a registered teacher
+            const adminMarkerRef = doc(firestore, 'user_roles_by_role', 'admin');
+            const adminMarkerSnap = await getDoc(adminMarkerRef);
+            const isFirstUser = !adminMarkerSnap.exists();
+
+            let canProceed = false;
+            if (isFirstUser) {
+                canProceed = true;
+            } else {
+                const teachersRef = collection(firestore, 'teachers');
+                const q = query(teachersRef, where('email', '==', signupEmail));
+                const querySnapshot = await getDocs(q);
+                if (!querySnapshot.empty) {
+                    canProceed = true;
+                }
+            }
+
+            if (!canProceed) {
                 toast({
                     variant: 'destructive',
                     title: 'সাইন আপ ব্যর্থ হয়েছে',
                     description: 'এই ইমেইলটি শিক্ষক হিসেবে নিবন্ধন করা নেই। প্রথমে এডমিনের সাথে যোগাযোগ করে শিক্ষক হিসেবে নিবন্ধন সম্পন্ন করুন, তারপর সাইন আপ করুন।',
-                    duration: 5000,
+                    duration: 7000,
                 });
+                await deleteUser(user); // Clean up orphaned auth user
                 setIsLoading(false);
                 return;
             }
-        }
+            
+            // Step 3: If validation passes, create profile and user role doc atomically.
+            await updateProfile(user, { displayName: signupName });
+            
+            const userRoleRef = doc(firestore, 'user_roles', user.uid);
 
-        const userCredential = await createUserWithEmailAndPassword(auth, signupEmail, signupPassword);
-        const user = userCredential.user;
-        
-        await updateProfile(user, { displayName: signupName });
-        
-        const userRoleRef = doc(firestore, 'user_roles', user.uid);
+            await runTransaction(firestore, async (transaction) => {
+                const freshAdminMarkerSnap = await transaction.get(adminMarkerRef);
+                const userRole = freshAdminMarkerSnap.exists() ? 'teacher' : 'admin';
 
-        await runTransaction(firestore, async (transaction) => {
-            const adminMarkerDoc = await transaction.get(adminMarkerRef);
+                if (userRole === 'admin') {
+                    transaction.set(adminMarkerRef, { exists: true });
+                }
 
-            let userRole = 'teacher';
-            if (!adminMarkerDoc.exists()) {
-                userRole = 'admin';
-                transaction.set(adminMarkerRef, { exists: true });
-            }
-
-            const userData: any = {
-                role: userRole,
-                email: user.email,
-                name: signupName,
-            };
-
-            if (userRole === 'teacher') {
-                userData.permissions = {
-                    dashboard: true,
-                    students: true,
-                    teachers: true,
-                    accounting: true,
-                    attendance: true,
-                    settings: false,
+                const userData: any = {
+                    role: userRole,
+                    email: user.email,
+                    name: signupName,
                 };
-            }
 
-            transaction.set(userRoleRef, userData);
+                if (userRole === 'teacher') {
+                    userData.permissions = {
+                        dashboard: true,
+                        students: true,
+                        teachers: true,
+                        accounting: true,
+                        attendance: true,
+                        settings: false,
+                    };
+                }
 
-            toast({ title: 'সফল', description: `আপনার ${userRole === 'admin' ? 'এডমিন' : 'শিক্ষক'} একাউন্ট সফলভাবে তৈরি হয়েছে।` });
-        });
+                transaction.set(userRoleRef, userData);
+                
+                toast({ title: 'সফল', description: `আপনার ${userRole === 'admin' ? 'এডমিন' : 'শিক্ষক'} একাউন্ট সফলভাবে তৈরি হয়েছে।` });
+            });
 
-        router.push('/');
+            router.push('/');
+
+        } catch (dbError: any) {
+            // If any firestore operation fails, delete the created auth user
+            await deleteUser(user);
+            throw dbError; // Re-throw to be caught by the outer catch block
+        }
 
     } catch (error: any) {
         let description = 'একটি অপ্রত্যাশিত ত্রুটি ঘটেছে।';
