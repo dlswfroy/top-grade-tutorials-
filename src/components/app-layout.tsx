@@ -48,21 +48,12 @@ type InstitutionSettings = {
 };
 
 const navLinkColors: Record<string, string> = {
-  dashboard: 'border-yellow-400 text-yellow-300',
-  students: 'border-orange-400 text-orange-300',
-  teachers: 'border-slate-200 text-slate-100',
-  accounting: 'border-green-400 text-green-300',
-  attendance: 'border-red-500 text-red-400',
-  settings: 'border-yellow-400 text-yellow-300',
-};
-
-const activeNavLinkClasses: Record<string, string> = {
-    dashboard: 'bg-yellow-400/30',
-    students: 'bg-orange-400/30',
-    teachers: 'bg-slate-200/30',
-    accounting: 'bg-green-400/30',
-    attendance: 'bg-red-500/30',
-    settings: 'bg-yellow-400/30',
+  dashboard: 'border-yellow-400 text-yellow-400',
+  students: 'border-orange-400 text-orange-400',
+  teachers: 'border-slate-100 text-slate-100',
+  accounting: 'border-green-400 text-green-400',
+  attendance: 'border-red-500 text-red-500',
+  settings: 'border-yellow-400 text-yellow-400',
 };
 
 function Logo({ settings, isLoading, className, iconClassName, titleClassName }: { settings: InstitutionSettings | null, isLoading: boolean, className?: string, iconClassName?: string, titleClassName?: string }) {
@@ -188,8 +179,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                                         onClick={() => setMobileMenuOpen(false)}
                                         className={cn(
                                             "flex items-center gap-3 rounded-md p-3 text-lg font-medium transition-colors border-2",
-                                            navLinkColors[item.key] || 'border-transparent',
-                                            pathname === item.href ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
+                                            navLinkColors[item.key] || 'border-transparent text-muted-foreground',
+                                            "hover:bg-accent/50"
                                         )}
                                     >
                                         <item.icon className="h-5 w-5" />
@@ -211,9 +202,9 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                               key={item.href}
                               href={item.href}
                               className={cn(
-                                  "flex h-10 items-center justify-center rounded-lg border-2 bg-black/10 px-3 py-1.5 font-bold transition-colors",
+                                  "flex h-10 items-center justify-center rounded-lg border-2 px-3 py-1.5 font-bold transition-colors",
                                   navLinkColors[item.key],
-                                  pathname === item.href ? (activeNavLinkClasses[item.key] + ' ring-1 ring-white') : "hover:bg-white/10"
+                                  "hover:bg-white/20"
                               )}
                           >
                               {item.label}
