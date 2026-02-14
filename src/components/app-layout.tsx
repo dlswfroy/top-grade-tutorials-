@@ -31,6 +31,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
 import type { UserRole } from '@/lib/data';
+import { PlaceHolderImages } from '@/lib/placeholder-images';
 
 const menuItems = [
   { href: '/', label: 'ড্যাসবোর্ড', icon: LayoutDashboard, key: 'dashboard' },
@@ -46,29 +47,45 @@ type InstitutionSettings = {
     logoUrl?: string;
 };
 
+const navLinkColors: Record<string, string> = {
+  dashboard: 'border-yellow-400 text-yellow-300',
+  students: 'border-orange-400 text-orange-300',
+  teachers: 'border-slate-200 text-slate-100',
+  accounting: 'border-green-400 text-green-300',
+  attendance: 'border-red-500 text-red-400',
+  settings: 'border-yellow-400 text-yellow-300',
+};
+
+const activeNavLinkClasses: Record<string, string> = {
+    dashboard: 'bg-yellow-400/30',
+    students: 'bg-orange-400/30',
+    teachers: 'bg-slate-200/30',
+    accounting: 'bg-green-400/30',
+    attendance: 'bg-red-500/30',
+    settings: 'bg-yellow-400/30',
+};
+
 function Logo({ settings, isLoading, className, iconClassName, titleClassName }: { settings: InstitutionSettings | null, isLoading: boolean, className?: string, iconClassName?: string, titleClassName?: string }) {
-    const institutionName = settings?.institutionName || 'Top Grade Tutorials';
-    const logoUrl = settings?.logoUrl;
+    const institutionName = settings?.institutionName || 'টপ গ্রেড টিউটোরিয়ালস';
+    const logoFromPlaceholders = PlaceHolderImages.find(p => p.id === 'logo-placeholder');
+    const logoUrl = settings?.logoUrl || logoFromPlaceholders?.imageUrl;
 
     return (
         <Link href="/" className={cn("flex items-center gap-4", className)}>
+            <div className="p-1 bg-white rounded-full shadow-md">
             {isLoading ? (
-                <Loader2 className={cn("h-16 w-16 animate-spin", iconClassName || "text-inherit")} />
-            ) : logoUrl ? (
-                <div className="w-16 h-16 relative">
-                    <Avatar className="h-16 w-16">
-                        <AvatarImage src={logoUrl} alt={institutionName} className="object-cover" />
-                        <AvatarFallback>{institutionName.charAt(0)}</AvatarFallback>
-                    </Avatar>
-                </div>
+                <Loader2 className={cn("h-16 w-16 animate-spin", iconClassName || "text-primary")} />
             ) : (
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={cn("w-16 h-16", iconClassName || "text-inherit")}>
-                  <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
-                  <path d="M2 17l10 5 10-5"></path>
-                  <path d="M2 12l10 5 10-5"></path>
-                </svg>
+                <Avatar className="h-16 w-16">
+                    <AvatarImage src={logoUrl} alt={institutionName} className="object-cover" />
+                    <AvatarFallback>{institutionName.slice(0, 2)}</AvatarFallback>
+                </Avatar>
             )}
-            <h1 className={cn("text-3xl font-headline font-bold", titleClassName)}>{institutionName}</h1>
+            </div>
+            <div>
+              <h1 className={cn("text-3xl font-headline font-bold fancy-title", titleClassName)}>{institutionName}</h1>
+              <p className="text-red-500 font-mono tracking-[0.2em] -mt-1">---- ---- ----</p>
+            </div>
         </Link>
     );
 }
@@ -150,8 +167,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
       <div className="min-h-screen flex flex-col bg-muted/40">
-          <header className="sticky top-0 z-40 w-full border-b border-primary-foreground/20 bg-primary text-primary-foreground">
-              <div className="container flex h-20 items-center">
+          <header className="sticky top-0 z-40 w-full bg-primary text-primary-foreground shadow-lg">
+              <div className="container mx-auto flex h-24 items-center">
                   <div className="md:hidden mr-4">
                     <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
                         <SheetTrigger asChild>
@@ -162,7 +179,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                         </SheetTrigger>
                         <SheetContent side="left" className="w-[300px] sm:w-[400px]">
                             <SheetTitle className="sr-only">Mobile Menu</SheetTitle>
-                            <Logo settings={settings} isLoading={isLoadingSettings} className="mb-8 ml-4" iconClassName="text-primary h-16 w-16" titleClassName="text-slate-900 dark:text-slate-100 text-3xl" />
+                            <Logo settings={settings} isLoading={isLoadingSettings} className="mb-8 ml-4" iconClassName="text-primary h-16 w-16" titleClassName="text-slate-900 dark:text-slate-100 text-3xl fancy-title" />
                             <div className="flex flex-col space-y-2 px-4">
                                 {visibleMenuItems.map((item) => (
                                     <Link
@@ -170,7 +187,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                                         href={item.href}
                                         onClick={() => setMobileMenuOpen(false)}
                                         className={cn(
-                                            "flex items-center gap-3 rounded-md p-3 text-lg font-medium transition-colors",
+                                            "flex items-center gap-3 rounded-md p-3 text-lg font-medium transition-colors border-2",
+                                            navLinkColors[item.key] || 'border-transparent',
                                             pathname === item.href ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
                                         )}
                                     >
@@ -184,31 +202,31 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                   </div>
                   
                   <div className="hidden md:flex items-center">
-                     <Logo settings={settings} isLoading={isLoadingSettings} className="mr-6 ml-4" iconClassName="h-16 w-16" titleClassName="text-white text-3xl"/>
-                      <nav className="flex items-center space-x-2 text-sm font-medium">
-                          {visibleMenuItems.map((item) => (
-                              <Link
-                                  key={item.href}
-                                  href={item.href}
-                                  className={cn(
-                                      "flex h-10 items-center justify-center rounded-md px-4 py-2 transition-colors",
-                                      pathname === item.href
-                                          ? "bg-black/20 font-semibold text-primary-foreground"
-                                          : "text-primary-foreground/80 hover:bg-black/20 hover:text-primary-foreground"
-                                  )}
-                              >
-                                  {item.label}
-                              </Link>
-                          ))}
-                      </nav>
+                     <Logo settings={settings} isLoading={isLoadingSettings} className="mr-6"/>
                   </div>
 
-                  <div className="flex flex-1 items-center justify-end space-x-4">
+                  <nav className="hidden md:flex flex-1 items-center justify-center space-x-1 lg:space-x-2 text-sm font-medium">
+                      {visibleMenuItems.map((item) => (
+                          <Link
+                              key={item.href}
+                              href={item.href}
+                              className={cn(
+                                  "flex h-10 items-center justify-center rounded-lg border-2 bg-black/10 px-3 py-1.5 font-bold transition-colors",
+                                  navLinkColors[item.key],
+                                  pathname === item.href ? (activeNavLinkClasses[item.key] + ' ring-1 ring-white') : "hover:bg-white/10"
+                              )}
+                          >
+                              {item.label}
+                          </Link>
+                      ))}
+                  </nav>
+
+                  <div className="flex items-center justify-end space-x-4">
                     {user ? (
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" className="relative h-10 w-10 rounded-full hover:bg-primary/90 focus-visible:ring-primary-foreground">
-                                    <Avatar className="h-10 w-10">
+                                <Button variant="ghost" className="relative h-14 w-14 rounded-full hover:bg-primary/90 focus-visible:ring-primary-foreground ring-2 ring-red-500 ring-offset-2 ring-offset-primary">
+                                    <Avatar className="h-12 w-12">
                                         <AvatarImage src={userRole?.imageUrl || user.photoURL || `https://i.pravatar.cc/150?u=${user.uid}`} alt={user.displayName || 'User'} />
                                         <AvatarFallback>{user.displayName?.charAt(0) || user.email?.charAt(0)}</AvatarFallback>
                                     </Avatar>
