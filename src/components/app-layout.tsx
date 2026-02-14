@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -47,15 +48,6 @@ type InstitutionSettings = {
     logoUrl?: string;
 };
 
-const navLinkColors: Record<string, string> = {
-  dashboard: 'border-yellow-400 text-yellow-400',
-  students: 'border-orange-400 text-orange-400',
-  teachers: 'border-slate-100 text-slate-100',
-  accounting: 'border-green-400 text-green-400',
-  attendance: 'border-red-500 text-red-500',
-  settings: 'border-yellow-400 text-yellow-400',
-};
-
 function Logo({ settings, isLoading, className, iconClassName, titleClassName }: { settings: InstitutionSettings | null, isLoading: boolean, className?: string, iconClassName?: string, titleClassName?: string }) {
     const institutionName = settings?.institutionName || 'টপ গ্রেড টিউটোরিয়ালস';
     const logoFromPlaceholders = PlaceHolderImages.find(p => p.id === 'logo-placeholder');
@@ -74,8 +66,8 @@ function Logo({ settings, isLoading, className, iconClassName, titleClassName }:
             )}
             </div>
             <div>
-              <h1 className={cn("text-3xl font-headline font-bold fancy-title", titleClassName)}>{institutionName}</h1>
-              <p className="text-red-500 font-mono tracking-[0.2em] -mt-1">---- ---- ----</p>
+              <h1 className={cn("text-3xl font-headline font-bold text-white", titleClassName)}>{institutionName}</h1>
+              <p className="text-red-200 font-mono tracking-[0.2em] -mt-1">---- ---- ----</p>
             </div>
         </Link>
     );
@@ -158,19 +150,19 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
       <div className="min-h-screen flex flex-col bg-muted/40">
-          <header className="sticky top-0 z-40 w-full bg-primary text-primary-foreground shadow-lg">
+          <header className="sticky top-0 z-40 w-full bg-red-800 dark:bg-red-900 text-white shadow-lg">
               <div className="container mx-auto flex h-24 items-center">
                   <div className="md:hidden mr-4">
                     <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
                         <SheetTrigger asChild>
-                            <Button variant="ghost" size="icon" className="hover:bg-primary/90 focus:bg-primary/90">
+                            <Button variant="ghost" size="icon" className="hover:bg-white/10 focus:bg-white/10">
                                 <Menu className="h-5 w-5" />
                                 <span className="sr-only">Open Menu</span>
                             </Button>
                         </SheetTrigger>
                         <SheetContent side="left" className="w-[300px] sm:w-[400px]">
                             <SheetTitle className="sr-only">Mobile Menu</SheetTitle>
-                            <Logo settings={settings} isLoading={isLoadingSettings} className="mb-8 ml-4" iconClassName="text-primary h-16 w-16" titleClassName="text-slate-900 dark:text-slate-100 text-3xl fancy-title" />
+                            <Logo settings={settings} isLoading={isLoadingSettings} className="mb-8 ml-4" iconClassName="text-primary h-16 w-16" titleClassName="text-slate-900 dark:text-slate-100 text-3xl" />
                             <div className="flex flex-col space-y-2 px-4">
                                 {visibleMenuItems.map((item) => (
                                     <Link
@@ -178,9 +170,9 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                                         href={item.href}
                                         onClick={() => setMobileMenuOpen(false)}
                                         className={cn(
-                                            "flex items-center gap-3 rounded-md p-3 text-lg font-medium transition-colors border-2",
-                                            navLinkColors[item.key] || 'border-transparent text-muted-foreground',
-                                            "hover:bg-accent/50"
+                                            "flex items-center gap-3 rounded-md p-3 text-lg font-medium transition-colors",
+                                            pathname === item.href ? "bg-accent text-accent-foreground" : "text-muted-foreground",
+                                            "hover:bg-accent/80"
                                         )}
                                     >
                                         <item.icon className="h-5 w-5" />
@@ -202,9 +194,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                               key={item.href}
                               href={item.href}
                               className={cn(
-                                  "flex h-10 items-center justify-center rounded-lg border-2 px-3 py-1.5 font-bold transition-colors",
-                                  navLinkColors[item.key],
-                                  "hover:bg-white/20"
+                                  "flex h-10 items-center justify-center rounded-md border-2 border-transparent px-3 py-1.5 font-bold transition-colors text-white hover:bg-white/20",
+                                  pathname === item.href && "bg-white/10 border-white/50"
                               )}
                           >
                               {item.label}
@@ -216,7 +207,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                     {user ? (
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" className="relative h-14 w-14 rounded-full hover:bg-primary/90 focus-visible:ring-primary-foreground ring-2 ring-red-500 ring-offset-2 ring-offset-primary">
+                                <Button variant="ghost" className="relative h-14 w-14 rounded-full hover:bg-white/20 focus-visible:ring-white ring-2 ring-yellow-400 ring-offset-2 ring-offset-red-800 dark:ring-offset-red-900">
                                     <Avatar className="h-12 w-12">
                                         <AvatarImage src={userRole?.imageUrl || user.photoURL || `https://i.pravatar.cc/150?u=${user.uid}`} alt={user.displayName || 'User'} />
                                         <AvatarFallback>{user.displayName?.charAt(0) || user.email?.charAt(0)}</AvatarFallback>
