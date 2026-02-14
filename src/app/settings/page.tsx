@@ -11,11 +11,11 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Save, Loader2, User as UserIcon } from 'lucide-react';
+import { Save, Loader2, User as UserIcon, MoreHorizontal, KeyRound } from 'lucide-react';
 import { useFirestore, useDoc, useMemoFirebase, useAuth, useCollection } from '@/firebase';
 import { doc, setDoc, updateDoc, collection } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
-import { onAuthStateChanged, updateProfile, type User } from 'firebase/auth';
+import { onAuthStateChanged, updateProfile, type User, sendPasswordResetEmail } from 'firebase/auth';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import type { UserRole } from '@/lib/data';
 import {
@@ -33,6 +33,23 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 
 type InstitutionSettings = {
     institutionName?: string;
@@ -81,8 +98,8 @@ const compressImage = (file: File): Promise<string> => {
 
 function UserManagementCard() {
     const firestore = useFirestore();
-    const { toast } = useToast();
     const auth = useAuth();
+    const { toast } = useToast();
 
     const userRolesQuery = useMemoFirebase(() => {
         if (!firestore) return null;
@@ -91,6 +108,7 @@ function UserManagementCard() {
     const { data: userRoles, isLoading: isLoadingUserRoles } = useCollection<UserRole>(userRolesQuery);
 
     const [isSaving, setIsSaving] = useState<Record<string, boolean>>({});
+    const [actionUser, setActionUser] = useState<UserRole | null>(null);
 
     const handleRoleChange = async (userId: string, newRole: 'admin' | 'teacher') => {
         if (!firestore) return;
@@ -111,6 +129,15 @@ function UserManagementCard() {
         }
     };
 
+    const handlePasswordReset = async (email: string) => {
+        try {
+            await sendPasswordResetEmail(auth, email);
+            toast({ title: 'ইমেইল পাঠানো হয়েছে', description: `${email}-এ পাসওয়ার্ড রিসেট করার লিঙ্ক পাঠানো হয়েছে।` });
+        } catch (error: any) {
+            toast({ variant: 'destructive', title: 'ত্রুটি', description: error.message });
+        }
+    };
+
     if (isLoadingUserRoles) {
         return (
             <Card>
@@ -128,7 +155,7 @@ function UserManagementCard() {
         <Card>
             <CardHeader>
                 <CardTitle className="font-bold text-slate-900 dark:text-slate-100">ব্যবহারকারী ম্যানেজমেন্ট</CardTitle>
-                <CardDescription>ব্যবহারকারীদের ভূমিকা নির্ধারণ করুন। এডমিনরা সকল কিছু পরিবর্তন করার ক্ষমতা রাখেন।</CardDescription>
+                <CardDescription>ব্যবহারকারীদের ভূমিকা নির্ধারণ করুন এবং পাসওয়ার্ড রিসেট করুন।</CardDescription>
             </CardHeader>
             <CardContent>
                 <Table>
@@ -136,21 +163,22 @@ function UserManagementCard() {
                         <TableRow>
                             <TableHead>নাম</TableHead>
                             <TableHead>ইমেইল</TableHead>
-                            <TableHead className="text-right">ভূমিকা</TableHead>
+                            <TableHead>ভূমিকা</TableHead>
+                            <TableHead className="text-right">একশন</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {userRoles?.map((user) => (
-                            <TableRow key={user.id}>
-                                <TableCell className="font-medium">{user.name}</TableCell>
-                                <TableCell>{user.email}</TableCell>
-                                <TableCell className="text-right">
+                        {userRoles?.map((userRole) => (
+                            <TableRow key={userRole.id}>
+                                <TableCell className="font-medium">{userRole.name}</TableCell>
+                                <TableCell>{userRole.email}</TableCell>
+                                <TableCell>
                                     <Select
-                                        value={user.role}
-                                        onValueChange={(newRole: 'admin' | 'teacher') => handleRoleChange(user.id, newRole)}
-                                        disabled={isSaving[user.id] || auth.currentUser?.uid === user.id}
+                                        value={userRole.role}
+                                        onValueChange={(newRole: 'admin' | 'teacher') => handleRoleChange(userRole.id, newRole)}
+                                        disabled={isSaving[userRole.id] || auth.currentUser?.uid === userRole.id}
                                     >
-                                        <SelectTrigger className="w-[120px] ml-auto">
+                                        <SelectTrigger className="w-[120px]">
                                             <SelectValue placeholder="ভূমিকা" />
                                         </SelectTrigger>
                                         <SelectContent>
@@ -158,6 +186,40 @@ function UserManagementCard() {
                                             <SelectItem value="teacher">শিক্ষক</SelectItem>
                                         </SelectContent>
                                     </Select>
+                                </TableCell>
+                                <TableCell className="text-right">
+                                    <AlertDialog>
+                                         <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                                <Button variant="ghost" className="h-8 w-8 p-0">
+                                                    <span className="sr-only">Open menu</span>
+                                                    <MoreHorizontal className="h-4 w-4" />
+                                                </Button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent align="end">
+                                                <AlertDialogTrigger asChild>
+                                                    <DropdownMenuItem onSelect={(e) => { e.preventDefault(); setActionUser(userRole); }}>
+                                                        <KeyRound className="mr-2 h-4 w-4" />
+                                                        <span>পাসওয়ার্ড রিসেট</span>
+                                                    </DropdownMenuItem>
+                                                </AlertDialogTrigger>
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
+                                        <AlertDialogContent>
+                                            <AlertDialogHeader>
+                                                <AlertDialogTitle>আপনি কি নিশ্চিত?</AlertDialogTitle>
+                                                <AlertDialogDescription>
+                                                    এই একশনের ফলে {actionUser?.name} ({actionUser?.email}) এর কাছে পাসওয়ার্ড রিসেট করার জন্য একটি ইমেইল পাঠানো হবে।
+                                                </AlertDialogDescription>
+                                            </AlertDialogHeader>
+                                            <AlertDialogFooter>
+                                                <AlertDialogCancel>বাতিল</AlertDialogCancel>
+                                                <AlertDialogAction onClick={() => actionUser && handlePasswordReset(actionUser.email)}>
+                                                  চালিয়ে যান
+                                                </AlertDialogAction>
+                                            </AlertDialogFooter>
+                                        </AlertDialogContent>
+                                    </AlertDialog>
                                 </TableCell>
                             </TableRow>
                         ))}
@@ -195,7 +257,6 @@ function UserProfileCard() {
     }, [auth]);
 
     useEffect(() => {
-        // This logic correctly prioritizes the Firestore URL, then auth, then fallback.
         if (userRole?.imageUrl) {
             setImagePreview(userRole.imageUrl);
         } else if (user?.photoURL) {
@@ -232,7 +293,7 @@ function UserProfileCard() {
             
             const userData: Partial<UserRole> = {
                 name: name,
-                email: user.email!, // Email should not be changed here, but is required by schema
+                email: user.email!,
                 imageUrl: imagePreview || '',
                 imageHint: 'person face'
             }
@@ -423,10 +484,12 @@ function SettingsPage() {
     const auth = useAuth();
     const firestore = useFirestore();
     const [user, setUser] = useState<User | null>(null);
+    const [authLoaded, setAuthLoaded] = useState(false);
 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
             setUser(currentUser);
+            setAuthLoaded(true);
         });
         return () => unsubscribe();
     }, [auth]);
@@ -436,7 +499,9 @@ function SettingsPage() {
         return doc(firestore, 'user_roles', user.uid);
     }, [firestore, user]);
 
-    const { data: userRole } = useDoc<UserRole>(userRoleRef);
+    const { data: userRole, isLoading: isLoadingUserRole } = useDoc<UserRole>(userRoleRef);
+
+    const isLoading = !authLoaded || (user && isLoadingUserRole);
 
     return (
         <div className="space-y-8 p-8 rounded-xl bg-slate-100 dark:bg-slate-900/30 border border-slate-200 dark:border-slate-800">
@@ -447,7 +512,16 @@ function SettingsPage() {
                  <InstitutionSettingsCard />
                  <UserProfileCard />
             </div>
-            {userRole?.role === 'admin' && (
+            {isLoading ? (
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="font-bold text-slate-900 dark:text-slate-100">এডমিন সেকশন লোড হচ্ছে...</CardTitle>
+                    </CardHeader>
+                    <CardContent className="flex justify-center items-center h-40">
+                        <Loader2 className="h-8 w-8 animate-spin" />
+                    </CardContent>
+                </Card>
+            ) : userRole?.role === 'admin' && (
                 <div className="mt-8">
                     <UserManagementCard />
                 </div>
