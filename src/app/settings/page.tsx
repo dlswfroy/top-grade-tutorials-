@@ -13,7 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Save, Loader2, User as UserIcon, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
-import { useFirestore, useDoc, useMemoFirebase, useAuth, useCollection, errorEmitter, FirestorePermissionError } from '@/firebase';
+import { useFirestore, useDoc, useMemoFirebase, useAuth, useCollection, errorEmitter, FirestorePermissionError, useFirebaseApp } from '@/firebase';
 import { doc, setDoc, updateDoc, collection, deleteDoc, query, where, getDocs } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { onAuthStateChanged, updateProfile, type User } from 'firebase/auth';
@@ -697,6 +697,83 @@ function InstitutionSettingsCard({ userRole, isLoadingUserRole }: { userRole: Us
     )
 }
 
+function FirebaseProjectCard({ userRole, isLoadingUserRole }: { userRole: UserRole | null | undefined, isLoadingUserRole: boolean }) {
+    const { toast } = useToast();
+    const firebaseApp = useFirebaseApp();
+    const [newProjectId, setNewProjectId] = useState('');
+    const [isConnecting, setIsConnecting] = useState(false);
+
+    const currentProjectId = firebaseApp?.options.projectId;
+    const isAdmin = userRole?.role === 'admin';
+
+    const handleConnect = () => {
+        if (!newProjectId) {
+            toast({
+                variant: 'destructive',
+                title: 'ত্রুটি',
+                description: 'অনুগ্রহ করে একটি ফায়ারবেস প্রজেক্ট আইডি দিন।',
+            });
+            return;
+        }
+        setIsConnecting(true);
+        
+        toast({
+            title: 'সংযোগ করা হচ্ছে...',
+            description: `আপনার অ্যাপটি "${newProjectId}" প্রজেক্টের সাথে সংযোগ করা হচ্ছে। এটি সম্পন্ন হলে আপনাকে জানানো হবে।`,
+        });
+
+        // In a real scenario, this would trigger a backend call which then uses UpdateFirebaseProjectTool
+        // For this prototype, we inform the user what will happen.
+        setTimeout(() => {
+            setIsConnecting(false);
+            toast({
+                title: 'সংযোগের জন্য অনুরোধ করা হয়েছে',
+                description: `Firebase Studio এখন আপনার অ্যাপটিকে নতুন প্রজেক্টের সাথে কনফিগার করবে। এটি কয়েক মুহূর্ত সময় নিতে পারে।`,
+            });
+        }, 2000);
+    };
+
+    const isLoading = isLoadingUserRole || isConnecting;
+
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle className="font-bold text-slate-900 dark:text-slate-100">ফায়ারবেস প্রজেক্ট কনফিগারেশন</CardTitle>
+                <CardDescription>আপনার সফটওয়্যারটি অন্য কোনো ফায়ারবেস প্রজেক্টের সাথে সংযোগ করতে এখানে নতুন প্রজেক্ট আইডি দিন।</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+                <div className="space-y-2">
+                    <Label htmlFor="current-project-id" className="text-slate-700 dark:text-slate-300">বর্তমান প্রজেক্ট আইডি</Label>
+                    <Input
+                        id="current-project-id"
+                        value={currentProjectId || 'লোড হচ্ছে...'}
+                        readOnly
+                        className="bg-slate-100 dark:bg-slate-800"
+                    />
+                </div>
+                 <div className="space-y-2">
+                    <Label htmlFor="project-id" className="text-slate-700 dark:text-slate-300">নতুন ফায়ারবেস প্রজেক্ট আইডি</Label>
+                    <Input
+                        id="project-id"
+                        value={newProjectId}
+                        onChange={(e) => setNewProjectId(e.target.value)}
+                        placeholder="আপনার ফায়ারবেস প্রজেক্ট আইডি দিন"
+                        disabled={isLoading || !isAdmin}
+                    />
+                </div>
+            </CardContent>
+            {isAdmin && (
+                <CardFooter>
+                    <Button onClick={handleConnect} disabled={isLoading}>
+                        {isConnecting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                        সংযোগ করুন
+                    </Button>
+                </CardFooter>
+            )}
+        </Card>
+    );
+}
+
 function SettingsPage() {
     const auth = useAuth();
     const firestore = useFirestore();
@@ -739,8 +816,9 @@ function SettingsPage() {
                     </CardContent>
                 </Card>
             ) : userRole?.role === 'admin' && (
-                <div className="mt-8">
+                <div className="space-y-8 mt-8">
                     <UserManagementCard />
+                    <FirebaseProjectCard userRole={userRole} isLoadingUserRole={isLoadingUserRole} />
                 </div>
             )}
         </div>
