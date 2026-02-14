@@ -65,9 +65,9 @@ function Logo({ settings, isLoading }: { settings: InstitutionSettings | null, i
     return (
         <Link href="/" className="flex items-center gap-4">
             {isLoading ? (
-                <Loader2 className="h-14 w-14 animate-spin text-white" />
+                <Loader2 className="h-16 w-16 animate-spin text-white" />
             ) : (
-                <Avatar className="h-14 w-14 border-4 border-white bg-white">
+                <Avatar className="h-16 w-16 border-2 border-white bg-white">
                     <AvatarImage src={logoUrl} alt={institutionName} className="object-contain p-1" />
                     <AvatarFallback>{institutionName.slice(0, 2)}</AvatarFallback>
                 </Avatar>
