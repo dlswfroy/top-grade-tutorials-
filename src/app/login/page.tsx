@@ -78,7 +78,6 @@ export default function LoginPage() {
         router.push('/');
 
     } catch (error: any) {
-        console.error("Signup error", error);
         let description = 'একটি অপ্রত্যাশিত ত্রুটি ঘটেছে।';
         if (error.code === 'auth/email-already-in-use') {
             description = 'এই ইমেইল দিয়ে ইতিমধ্যে একটি একাউন্ট তৈরি করা আছে।';
@@ -117,7 +116,6 @@ export default function LoginPage() {
         });
       }
     } catch (error: any) {
-        console.error("Login error", error);
         let description = 'একটি অপ্রত্যাশিত ত্রুটি ঘটেছে।';
         if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
             description = 'আপনার দেওয়া ইমেইল বা পাসওয়ার্ড সঠিক নয়। অনুগ্রহ করে আবার চেষ্টা করুন।';
