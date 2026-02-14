@@ -159,7 +159,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                     <Logo settings={settings} isLoading={isLoadingSettings} />
                   </div>
                   
-                  <nav className="hidden md:flex items-center space-x-2">
+                  <nav className="hidden lg:flex items-center space-x-2">
                         {visibleMenuItems.map((item) => (
                             <Link
                                 key={item.href}
@@ -209,7 +209,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                     )}
                     <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
                         <SheetTrigger asChild>
-                            <Button variant="ghost" size="icon" className="hover:bg-white/10 focus:bg-white/10 md:hidden">
+                            <Button variant="ghost" size="icon" className="hover:bg-white/10 focus:bg-white/10 lg:hidden">
                                 <Menu className="h-6 w-6" />
                                 <span className="sr-only">Open Menu</span>
                             </Button>
