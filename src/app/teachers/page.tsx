@@ -1,3 +1,4 @@
+
 'use client';
 import { useState, useMemo, useEffect } from 'react';
 import {
@@ -56,6 +57,7 @@ function TeachersPage() {
   const [editingTeacher, setEditingTeacher] = useState<Teacher | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isCompressing, setIsCompressing] = useState(false);
 
   const teachersQuery = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -119,6 +121,7 @@ function TeachersPage() {
   const handleImageChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
+        setIsCompressing(true);
         try {
           toast({ title: 'ছবি প্রসেস করা হচ্ছে...', description: 'ছবি সংকুচিত করতে কয়েক মুহূর্ত সময় লাগতে পারে।' });
           const compressedDataUrl = await compressImage(file);
@@ -131,6 +134,8 @@ function TeachersPage() {
             title: "ত্রুটি",
             description: "ছবিটি সংকুচিত করতে সমস্যা হয়েছে।",
           });
+        } finally {
+            setIsCompressing(false);
         }
     }
   };
@@ -226,6 +231,7 @@ function TeachersPage() {
     );
   }, [teachers, activeSearchTerm]);
   
+  const isFormLoading = isSaving || isCompressing;
 
   return (
     <div className="space-y-8 p-8 rounded-xl bg-indigo-100 dark:bg-indigo-900/30 border border-indigo-200 dark:border-indigo-800">
@@ -265,23 +271,23 @@ function TeachersPage() {
                   {/* Form Inputs */}
                   <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="name" className="text-right text-slate-700 dark:text-slate-300">নাম</Label>
-                    <Input id="name" value={formData.name || ''} onChange={handleInputChange} placeholder="শিক্ষকের নাম" className="col-span-3" disabled={isSaving} />
+                    <Input id="name" value={formData.name || ''} onChange={handleInputChange} placeholder="শিক্ষকের নাম" className="col-span-3" disabled={isFormLoading} />
                   </div>
                    <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="subject" className="text-right text-slate-700 dark:text-slate-300">বিষয়</Label>
-                    <Input id="subject" value={formData.subject || ''} onChange={handleInputChange} placeholder="বিষয়" className="col-span-3" disabled={isSaving} />
+                    <Input id="subject" value={formData.subject || ''} onChange={handleInputChange} placeholder="বিষয়" className="col-span-3" disabled={isFormLoading} />
                   </div>
                   <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="mobileNumber" className="text-right text-slate-700 dark:text-slate-300">মোবাইল</Label>
-                    <Input id="mobileNumber" value={formData.mobileNumber || ''} onChange={handleInputChange} placeholder="মোবাইল নম্বর" className="col-span-3" disabled={isSaving} />
+                    <Input id="mobileNumber" value={formData.mobileNumber || ''} onChange={handleInputChange} placeholder="মোবাইল নম্বর" className="col-span-3" disabled={isFormLoading} />
                   </div>
                   <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="email" className="text-right text-slate-700 dark:text-slate-300">ইমেইল</Label>
-                    <Input id="email" type="email" value={formData.email || ''} onChange={handleInputChange} placeholder="ইমেইল" className="col-span-3" disabled={isSaving} />
+                    <Input id="email" type="email" value={formData.email || ''} onChange={handleInputChange} placeholder="ইমেইল" className="col-span-3" disabled={isFormLoading} />
                   </div>
                   <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="picture" className="text-right text-slate-700 dark:text-slate-300">ছবি</Label>
-                    <Input id="picture" type="file" accept="image/*" onChange={handleImageChange} className="col-span-3" disabled={isSaving} />
+                    <Input id="picture" type="file" accept="image/*" onChange={handleImageChange} className="col-span-3" disabled={isFormLoading} />
                   </div>
                   {imagePreview && (
                     <div className="grid grid-cols-4 items-center gap-4">
@@ -292,9 +298,9 @@ function TeachersPage() {
                   )}
                 </div>
                 <DialogFooter>
-                  <Button onClick={handleSaveTeacher} disabled={isSaving} className="w-full">
-                      {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                      {isSaving ? 'সেভ হচ্ছে...' : 'সেভ করুন'}
+                  <Button onClick={handleSaveTeacher} disabled={isFormLoading} className="w-full">
+                      {isFormLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                      {isSaving ? 'সেভ হচ্ছে...' : isCompressing ? 'ছবি প্রসেস হচ্ছে...' : 'সেভ করুন'}
                   </Button>
                 </DialogFooter>
               </DialogContent>
@@ -363,3 +369,5 @@ function TeachersPage() {
 }
 
 export default TeachersPage;
+
+    

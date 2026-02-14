@@ -44,7 +44,7 @@ service cloud.firestore {
     match /user_roles/{userId} {
         allow read: if isAdmin() || (isAuth() && request.auth.uid == userId);
         allow create: if isAuth() && request.auth.uid == userId;
-        allow update: if isAdmin();
+        allow update: if isAdmin() || (isAuth() && request.auth.uid == userId && !('role' in request.resource.data) && !('permissions' in request.resource.data));
         allow delete: if isAdmin() && request.auth.uid != userId;
     }
 
@@ -55,3 +55,5 @@ service cloud.firestore {
     }
   }
 }
+
+    

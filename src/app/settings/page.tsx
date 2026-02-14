@@ -373,6 +373,7 @@ function UserProfileCard() {
     const [imagePreview, setImagePreview] = useState<string | null>(null);
     const [name, setName] = useState('');
     const [isMigrating, setIsMigrating] = useState(false);
+    const [isCompressing, setIsCompressing] = useState(false);
 
     const userRoleRef = useMemoFirebase(() => {
         if (!firestore || !user) return null;
@@ -392,7 +393,7 @@ function UserProfileCard() {
     }, [auth]);
 
     useEffect(() => {
-        if (firestore && user && userRole && !userRole.imageUrl && userRole.role === 'teacher' && !isLoadingUserRole && !isMigrating) {
+        if (firestore && user && user?.email && userRole && !userRole.imageUrl && userRole.role === 'teacher' && !isLoadingUserRole && !isMigrating) {
             const migrateImageUrl = async () => {
                 setIsMigrating(true);
                 try {
@@ -437,6 +438,7 @@ function UserProfileCard() {
     const handleImageChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
         if (file) {
+            setIsCompressing(true);
             try {
               toast({ title: 'ছবি প্রসেস করা হচ্ছে...', description: 'ছবি সংকুচিত করতে কয়েক মুহূর্ত সময় লাগতে পারে।' });
               const compressedDataUrl = await compressImage(file);
@@ -448,6 +450,8 @@ function UserProfileCard() {
                 title: "ত্রুটি",
                 description: "ছবিটি সংকুচিত করতে সমস্যা হয়েছে। অনুগ্রহ করে একটি বৈধ ছবি ফাইল আপলোড করুন।",
               });
+            } finally {
+                setIsCompressing(false);
             }
         }
     };
@@ -483,7 +487,8 @@ function UserProfileCard() {
         }
     };
 
-    const isLoading = isSaving || isLoadingUserRole || isMigrating;
+    const isLoading = isSaving || isLoadingUserRole || isMigrating || isCompressing;
+    const buttonText = isSaving ? 'সেভ হচ্ছে...' : isCompressing ? 'ছবি প্রসেস হচ্ছে...' : isMigrating ? 'তথ্য সিঙ্ক হচ্ছে...' : 'প্রোফাইল সেভ করুন';
 
     return (
         <Card>
@@ -525,7 +530,7 @@ function UserProfileCard() {
             <CardFooter>
                 <Button onClick={handleSave} disabled={isLoading || !user}>
                     {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                    {isLoading ? 'সেভ হচ্ছে...' : 'প্রোফাইল সেভ করুন'}
+                    {buttonText}
                 </Button>
             </CardFooter>
         </Card>
@@ -539,6 +544,7 @@ function InstitutionSettingsCard() {
     const [institutionName, setInstitutionName] = useState('টপ গ্রেড টিউটোরিয়ালস');
     const [logoUrl, setLogoUrl] = useState<string | null>(null);
     const [isSaving, setIsSaving] = useState(false);
+    const [isCompressing, setIsCompressing] = useState(false);
   
     const settingsRef = useMemoFirebase(() => {
         if (!firestore) return null;
@@ -561,6 +567,7 @@ function InstitutionSettingsCard() {
     const handleLogoChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
         if (file) {
+            setIsCompressing(true);
             try {
               toast({ title: 'ছবি প্রসেস করা হচ্ছে...', description: 'লোগো সংকুচিত করতে কয়েক মুহূর্ত সময় লাগতে পারে।' });
               const compressedDataUrl = await compressImage(file);
@@ -572,6 +579,8 @@ function InstitutionSettingsCard() {
                 title: "ত্রুটি",
                 description: "লোগো সংকুচিত করতে সমস্যা হয়েছে।",
               });
+            } finally {
+              setIsCompressing(false);
             }
         }
     };
@@ -601,6 +610,10 @@ function InstitutionSettingsCard() {
         }
     };
 
+    const isButtonLoading = isSaving || isLoading || isCompressing;
+    const buttonText = isSaving || isLoading ? 'সেভ হচ্ছে...' : isCompressing ? 'লোগো প্রসেস হচ্ছে...' : 'সেভ করুন';
+
+
     return (
         <Card>
             <CardHeader>
@@ -613,7 +626,7 @@ function InstitutionSettingsCard() {
                     id="institution-name"
                     value={institutionName}
                     onChange={(e) => setInstitutionName(e.target.value)}
-                    disabled={isSaving || isLoading}
+                    disabled={isButtonLoading}
                 />
                 </div>
                 <div className="space-y-2">
@@ -635,16 +648,16 @@ function InstitutionSettingsCard() {
                         accept="image/*"
                         onChange={handleLogoChange}
                         className="max-w-xs"
-                        disabled={isSaving || isLoading}
+                        disabled={isButtonLoading}
                     />
                     </div>
                 </div>
                 </div>
             </CardContent>
             <CardFooter>
-                <Button onClick={handleSave} disabled={isSaving || isLoading}>
-                    {isSaving || isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                    {isSaving || isLoading ? 'সেভ হচ্ছে...' : 'সেভ করুন'}
+                <Button onClick={handleSave} disabled={isButtonLoading}>
+                    {isButtonLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                    {buttonText}
                 </Button>
             </CardFooter>
         </Card>
@@ -706,3 +719,5 @@ export default function SettingsPageContainer() {
         <SettingsPage />
     )
 }
+
+    
