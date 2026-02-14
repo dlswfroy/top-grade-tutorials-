@@ -96,7 +96,7 @@ function TeachersPage() {
                     return reject(new Error('Could not get canvas context'));
                 }
                 ctx.drawImage(img, 0, 0, width, height);
-                resolve(canvas.toDataURL('image/jpeg', 0.9));
+                resolve(canvas.toDataURL('image/jpeg', 0.8));
             };
             img.onerror = error => reject(error);
         };
@@ -248,7 +248,7 @@ function TeachersPage() {
             </div>
             <Button onClick={handleSearch} className="w-full sm:w-auto">
               <Search className="mr-2 h-4 w-4" />
-              অনুসন্ধาน
+              অনুসন্ধান
             </Button>
             <Dialog open={isDialogOpen} onOpenChange={(open) => { if (!open) handleCloseDialog(); else setIsDialogOpen(true); }}>
               <DialogTrigger asChild>

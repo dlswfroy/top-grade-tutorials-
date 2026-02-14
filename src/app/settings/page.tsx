@@ -14,7 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Save, Loader2, User as UserIcon, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
 import { useFirestore, useDoc, useMemoFirebase, useAuth, useCollection } from '@/firebase';
-import { doc, setDoc, updateDoc, collection, deleteDoc } from 'firebase/firestore';
+import { doc, setDoc, updateDoc, collection, deleteDoc, query, where, getDocs } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { onAuthStateChanged, updateProfile, type User } from 'firebase/auth';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -106,7 +106,7 @@ const compressImage = (file: File): Promise<string> => {
                     return reject(new Error('Could not get canvas context'));
                 }
                 ctx.drawImage(img, 0, 0, width, height);
-                resolve(canvas.toDataURL('image/jpeg', 0.9));
+                resolve(canvas.toDataURL('image/jpeg', 0.8));
             };
             img.onerror = error => reject(error);
         };
@@ -372,6 +372,7 @@ function UserProfileCard() {
     const [isSaving, setIsSaving] = useState(false);
     const [imagePreview, setImagePreview] = useState<string | null>(null);
     const [name, setName] = useState('');
+    const [isMigrating, setIsMigrating] = useState(false);
 
     const userRoleRef = useMemoFirebase(() => {
         if (!firestore || !user) return null;
@@ -389,6 +390,38 @@ function UserProfileCard() {
         });
         return () => unsubscribe();
     }, [auth]);
+
+    useEffect(() => {
+        if (firestore && user && userRole && !userRole.imageUrl && userRole.role === 'teacher' && !isLoadingUserRole && !isMigrating) {
+            const migrateImageUrl = async () => {
+                setIsMigrating(true);
+                try {
+                    const teachersRef = collection(firestore, 'teachers');
+                    const q = query(teachersRef, where('email', '==', user.email));
+                    const querySnapshot = await getDocs(q);
+
+                    if (!querySnapshot.empty) {
+                        const teacherDoc = querySnapshot.docs[0];
+                        const teacherData = teacherDoc.data();
+                        if (teacherData?.imageUrl) {
+                            const userRoleRefToUpdate = doc(firestore, 'user_roles', user.uid);
+                            await updateDoc(userRoleRefToUpdate, { 
+                                imageUrl: teacherData.imageUrl,
+                                imageHint: teacherData.imageHint || 'teacher person'
+                            });
+                            toast({ title: 'প্রোফাইল ছবি আপডেট', description: 'আপনার প্রোফাইল ছবি সিঙ্ক করা হয়েছে।' });
+                        }
+                    }
+                } catch (err) {
+                    console.error("Failed to migrate image URL:", err);
+                } finally {
+                    setIsMigrating(false);
+                }
+            };
+            migrateImageUrl();
+        }
+    }, [firestore, user, userRole, isLoadingUserRole, isMigrating, toast]);
+
 
     useEffect(() => {
         if (userRole?.imageUrl) {
@@ -450,7 +483,7 @@ function UserProfileCard() {
         }
     };
 
-    const isLoading = isSaving || isLoadingUserRole;
+    const isLoading = isSaving || isLoadingUserRole || isMigrating;
 
     return (
         <Card>

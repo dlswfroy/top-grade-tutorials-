@@ -107,7 +107,7 @@ function StudentsPage() {
                     return reject(new Error('Could not get canvas context'));
                 }
                 ctx.drawImage(img, 0, 0, width, height);
-                resolve(canvas.toDataURL('image/jpeg', 0.9)); // Adjust quality
+                resolve(canvas.toDataURL('image/jpeg', 0.8)); // Adjust quality
             };
             img.onerror = error => reject(error);
         };
