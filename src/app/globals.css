@@ -82,8 +82,4 @@
   body {
     @apply bg-background text-foreground;
   }
-  .fancy-title {
-    color: #FFD600; /* A bright yellow */
-    text-shadow: 1px 1px 2px #C53030; /* A dark red shadow */
-  }
 }

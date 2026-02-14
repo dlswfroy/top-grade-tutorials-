@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -20,7 +19,7 @@ import { Button } from '@/components/ui/button';
 import { useFirestore, useDoc, useMemoFirebase, useAuth } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { signOut, onAuthStateChanged, type User } from 'firebase/auth';
-import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
 import {
   DropdownMenu,
@@ -48,27 +47,22 @@ type InstitutionSettings = {
     logoUrl?: string;
 };
 
-function Logo({ settings, isLoading, className, iconClassName, titleClassName }: { settings: InstitutionSettings | null, isLoading: boolean, className?: string, iconClassName?: string, titleClassName?: string }) {
+function Logo({ settings, isLoading }: { settings: InstitutionSettings | null, isLoading: boolean }) {
     const institutionName = settings?.institutionName || 'টপ গ্রেড টিউটোরিয়ালস';
     const logoFromPlaceholders = PlaceHolderImages.find(p => p.id === 'logo-placeholder');
     const logoUrl = settings?.logoUrl || logoFromPlaceholders?.imageUrl;
 
     return (
-        <Link href="/" className={cn("flex items-center gap-4", className)}>
-            <div className="p-1 bg-white rounded-full shadow-md">
+        <Link href="/" className="flex items-center gap-3">
             {isLoading ? (
-                <Loader2 className={cn("h-16 w-16 animate-spin", iconClassName || "text-primary")} />
+                <Loader2 className="h-10 w-10 animate-spin text-white" />
             ) : (
-                <Avatar className="h-16 w-16">
+                <Avatar className="h-10 w-10 border-2 border-white/50">
                     <AvatarImage src={logoUrl} alt={institutionName} className="object-cover" />
                     <AvatarFallback>{institutionName.slice(0, 2)}</AvatarFallback>
                 </Avatar>
             )}
-            </div>
-            <div>
-              <h1 className={cn("text-3xl font-headline font-bold text-white", titleClassName)}>{institutionName}</h1>
-              <p className="text-red-200 font-mono tracking-[0.2em] -mt-1">---- ---- ----</p>
-            </div>
+            <h1 className="text-xl font-headline font-bold text-white whitespace-nowrap">{institutionName}</h1>
         </Link>
     );
 }
@@ -139,7 +133,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     return <>{children}</>;
   }
 
-  // While checking auth state, or if we need to redirect, show a loader.
   if (isLoadingAuth || !user) {
     return (
         <div className="flex h-screen items-center justify-center bg-background">
@@ -151,19 +144,20 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   return (
       <div className="min-h-screen flex flex-col bg-muted/40">
           <header className="sticky top-0 z-40 w-full bg-red-800 dark:bg-red-900 text-white shadow-lg">
-              <div className="container mx-auto flex h-24 items-center">
-                  <div className="md:hidden mr-4">
+              <div className="container mx-auto flex h-20 items-center justify-between relative">
+                  <div className="flex items-center">
                     <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
                         <SheetTrigger asChild>
-                            <Button variant="ghost" size="icon" className="hover:bg-white/10 focus:bg-white/10">
-                                <Menu className="h-5 w-5" />
+                            <Button variant="ghost" size="icon" className="hover:bg-white/10 focus:bg-white/10 md:hidden mr-2">
+                                <Menu className="h-6 w-6" />
                                 <span className="sr-only">Open Menu</span>
                             </Button>
                         </SheetTrigger>
-                        <SheetContent side="left" className="w-[300px] sm:w-[400px]">
-                            <SheetTitle className="sr-only">Mobile Menu</SheetTitle>
-                            <Logo settings={settings} isLoading={isLoadingSettings} className="mb-8 ml-4" iconClassName="text-primary h-16 w-16" titleClassName="text-slate-900 dark:text-slate-100 text-3xl" />
-                            <div className="flex flex-col space-y-2 px-4">
+                        <SheetContent side="left" className="w-[300px] bg-red-800 dark:bg-red-900 text-white border-r-0 p-0">
+                            <div className="p-4 border-b border-white/20">
+                                <Logo settings={settings} isLoading={isLoadingSettings} />
+                            </div>
+                            <nav className="flex flex-col space-y-1 p-4">
                                 {visibleMenuItems.map((item) => (
                                     <Link
                                         key={item.href}
@@ -171,47 +165,48 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                                         onClick={() => setMobileMenuOpen(false)}
                                         className={cn(
                                             "flex items-center gap-3 rounded-md p-3 text-lg font-medium transition-colors",
-                                            pathname === item.href ? "bg-accent text-accent-foreground" : "text-muted-foreground",
-                                            "hover:bg-accent/80"
+                                            pathname === item.href ? "bg-white/20" : "",
+                                            "hover:bg-white/10"
                                         )}
                                     >
                                         <item.icon className="h-5 w-5" />
                                         <span>{item.label}</span>
                                     </Link>
                                 ))}
-                            </div>
+                            </nav>
                         </SheetContent>
                     </Sheet>
+                    <nav className="hidden md:flex items-center space-x-1">
+                        {visibleMenuItems.map((item) => (
+                            <Link
+                                key={item.href}
+                                href={item.href}
+                                className={cn(
+                                    "flex flex-col h-16 w-20 items-center justify-center rounded-md px-2 py-1.5 text-xs font-semibold transition-colors hover:bg-white/20",
+                                    pathname === item.href && "bg-white/10"
+                                )}
+                            >
+                                <item.icon className="h-6 w-6 mb-1" />
+                                <span>{item.label}</span>
+                            </Link>
+                        ))}
+                    </nav>
                   </div>
                   
-                  <div className="hidden md:flex items-center">
-                     <Logo settings={settings} isLoading={isLoadingSettings} className="mr-6"/>
+                  <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 hidden md:flex">
+                     <Logo settings={settings} isLoading={isLoadingSettings} />
                   </div>
 
-                  <nav className="hidden md:flex flex-1 items-center justify-center space-x-1 lg:space-x-2 text-sm font-medium">
-                      {visibleMenuItems.map((item) => (
-                          <Link
-                              key={item.href}
-                              href={item.href}
-                              className={cn(
-                                  "flex h-10 items-center justify-center rounded-md border-2 border-transparent px-3 py-1.5 font-bold transition-colors text-white hover:bg-white/20",
-                                  pathname === item.href && "bg-white/10 border-white/50"
-                              )}
-                          >
-                              {item.label}
-                          </Link>
-                      ))}
-                  </nav>
-
-                  <div className="flex items-center justify-end space-x-4">
+                  <div className="flex items-center justify-end">
                     {user ? (
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" className="relative h-14 w-14 rounded-full hover:bg-white/20 focus-visible:ring-white ring-2 ring-yellow-400 ring-offset-2 ring-offset-red-800 dark:ring-offset-red-900">
-                                    <Avatar className="h-12 w-12">
+                                <Button variant="ghost" className="flex items-center gap-2 p-1 h-auto rounded-full hover:bg-white/20 focus-visible:ring-white">
+                                    <Avatar className="h-10 w-10">
                                         <AvatarImage src={userRole?.imageUrl || user.photoURL || `https://i.pravatar.cc/150?u=${user.uid}`} alt={user.displayName || 'User'} />
                                         <AvatarFallback>{user.displayName?.charAt(0) || user.email?.charAt(0)}</AvatarFallback>
                                     </Avatar>
+                                    <span className="hidden md:inline font-semibold">{user.displayName}</span>
                                 </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent className="w-56" align="end" forceMount>
