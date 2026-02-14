@@ -2,13 +2,56 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // WARNING: These rules are completely open and do not provide any security.
-    // Any user can read, write, and delete any data in your database.
-    // This is not recommended for production applications.
-    match /{document=**} {
-      allow read, write: if true;
+
+    function isAuth() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isAuth() && get(/databases/$(database)/documents/user_roles/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    match /students/{studentId} {
+      allow read, write: if isAuth();
+    }
+
+    match /teachers/{teacherId} {
+        allow read: if isAuth();
+        allow write: if isAdmin();
+    }
+
+    match /payments/{paymentId} {
+        allow read, write: if isAuth();
+    }
+
+    match /expenses/{expenseId} {
+        allow read, write: if isAuth();
+    }
+
+    match /attendance/{attendanceId} {
+        allow read, write: if isAuth();
+    }
+    
+    match /question_papers/{paperId} {
+        allow read, write: if isAuth();
+    }
+
+    match /institution_settings/default {
+        allow read: if true;
+        allow write: if isAdmin();
+    }
+
+    match /user_roles/{userId} {
+        allow read: if isAdmin() || (isAuth() && request.auth.uid == userId);
+        allow create: if isAuth() && request.auth.uid == userId;
+        allow update: if isAdmin();
+        allow delete: if false;
+    }
+
+    match /user_roles_by_role/admin {
+        allow read: if isAuth();
+        allow create: if isAuth();
+        allow update, delete: if false;
     }
   }
 }
-
-    

@@ -1,3 +1,4 @@
+
 'use client';
 import { useState, useEffect } from 'react';
 import {
@@ -232,9 +233,13 @@ function UserProfileCard() {
             const userData: Partial<UserRole> = {
                 name: name,
                 email: user.email!,
-                imageUrl: imagePreview || '',
-                imageHint: 'person face'
+            };
+
+            if (imagePreview) {
+                userData.imageUrl = imagePreview;
+                userData.imageHint = 'person face';
             }
+
             await setDoc(userRoleRef, userData, { merge: true });
 
             await user.getIdToken(true);

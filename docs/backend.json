@@ -106,6 +106,15 @@
         },
         "required": ["email", "name", "role"]
     },
+    "UserRoleMarker": {
+        "title": "User Role Marker",
+        "type": "object",
+        "description": "A marker document to indicate existence of a role, typically admin.",
+        "properties": {
+            "exists": { "type": "boolean" }
+        },
+        "required": ["exists"]
+    },
     "InstitutionSettings": {
         "title": "InstitutionSettings",
         "type": "object",
@@ -123,7 +132,7 @@
     "providers": ["password"]
   },
   "firestore": {
-    "rules": "rules_version = '2';\n\nservice cloud.firestore {\n  match /databases/{database}/documents {\n\n    function isAuth() {\n      return request.auth != null;\n    }\n\n    function isAdmin() {\n      return get(/databases/$(database)/documents/user_roles/$(request.auth.uid)).data.role == 'admin';\n    }\n\n    match /students/{studentId} {\n      allow read, write: if isAuth();\n    }\n\n    match /teachers/{teacherId} {\n        allow read: if isAuth();\n        allow write: if isAdmin();\n    }\n\n    match /payments/{paymentId} {\n        allow read, write: if isAuth();\n    }\n\n    match /expenses/{expenseId} {\n        allow read, write: if isAuth();\n    }\n\n    match /attendance/{attendanceId} {\n        allow read, write: if isAuth();\n    }\n    \n    match /question_papers/{paperId} {\n        allow read, write: if isAuth();\n    }\n\n    match /institution_settings/default {\n        allow read: if true;\n        allow write: if isAdmin();\n    }\n\n    match /user_roles/{userId} {\n        // Allow reading own role, and admins can read any role.\n        allow read: if isAuth() && (request.auth.uid == userId || isAdmin());\n        // Allow creating a role only if no admin exists (first user becomes admin).\n        allow create: if isAuth() && !exists(/databases/$(database)/documents/user_roles_by_role/admin);\n        // Allow admins to update roles.\n        allow write: if isAdmin();\n    }\n\n    // Helper collection to check for admin existence without scanning.\n    match /user_roles_by_role/{role} {\n        allow read: if isAuth();\n        allow write: if isAdmin();\n    }\n  }\n}",
+    "rules": "rules_version = '2';\n\nservice cloud.firestore {\n  match /databases/{database}/documents {\n\n    function isAuth() {\n      return request.auth != null;\n    }\n\n    function isAdmin() {\n      return isAuth() && get(/databases/$(database)/documents/user_roles/$(request.auth.uid)).data.role == 'admin';\n    }\n\n    match /students/{studentId} {\n      allow read, write: if isAuth();\n    }\n\n    match /teachers/{teacherId} {\n        allow read: if isAuth();\n        allow write: if isAdmin();\n    }\n\n    match /payments/{paymentId} {\n        allow read, write: if isAuth();\n    }\n\n    match /expenses/{expenseId} {\n        allow read, write: if isAuth();\n    }\n\n    match /attendance/{attendanceId} {\n        allow read, write: if isAuth();\n    }\n    \n    match /question_papers/{paperId} {\n        allow read, write: if isAuth();\n    }\n\n    match /institution_settings/default {\n        allow read: if true;\n        allow write: if isAdmin();\n    }\n\n    match /user_roles/{userId} {\n        allow read: if isAdmin() || (isAuth() && request.auth.uid == userId);\n        allow create: if isAuth() && request.auth.uid == userId;\n        allow update: if isAdmin();\n        allow delete: if false;\n    }\n\n    match /user_roles_by_role/admin {\n        allow read: if isAuth();\n        allow create: if isAuth();\n        allow update, delete: if false;\n    }\n  }\n}",
     "collections": {
       "students": {
         "schema": { "$ref": "#/entities/Student" },
@@ -152,6 +161,10 @@
       "user_roles": {
           "schema": { "$ref": "#/entities/UserRole" },
           "description": "Stores the role for each user."
+      },
+       "user_roles_by_role": {
+        "schema": { "$ref": "#/entities/UserRoleMarker" },
+        "description": "Helper collection to check for admin existence without scanning. Contains documents with IDs matching role names, e.g., 'admin'."
       },
       "institution_settings": {
         "schema": { "$ref": "#/entities/InstitutionSettings" },

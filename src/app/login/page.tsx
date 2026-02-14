@@ -19,7 +19,7 @@ import {
   sendPasswordResetEmail,
   updateProfile
 } from 'firebase/auth';
-import { collection, getDocs, query, where, doc, setDoc } from 'firebase/firestore';
+import { collection, doc, setDoc, runTransaction } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -43,26 +43,57 @@ export default function LoginPage() {
     }
     setIsLoading(true);
     try {
-        // Check if an admin already exists
-        const rolesRef = collection(firestore, 'user_roles');
-        const q = query(rolesRef, where('role', '==', 'admin'));
-        const querySnapshot = await getDocs(q);
-        const isAdminExisting = !querySnapshot.empty;
-
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         const user = userCredential.user;
         
         await updateProfile(user, { displayName: name });
-
-        const role = isAdminExisting ? 'teacher' : 'admin';
         
-        await setDoc(doc(firestore, 'user_roles', user.uid), {
-            role,
-            email: user.email,
-            name: name,
-        });
+        let userRole = 'teacher';
 
-        toast({ title: 'সফল', description: 'আপনার একাউন্ট সফলভাবে তৈরি হয়েছে।' });
+        try {
+            await runTransaction(firestore, async (transaction) => {
+                const adminMarkerRef = doc(firestore, 'user_roles_by_role', 'admin');
+                const adminMarkerDoc = await transaction.get(adminMarkerRef);
+
+                const userRoleRef = doc(firestore, 'user_roles', user.uid);
+
+                if (adminMarkerDoc.exists()) {
+                    // Admin already exists, create this user as a teacher.
+                    userRole = 'teacher';
+                    transaction.set(userRoleRef, {
+                        role: 'teacher',
+                        email: user.email,
+                        name: name,
+                    });
+                } else {
+                    // No admin exists, create this user as admin and set the marker.
+                    userRole = 'admin';
+                    transaction.set(userRoleRef, {
+                        role: 'admin',
+                        email: user.email,
+                        name: name,
+                    });
+                    transaction.set(adminMarkerRef, { exists: true });
+                }
+            });
+            
+             if(userRole === 'admin') {
+                toast({ title: 'সফল', description: 'আপনার এডমিন একাউন্ট সফলভাবে তৈরি হয়েছে।' });
+             } else {
+                toast({ title: 'সফল', description: 'আপনার শিক্ষক একাউন্ট সফলভাবে তৈরি হয়েছে।' });
+             }
+
+        } catch(e) {
+            console.error("Transaction to create user role failed: ", e);
+            // If transaction fails, it's safer to not grant admin rights.
+            await setDoc(doc(firestore, 'user_roles', user.uid), {
+                role: 'teacher',
+                email: user.email,
+                name: name,
+            });
+            toast({ title: 'সফল', description: 'আপনার শিক্ষক একাউন্ট সফলভাবে তৈরি হয়েছে।' });
+        }
+
         router.push('/');
 
     } catch (error: any) {
