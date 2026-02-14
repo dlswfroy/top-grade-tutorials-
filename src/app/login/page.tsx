@@ -36,6 +36,12 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isResettingPassword, setIsResettingPassword] = useState(false);
 
+  const handleTabChange = () => {
+    setEmail('');
+    setPassword('');
+    setName('');
+  };
+
   const handleSignUp = async () => {
     if (!email || !password || !name) {
       toast({ variant: 'destructive', title: 'ত্রুটি', description: 'অনুগ্রহ করে নাম, ইমেইল এবং পাসওয়ার্ড পূরণ করুন।' });
@@ -48,40 +54,26 @@ export default function LoginPage() {
         
         await updateProfile(user, { displayName: name });
         
-        try {
-            await runTransaction(firestore, async (transaction) => {
-                const adminMarkerRef = doc(firestore, 'user_roles_by_role', 'admin');
-                const adminMarkerDoc = await transaction.get(adminMarkerRef);
+        const userRoleRef = doc(firestore, 'user_roles', user.uid);
+        const adminMarkerRef = doc(firestore, 'user_roles_by_role', 'admin');
 
-                const userRoleRef = doc(firestore, 'user_roles', user.uid);
-                let userRole = 'teacher';
+        await runTransaction(firestore, async (transaction) => {
+            const adminMarkerDoc = await transaction.get(adminMarkerRef);
 
-                if (adminMarkerDoc.exists()) {
-                    userRole = 'teacher';
-                } else {
-                    userRole = 'admin';
-                    transaction.set(adminMarkerRef, { exists: true });
-                }
-                
-                transaction.set(userRoleRef, {
-                    role: userRole,
-                    email: user.email,
-                    name: name,
-                });
-                
-                toast({ title: 'সফল', description: `আপনার ${userRole === 'admin' ? 'এডমিন' : 'শিক্ষক'} একাউন্ট সফলভাবে তৈরি হয়েছে।` });
+            let userRole = 'teacher';
+            if (!adminMarkerDoc.exists()) {
+                userRole = 'admin';
+                transaction.set(adminMarkerRef, { exists: true });
+            }
 
-            });
-        } catch(e) {
-            console.error("Transaction to create user role failed: ", e);
-            // Fallback for safety
-            await setDoc(doc(firestore, 'user_roles', user.uid), {
-                role: 'teacher',
+            transaction.set(userRoleRef, {
+                role: userRole,
                 email: user.email,
                 name: name,
             });
-            toast({ title: 'সফল', description: 'আপনার শিক্ষক একাউন্ট সফলভাবে তৈরি হয়েছে।' });
-        }
+
+            toast({ title: 'সফল', description: `আপনার ${userRole === 'admin' ? 'এডমিন' : 'শিক্ষক'} একাউন্ট সফলভাবে তৈরি হয়েছে।` });
+        });
 
         router.push('/');
 
@@ -185,7 +177,7 @@ export default function LoginPage() {
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-background">
-      <Tabs defaultValue="teacher-login" className="w-[400px]">
+      <Tabs defaultValue="teacher-login" className="w-[400px]" onValueChange={handleTabChange}>
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="teacher-login">শিক্ষক লগইন</TabsTrigger>
           <TabsTrigger value="admin-login">এডমিন লগইন</TabsTrigger>
