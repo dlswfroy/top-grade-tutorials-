@@ -30,20 +30,25 @@ export default function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
 
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [name, setName] = useState('');
+  const [loginEmail, setLoginEmail] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
+  const [signupName, setSignupName] = useState('');
+  const [signupEmail, setSignupEmail] = useState('');
+  const [signupPassword, setSignupPassword] = useState('');
+
   const [isLoading, setIsLoading] = useState(false);
   const [isResettingPassword, setIsResettingPassword] = useState(false);
 
   const handleTabChange = () => {
-    setEmail('');
-    setPassword('');
-    setName('');
+    setLoginEmail('');
+    setLoginPassword('');
+    setSignupName('');
+    setSignupEmail('');
+    setSignupPassword('');
   };
 
   const handleSignUp = async () => {
-    if (!email || !password || !name) {
+    if (!signupEmail || !signupPassword || !signupName) {
       toast({ variant: 'destructive', title: 'ত্রুটি', description: 'অনুগ্রহ করে নাম, ইমেইল এবং পাসওয়ার্ড পূরণ করুন।' });
       return;
     }
@@ -55,7 +60,7 @@ export default function LoginPage() {
 
         if (!isFirstUser) {
             const teachersRef = collection(firestore, 'teachers');
-            const q = query(teachersRef, where('email', '==', email));
+            const q = query(teachersRef, where('email', '==', signupEmail));
             const querySnapshot = await getDocs(q);
             if (querySnapshot.empty) {
                 toast({
@@ -69,10 +74,10 @@ export default function LoginPage() {
             }
         }
 
-        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        const userCredential = await createUserWithEmailAndPassword(auth, signupEmail, signupPassword);
         const user = userCredential.user;
         
-        await updateProfile(user, { displayName: name });
+        await updateProfile(user, { displayName: signupName });
         
         const userRoleRef = doc(firestore, 'user_roles', user.uid);
 
@@ -88,7 +93,7 @@ export default function LoginPage() {
             transaction.set(userRoleRef, {
                 role: userRole,
                 email: user.email,
-                name: name,
+                name: signupName,
             });
 
             toast({ title: 'সফল', description: `আপনার ${userRole === 'admin' ? 'এডমিন' : 'শিক্ষক'} একাউন্ট সফলভাবে তৈরি হয়েছে।` });
@@ -110,13 +115,13 @@ export default function LoginPage() {
   };
 
   const handleLogin = async (role: 'teacher' | 'admin') => {
-    if (!email || !password) {
+    if (!loginEmail || !loginPassword) {
         toast({ variant: 'destructive', title: 'ত্রুটি', description: 'অনুগ্রহ করে ইমেইল এবং পাসওয়ার্ড দিন।' });
         return;
       }
     setIsLoading(true);
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const userCredential = await signInWithEmailAndPassword(auth, loginEmail, loginPassword);
       const user = userCredential.user;
 
       const userRoleRef = doc(firestore, 'user_roles', user.uid);
@@ -148,13 +153,13 @@ export default function LoginPage() {
   };
 
   const handlePasswordReset = async () => {
-    if (!email) {
+    if (!loginEmail) {
       toast({ variant: 'destructive', title: 'ত্রুটি', description: 'পাসওয়ার্ড রিসেট করার জন্য আপনার ইমেইল দিন।' });
       return;
     }
     setIsResettingPassword(true);
     try {
-      await sendPasswordResetEmail(auth, email);
+      await sendPasswordResetEmail(auth, loginEmail);
       toast({ title: 'ইমেইল পাঠানো হয়েছে', description: 'পাসওয়ার্ড রিসেট করার জন্য আপনার ইমেইলে একটি লিঙ্ক পাঠানো হয়েছে।' });
     } catch (error: any) {
       toast({ variant: 'destructive', title: 'ত্রুটি', description: error.message });
@@ -174,11 +179,11 @@ export default function LoginPage() {
       <CardContent className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor={`${role}-email`} className="text-gray-700 dark:text-gray-300">ইমেইল</Label>
-          <Input id={`${role}-email`} type="email" placeholder="আপনার ইমেইল" value={email} onChange={(e) => setEmail(e.target.value)} required />
+          <Input id={`${role}-email`} type="email" placeholder="আপনার ইমেইল" value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} required />
         </div>
         <div className="space-y-2">
           <Label htmlFor={`${role}-password`} className="text-gray-700 dark:text-gray-300">পাসওয়ার্ড</Label>
-          <Input id={`${role}-password`} type="password" placeholder="আপনার পাসওয়ার্ড" value={password} onChange={(e) => setPassword(e.target.value)} required />
+          <Input id={`${role}-password`} type="password" placeholder="আপনার পাসওয়ার্ড" value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} required />
         </div>
         <Button onClick={() => handleLogin(role)} disabled={isLoading} className="w-full">
           {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -217,15 +222,15 @@ export default function LoginPage() {
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="name" className="text-gray-700 dark:text-gray-300">নাম</Label>
-                <Input id="name" placeholder="আপনার পুরো নাম" value={name} onChange={(e) => setName(e.target.value)} required />
+                <Input id="name" placeholder="আপনার পুরো নাম" value={signupName} onChange={(e) => setSignupName(e.target.value)} required />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="signup-email" className="text-gray-700 dark:text-gray-300">ইমেইল</Label>
-                <Input id="signup-email" type="email" placeholder="আপনার ইমেইল" value={email} onChange={(e) => setEmail(e.target.value)} required />
+                <Input id="signup-email" type="email" placeholder="আপনার ইমেইল" value={signupEmail} onChange={(e) => setSignupEmail(e.target.value)} required />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="signup-password" className="text-gray-700 dark:text-gray-300">পাসওয়ার্ড</Label>
-                <Input id="signup-password" type="password" placeholder="একটি শক্তিশালী পাসওয়ার্ড দিন" value={password} onChange={(e) => setPassword(e.target.value)} required />
+                <Input id="signup-password" type="password" placeholder="একটি শক্তিশালী পাসওয়ার্ড দিন" value={signupPassword} onChange={(e) => setSignupPassword(e.target.value)} required />
               </div>
               <Button onClick={handleSignUp} disabled={isLoading} className="w-full">
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
