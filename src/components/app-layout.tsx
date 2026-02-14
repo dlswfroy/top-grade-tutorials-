@@ -19,7 +19,7 @@ import { Button } from '@/components/ui/button';
 import { useFirestore, useDoc, useMemoFirebase, useAuth } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { signOut, onAuthStateChanged, type User } from 'firebase/auth';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
 import {
   DropdownMenu,
@@ -215,6 +215,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                             </Button>
                         </SheetTrigger>
                         <SheetContent side="left" className="w-[300px] bg-[#1A73E8] text-white border-r-0 p-0">
+                             <SheetTitle className="sr-only">Mobile Menu</SheetTitle>
                             <div className="p-4 border-b border-white/20">
                                 <Logo settings={settings} isLoading={isLoadingSettings} />
                             </div>
