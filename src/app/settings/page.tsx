@@ -11,11 +11,11 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Save, Loader2, User as UserIcon, MoreHorizontal, KeyRound } from 'lucide-react';
+import { Save, Loader2, User as UserIcon } from 'lucide-react';
 import { useFirestore, useDoc, useMemoFirebase, useAuth, useCollection } from '@/firebase';
 import { doc, setDoc, updateDoc, collection } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
-import { onAuthStateChanged, updateProfile, type User, sendPasswordResetEmail } from 'firebase/auth';
+import { onAuthStateChanged, updateProfile, type User } from 'firebase/auth';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import type { UserRole } from '@/lib/data';
 import {
@@ -33,23 +33,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
 
 type InstitutionSettings = {
     institutionName?: string;
@@ -108,8 +91,7 @@ function UserManagementCard() {
     const { data: userRoles, isLoading: isLoadingUserRoles } = useCollection<UserRole>(userRolesQuery);
 
     const [isSaving, setIsSaving] = useState<Record<string, boolean>>({});
-    const [actionUser, setActionUser] = useState<UserRole | null>(null);
-
+    
     const handleRoleChange = async (userId: string, newRole: 'admin' | 'teacher') => {
         if (!firestore) return;
 
@@ -126,15 +108,6 @@ function UserManagementCard() {
             });
         } finally {
             setIsSaving(prev => ({ ...prev, [userId]: false }));
-        }
-    };
-
-    const handlePasswordReset = async (email: string) => {
-        try {
-            await sendPasswordResetEmail(auth, email);
-            toast({ title: 'ইমেইল পাঠানো হয়েছে', description: `${email}-এ পাসওয়ার্ড রিসেট করার লিঙ্ক পাঠানো হয়েছে।` });
-        } catch (error: any) {
-            toast({ variant: 'destructive', title: 'ত্রুটি', description: error.message });
         }
     };
 
@@ -155,7 +128,7 @@ function UserManagementCard() {
         <Card>
             <CardHeader>
                 <CardTitle className="font-bold text-slate-900 dark:text-slate-100">ব্যবহারকারী ম্যানেজমেন্ট</CardTitle>
-                <CardDescription>ব্যবহারকারীদের ভূমিকা নির্ধারণ করুন এবং পাসওয়ার্ড রিসেট করুন।</CardDescription>
+                <CardDescription>ব্যবহারকারীদের ভূমিকা নির্ধারণ করুন।</CardDescription>
             </CardHeader>
             <CardContent>
                 <Table>
@@ -164,7 +137,6 @@ function UserManagementCard() {
                             <TableHead>নাম</TableHead>
                             <TableHead>ইমেইল</TableHead>
                             <TableHead>ভূমিকা</TableHead>
-                            <TableHead className="text-right">একশন</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -186,40 +158,6 @@ function UserManagementCard() {
                                             <SelectItem value="teacher">শিক্ষক</SelectItem>
                                         </SelectContent>
                                     </Select>
-                                </TableCell>
-                                <TableCell className="text-right">
-                                    <AlertDialog>
-                                         <DropdownMenu>
-                                            <DropdownMenuTrigger asChild>
-                                                <Button variant="ghost" className="h-8 w-8 p-0">
-                                                    <span className="sr-only">Open menu</span>
-                                                    <MoreHorizontal className="h-4 w-4" />
-                                                </Button>
-                                            </DropdownMenuTrigger>
-                                            <DropdownMenuContent align="end">
-                                                <AlertDialogTrigger asChild>
-                                                    <DropdownMenuItem onSelect={(e) => { e.preventDefault(); setActionUser(userRole); }}>
-                                                        <KeyRound className="mr-2 h-4 w-4" />
-                                                        <span>পাসওয়ার্ড রিসেট</span>
-                                                    </DropdownMenuItem>
-                                                </AlertDialogTrigger>
-                                            </DropdownMenuContent>
-                                        </DropdownMenu>
-                                        <AlertDialogContent>
-                                            <AlertDialogHeader>
-                                                <AlertDialogTitle>আপনি কি নিশ্চিত?</AlertDialogTitle>
-                                                <AlertDialogDescription>
-                                                    এই একশনের ফলে {actionUser?.name} ({actionUser?.email}) এর কাছে পাসওয়ার্ড রিসেট করার জন্য একটি ইমেইল পাঠানো হবে।
-                                                </AlertDialogDescription>
-                                            </AlertDialogHeader>
-                                            <AlertDialogFooter>
-                                                <AlertDialogCancel>বাতিল</AlertDialogCancel>
-                                                <AlertDialogAction onClick={() => actionUser && handlePasswordReset(actionUser.email)}>
-                                                  চালিয়ে যান
-                                                </AlertDialogAction>
-                                            </AlertDialogFooter>
-                                        </AlertDialogContent>
-                                    </AlertDialog>
                                 </TableCell>
                             </TableRow>
                         ))}
