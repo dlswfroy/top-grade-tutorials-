@@ -45,7 +45,7 @@ service cloud.firestore {
         allow read: if isAdmin() || (isAuth() && request.auth.uid == userId);
         allow create: if isAuth() && request.auth.uid == userId;
         allow update: if isAdmin();
-        allow delete: if false;
+        allow delete: if isAdmin() && request.auth.uid != userId;
     }
 
     match /user_roles_by_role/admin {

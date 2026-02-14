@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   LayoutDashboard,
   Users,
@@ -19,7 +19,7 @@ import { Button } from '@/components/ui/button';
 import { useFirestore, useDoc, useMemoFirebase, useAuth } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { signOut, onAuthStateChanged, type User } from 'firebase/auth';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
 import {
   DropdownMenu,
@@ -33,12 +33,12 @@ import { useToast } from '@/hooks/use-toast';
 import type { UserRole } from '@/lib/data';
 
 const menuItems = [
-  { href: '/', label: 'ড্যাসবোর্ড', icon: LayoutDashboard },
-  { href: '/students', label: 'শিক্ষার্থী', icon: Users },
-  { href: '/teachers', label: 'শিক্ষক', icon: GraduationCap },
-  { href: '/accounting', label: 'হিসাব', icon: Calculator },
-  { href: '/attendance', label: 'হাজিরা', icon: CalendarCheck },
-  { href: '/settings', label: 'সেটিংস', icon: Settings },
+  { href: '/', label: 'ড্যাসবোর্ড', icon: LayoutDashboard, key: 'dashboard' },
+  { href: '/students', label: 'শিক্ষার্থী', icon: Users, key: 'students' },
+  { href: '/teachers', label: 'শিক্ষক', icon: GraduationCap, key: 'teachers' },
+  { href: '/accounting', label: 'হিসাব', icon: Calculator, key: 'accounting' },
+  { href: '/attendance', label: 'হাজিরা', icon: CalendarCheck, key: 'attendance' },
+  { href: '/settings', label: 'সেটিংস', icon: Settings, key: 'settings' },
 ];
 
 type InstitutionSettings = {
@@ -119,6 +119,17 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         toast({ variant: 'destructive', title: 'ত্রুটি', description: 'লগ আউট করতে সমস্যা হয়েছে।' });
     }
   };
+
+  const visibleMenuItems = useMemo(() => {
+    if (!userRole) return [];
+    if (userRole.role === 'admin') {
+      return menuItems;
+    }
+    if (userRole.role === 'teacher' && userRole.permissions) {
+      return menuItems.filter(item => userRole.permissions![item.key]);
+    }
+    return [];
+  }, [userRole]);
   
   if (pathname === '/login') {
     return <>{children}</>;
@@ -146,9 +157,10 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                             </Button>
                         </SheetTrigger>
                         <SheetContent side="left" className="w-[300px] sm:w-[400px]">
+                            <SheetTitle className="sr-only">Mobile Menu</SheetTitle>
                             <Logo settings={settings} isLoading={isLoadingSettings} className="mb-8 ml-4" iconClassName="text-primary h-16 w-16" titleClassName="text-slate-900 dark:text-slate-100 text-3xl" />
                             <div className="flex flex-col space-y-2 px-4">
-                                {menuItems.map((item) => (
+                                {visibleMenuItems.map((item) => (
                                     <Link
                                         key={item.href}
                                         href={item.href}
@@ -170,7 +182,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                   <div className="hidden md:flex items-center">
                      <Logo settings={settings} isLoading={isLoadingSettings} className="mr-6 ml-4" iconClassName="h-16 w-16" titleClassName="text-white text-3xl"/>
                       <nav className="flex items-center space-x-2 text-sm font-medium">
-                          {menuItems.map((item) => (
+                          {visibleMenuItems.map((item) => (
                               <Link
                                   key={item.href}
                                   href={item.href}

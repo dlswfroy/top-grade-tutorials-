@@ -53,6 +53,7 @@ export type UserRole = {
   email: string;
   name: string;
   role: 'admin' | 'teacher';
+  permissions?: Record<string, boolean>;
   imageUrl?: string;
   imageHint?: string;
 };

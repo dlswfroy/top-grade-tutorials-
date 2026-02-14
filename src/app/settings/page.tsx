@@ -12,9 +12,9 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Save, Loader2, User as UserIcon } from 'lucide-react';
+import { Save, Loader2, User as UserIcon, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
 import { useFirestore, useDoc, useMemoFirebase, useAuth, useCollection } from '@/firebase';
-import { doc, setDoc, updateDoc, collection } from 'firebase/firestore';
+import { doc, setDoc, updateDoc, collection, deleteDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { onAuthStateChanged, updateProfile, type User } from 'firebase/auth';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -34,11 +34,45 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 type InstitutionSettings = {
     institutionName?: string;
     logoUrl?: string;
 };
+
+const permissionsList = [
+    { id: 'dashboard', label: 'ড্যাসবোর্ড' },
+    { id: 'students', label: 'শিক্ষার্থী' },
+    { id: 'teachers', label: 'শিক্ষক' },
+    { id: 'accounting', label: 'হিসাব' },
+    { id: 'attendance', label: 'হাজিরা' },
+    { id: 'settings', label: 'সেটিংস' },
+];
 
 const compressImage = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
@@ -80,6 +114,83 @@ const compressImage = (file: File): Promise<string> => {
     });
 };
 
+function ManagePermissionsDialog({ user, isOpen, onOpenChange, onSaveSuccess }: { user: UserRole | null, isOpen: boolean, onOpenChange: (open: boolean) => void, onSaveSuccess: () => void }) {
+    const firestore = useFirestore();
+    const { toast } = useToast();
+    const [permissions, setPermissions] = useState<Record<string, boolean>>({});
+    const [isSaving, setIsSaving] = useState(false);
+
+    useEffect(() => {
+        if (user?.permissions) {
+            setPermissions(user.permissions);
+        } else if (user) {
+            // If no permissions are set, default them for a teacher
+            const defaultPerms = permissionsList.reduce((acc, p) => ({ ...acc, [p.id]: p.id !== 'settings' }), {});
+            setPermissions(defaultPerms);
+        }
+    }, [user]);
+
+    if (!user) return null;
+
+    const handlePermissionChange = (permissionId: string, checked: boolean) => {
+        setPermissions(prev => ({ ...prev, [permissionId]: checked }));
+    };
+
+    const handleSave = async () => {
+        if (!firestore) return;
+        setIsSaving(true);
+        try {
+            const userRoleRef = doc(firestore, 'user_roles', user.id);
+            await updateDoc(userRoleRef, { permissions });
+            toast({ title: 'সফল', description: `${user.name}-এর পারমিশন আপডেট করা হয়েছে।` });
+            onSaveSuccess();
+            onOpenChange(false);
+        } catch (error: any) {
+            toast({ variant: 'destructive', title: 'ত্রুটি', description: `পারমিশন আপডেট করতে সমস্যা হয়েছে: ${error.message}` });
+        } finally {
+            setIsSaving(false);
+        }
+    };
+    
+    return (
+        <Dialog open={isOpen} onOpenChange={onOpenChange}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>পারমিশন ম্যানেজ করুন: {user.name}</DialogTitle>
+                    <DialogDescription>
+                        এই শিক্ষক কোন কোন সেকশন ব্যবহার করতে পারবেন তা নির্ধারণ করুন।
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                    {permissionsList.map((permission) => (
+                        <div key={permission.id} className="flex items-center space-x-2">
+                            <Checkbox
+                                id={`perm-${permission.id}`}
+                                checked={permissions[permission.id] || false}
+                                onCheckedChange={(checked) => handlePermissionChange(permission.id, !!checked)}
+                                disabled={isSaving}
+                            />
+                            <label
+                                htmlFor={`perm-${permission.id}`}
+                                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                            >
+                                {permission.label}
+                            </label>
+                        </div>
+                    ))}
+                </div>
+                <DialogFooter>
+                    <Button variant="outline" onClick={() => onOpenChange(false)}>বাতিল</Button>
+                    <Button onClick={handleSave} disabled={isSaving}>
+                        {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                        সেভ করুন
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
+}
+
 function UserManagementCard() {
     const firestore = useFirestore();
     const auth = useAuth();
@@ -89,14 +200,21 @@ function UserManagementCard() {
         if (!firestore) return null;
         return collection(firestore, 'user_roles');
     }, [firestore]);
-    const { data: userRoles, isLoading: isLoadingUserRoles } = useCollection<UserRole>(userRolesQuery);
+    const { data: userRoles, isLoading: isLoadingUserRoles, forceRefetch } = useCollection<UserRole>(userRolesQuery);
 
-    const [isSaving, setIsSaving] = useState<Record<string, boolean>>({});
+    const [isSavingRole, setIsSavingRole] = useState<Record<string, boolean>>({});
+    
+    const [userToManagePerms, setUserToManagePerms] = useState<UserRole | null>(null);
+    const [isPermsDialogOpen, setIsPermsDialogOpen] = useState(false);
+    
+    const [userToDelete, setUserToDelete] = useState<UserRole | null>(null);
+    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
     
     const handleRoleChange = async (userId: string, newRole: 'admin' | 'teacher') => {
         if (!firestore) return;
 
-        setIsSaving(prev => ({ ...prev, [userId]: true }));
+        setIsSavingRole(prev => ({ ...prev, [userId]: true }));
         try {
             const userRoleRef = doc(firestore, 'user_roles', userId);
             await updateDoc(userRoleRef, { role: newRole });
@@ -108,7 +226,27 @@ function UserManagementCard() {
                 description: `ভূমিকা আপডেট করতে সমস্যা হয়েছে: ${error.message}`,
             });
         } finally {
-            setIsSaving(prev => ({ ...prev, [userId]: false }));
+            setIsSavingRole(prev => ({ ...prev, [userId]: false }));
+        }
+    };
+    
+    const handleDeleteUser = async () => {
+        if (!firestore || !userToDelete) return;
+        setIsDeleting(true);
+        try {
+            const userRoleRef = doc(firestore, 'user_roles', userToDelete.id);
+            await deleteDoc(userRoleRef);
+            toast({ title: 'সফল', description: `${userToDelete.name}-কে সফলভাবে ডিলিট করা হয়েছে।` });
+            setIsDeleteDialogOpen(false);
+            setUserToDelete(null);
+        } catch (error: any) {
+             toast({
+                variant: "destructive",
+                title: "ত্রুটি",
+                description: `ব্যবহারকারীকে ডিলিট করতে সমস্যা হয়েছে: ${error.message}`,
+            });
+        } finally {
+            setIsDeleting(false);
         }
     };
 
@@ -126,46 +264,103 @@ function UserManagementCard() {
     }
 
     return (
-        <Card>
-            <CardHeader>
-                <CardTitle className="font-bold text-slate-900 dark:text-slate-100">ব্যবহারকারী ম্যানেজমেন্ট</CardTitle>
-                <CardDescription>ব্যবহারকারীদের ভূমিকা নির্ধারণ করুন।</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead>নাম</TableHead>
-                            <TableHead>ইমেইল</TableHead>
-                            <TableHead>ভূমিকা</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {userRoles?.map((userRole) => (
-                            <TableRow key={userRole.id}>
-                                <TableCell className="font-medium">{userRole.name}</TableCell>
-                                <TableCell>{userRole.email}</TableCell>
-                                <TableCell>
-                                    <Select
-                                        value={userRole.role}
-                                        onValueChange={(newRole: 'admin' | 'teacher') => handleRoleChange(userRole.id, newRole)}
-                                        disabled={isSaving[userRole.id] || auth.currentUser?.uid === userRole.id}
-                                    >
-                                        <SelectTrigger className="w-[120px]">
-                                            <SelectValue placeholder="ভূমিকা" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="admin">এডমিন</SelectItem>
-                                            <SelectItem value="teacher">শিক্ষক</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </TableCell>
+        <>
+            <Card>
+                <CardHeader>
+                    <CardTitle className="font-bold text-slate-900 dark:text-slate-100">ব্যবহারকারী ম্যানেজমেন্ট</CardTitle>
+                    <CardDescription>ব্যবহারকারীদের ভূমিকা নির্ধারণ এবং পারমিশন ম্যানেজ করুন।</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>নাম</TableHead>
+                                <TableHead>ইমেইল</TableHead>
+                                <TableHead>ভূমিকা</TableHead>
+                                <TableHead className="text-right">একশন</TableHead>
                             </TableRow>
-                        ))}
-                    </TableBody>
-                </Table>
-            </CardContent>
-        </Card>
+                        </TableHeader>
+                        <TableBody>
+                            {userRoles?.map((userRole) => (
+                                <TableRow key={userRole.id}>
+                                    <TableCell className="font-medium">{userRole.name}</TableCell>
+                                    <TableCell>{userRole.email}</TableCell>
+                                    <TableCell>
+                                        <Select
+                                            value={userRole.role}
+                                            onValueChange={(newRole: 'admin' | 'teacher') => handleRoleChange(userRole.id, newRole)}
+                                            disabled={isSavingRole[userRole.id] || auth.currentUser?.uid === userRole.id}
+                                        >
+                                            <SelectTrigger className="w-[120px]">
+                                                <SelectValue placeholder="ভূমিকা" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="admin">এডমিন</SelectItem>
+                                                <SelectItem value="teacher">শিক্ষক</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </TableCell>
+                                    <TableCell className="text-right">
+                                         <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                                <Button variant="ghost" className="h-8 w-8 p-0" disabled={auth.currentUser?.uid === userRole.id}>
+                                                    <span className="sr-only">Open menu</span>
+                                                    <MoreHorizontal className="h-4 w-4" />
+                                                </Button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent align="end">
+                                                <DropdownMenuItem 
+                                                    onClick={() => { setUserToManagePerms(userRole); setIsPermsDialogOpen(true); }}
+                                                    disabled={userRole.role === 'admin'}
+                                                >
+                                                    <Pencil className="mr-2 h-4 w-4" />
+                                                    <span>পারমিশন ম্যানেজ</span>
+                                                </DropdownMenuItem>
+                                                <DropdownMenuItem 
+                                                    className="text-destructive" 
+                                                    onClick={() => { setUserToDelete(userRole); setIsDeleteDialogOpen(true); }}
+                                                >
+                                                    <Trash2 className="mr-2 h-4 w-4" />
+                                                    <span>ডিলিট করুন</span>
+                                                </DropdownMenuItem>
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </CardContent>
+            </Card>
+
+            <ManagePermissionsDialog 
+                user={userToManagePerms}
+                isOpen={isPermsDialogOpen}
+                onOpenChange={(open) => {
+                    if (!open) setUserToManagePerms(null);
+                    setIsPermsDialogOpen(open);
+                }}
+                onSaveSuccess={forceRefetch}
+            />
+
+            <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>আপনি কি নিশ্চিত?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            আপনি {userToDelete?.name}-কে ডিলিট করতে যাচ্ছেন। এই কাজটি আর ফেরানো যাবে না।
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel onClick={() => setUserToDelete(null)}>বাতিল</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleDeleteUser} disabled={isDeleting} className="bg-destructive hover:bg-destructive/90">
+                            {isDeleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : null}
+                            ডিলিট করুন
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+        </>
     );
 }
 

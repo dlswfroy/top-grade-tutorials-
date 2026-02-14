@@ -90,11 +90,24 @@ export default function LoginPage() {
                 transaction.set(adminMarkerRef, { exists: true });
             }
 
-            transaction.set(userRoleRef, {
+            const userData: any = {
                 role: userRole,
                 email: user.email,
                 name: signupName,
-            });
+            };
+
+            if (userRole === 'teacher') {
+                userData.permissions = {
+                    dashboard: true,
+                    students: true,
+                    teachers: true,
+                    accounting: true,
+                    attendance: true,
+                    settings: false,
+                };
+            }
+
+            transaction.set(userRoleRef, userData);
 
             toast({ title: 'সফল', description: `আপনার ${userRole === 'admin' ? 'এডমিন' : 'শিক্ষক'} একাউন্ট সফলভাবে তৈরি হয়েছে।` });
         });
