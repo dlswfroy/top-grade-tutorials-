@@ -25,6 +25,55 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
+const LoginForm = ({
+  role,
+  email,
+  setEmail,
+  password,
+  setPassword,
+  onLogin,
+  onPasswordReset,
+  isLoading,
+  isResettingPassword
+}: {
+  role: 'teacher' | 'admin';
+  email: string;
+  setEmail: (email: string) => void;
+  password: string;
+  setPassword: (password: string) => void;
+  onLogin: (role: 'teacher' | 'admin') => void;
+  onPasswordReset: () => void;
+  isLoading: boolean;
+  isResettingPassword: boolean;
+}) => (
+  <Card>
+    <CardHeader>
+      <CardTitle className="text-gray-800 dark:text-gray-200">{role === 'teacher' ? 'শিক্ষক লগইন' : 'এডমিন লগইন'}</CardTitle>
+      <CardDescription className="text-gray-600 dark:text-gray-400">
+        আপনার একাউন্টে প্রবেশ করতে ইমেইল ও পাসওয়ার্ড দিন।
+      </CardDescription>
+    </CardHeader>
+    <CardContent className="space-y-4">
+      <div className="space-y-2">
+        <Label htmlFor={`${role}-email`} className="text-gray-700 dark:text-gray-300">ইমেইল</Label>
+        <Input id={`${role}-email`} type="email" placeholder="আপনার ইমেইল" value={email} onChange={(e) => setEmail(e.target.value)} required />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor={`${role}-password`} className="text-gray-700 dark:text-gray-300">পাসওয়ার্ড</Label>
+        <Input id={`${role}-password`} type="password" placeholder="আপনার পাসওয়ার্ড" value={password} onChange={(e) => setPassword(e.target.value)} required />
+      </div>
+      <Button onClick={() => onLogin(role)} disabled={isLoading} className="w-full">
+        {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+        লগইন করুন
+      </Button>
+       <Button variant="link" onClick={onPasswordReset} disabled={isResettingPassword} className="w-full">
+        {isResettingPassword && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+        পাসওয়ার্ড ভুলে গেছেন?
+      </Button>
+    </CardContent>
+  </Card>
+);
+
 export default function LoginPage() {
   const auth = useAuth();
   const firestore = useFirestore();
@@ -211,35 +260,6 @@ export default function LoginPage() {
     }
   };
 
-  const LoginForm = ({ role }: { role: 'teacher' | 'admin' }) => (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-gray-800 dark:text-gray-200">{role === 'teacher' ? 'শিক্ষক লগইন' : 'এডমিন লগইন'}</CardTitle>
-        <CardDescription className="text-gray-600 dark:text-gray-400">
-          আপনার একাউন্টে প্রবেশ করতে ইমেইল ও পাসওয়ার্ড দিন।
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="space-y-2">
-          <Label htmlFor={`${role}-email`} className="text-gray-700 dark:text-gray-300">ইমেইল</Label>
-          <Input id={`${role}-email`} type="email" placeholder="আপনার ইমেইল" value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} required />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor={`${role}-password`} className="text-gray-700 dark:text-gray-300">পাসওয়ার্ড</Label>
-          <Input id={`${role}-password`} type="password" placeholder="আপনার পাসওয়ার্ড" value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} required />
-        </div>
-        <Button onClick={() => handleLogin(role)} disabled={isLoading} className="w-full">
-          {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          লগইন করুন
-        </Button>
-         <Button variant="link" onClick={handlePasswordReset} disabled={isResettingPassword} className="w-full">
-          {isResettingPassword && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          পাসওয়ার্ড ভুলে গেছেন?
-        </Button>
-      </CardContent>
-    </Card>
-  );
-
   return (
     <div className="flex items-center justify-center min-h-screen bg-background">
       <Tabs defaultValue="teacher-login" className="w-[400px]" onValueChange={handleTabChange}>
@@ -249,10 +269,30 @@ export default function LoginPage() {
           <TabsTrigger value="signup">সাইন আপ</TabsTrigger>
         </TabsList>
         <TabsContent value="teacher-login">
-          <LoginForm role="teacher" />
+          <LoginForm 
+            role="teacher" 
+            email={loginEmail}
+            setEmail={setLoginEmail}
+            password={loginPassword}
+            setPassword={setLoginPassword}
+            onLogin={handleLogin}
+            onPasswordReset={handlePasswordReset}
+            isLoading={isLoading}
+            isResettingPassword={isResettingPassword}
+          />
         </TabsContent>
         <TabsContent value="admin-login">
-          <LoginForm role="admin" />
+          <LoginForm 
+            role="admin" 
+            email={loginEmail}
+            setEmail={setLoginEmail}
+            password={loginPassword}
+            setPassword={setLoginPassword}
+            onLogin={handleLogin}
+            onPasswordReset={handlePasswordReset}
+            isLoading={isLoading}
+            isResettingPassword={isResettingPassword}
+          />
         </TabsContent>
         <TabsContent value="signup">
           <Card>
