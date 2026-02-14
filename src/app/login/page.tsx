@@ -20,7 +20,7 @@ import {
   signOut,
   deleteUser,
 } from 'firebase/auth';
-import { collection, doc, setDoc, runTransaction, getDoc, query, where, getDocs } from 'firebase/firestore';
+import { collection, doc, setDoc, runTransaction, getDoc, query, where, getDocs, DocumentSnapshot, DocumentData } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -66,6 +66,7 @@ export default function LoginPage() {
             const isFirstUser = !adminMarkerSnap.exists();
 
             let canProceed = false;
+            let teacherDoc: DocumentSnapshot<DocumentData> | null = null;
             if (isFirstUser) {
                 canProceed = true;
             } else {
@@ -74,6 +75,7 @@ export default function LoginPage() {
                 const querySnapshot = await getDocs(q);
                 if (!querySnapshot.empty) {
                     canProceed = true;
+                    teacherDoc = querySnapshot.docs[0];
                 }
             }
 
@@ -107,6 +109,16 @@ export default function LoginPage() {
                     email: user.email,
                     name: signupName,
                 };
+
+                if (teacherDoc?.exists()) {
+                    const teacherData = teacherDoc.data();
+                    if (teacherData?.imageUrl) {
+                        userData.imageUrl = teacherData.imageUrl;
+                    }
+                    if (teacherData?.imageHint) {
+                        userData.imageHint = teacherData.imageHint;
+                    }
+                }
 
                 if (userRole === 'teacher') {
                     userData.permissions = {
