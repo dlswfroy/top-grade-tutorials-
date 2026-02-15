@@ -13,7 +13,7 @@ import {
   Menu,
   GraduationCap,
   LogOut,
-  Database,
+  BookOpen,
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -40,7 +40,7 @@ const menuItems = [
   { href: '/teachers', label: 'শিক্ষক', icon: GraduationCap, key: 'teachers' },
   { href: '/accounting', label: 'হিসাব', icon: Calculator, key: 'accounting' },
   { href: '/attendance', label: 'হাজিরা', icon: CalendarCheck, key: 'attendance' },
-  { href: '/datastore', label: 'তথ্য ভান্ডার', icon: Database, key: 'datastore' },
+  { href: '/datastore', label: 'তথ্য ভান্ডার', icon: BookOpen, key: 'datastore' },
   { href: '/settings', label: 'সেটিংস', icon: Settings, key: 'settings' },
 ];
 
@@ -185,7 +185,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                                 <Button variant="ghost" className="relative h-14 w-14 rounded-full p-0 focus-visible:ring-white">
-                                    <Avatar className="h-14 w-14 ring-2 ring-offset-2 ring-red-500 ring-offset-[#1A73E8]">
+                                    <Avatar className="h-14 w-14">
                                         <AvatarImage src={userRole?.imageUrl || user.photoURL || `https://i.pravatar.cc/150?u=${user.uid}`} alt={user.displayName || 'User'} />
                                         <AvatarFallback>{user.displayName?.charAt(0) || user.email?.charAt(0)}</AvatarFallback>
                                     </Avatar>

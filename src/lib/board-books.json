@@ -1,0 +1,38 @@
+{
+  "books": [
+    { "classGrade": "ষষ্ঠ", "subject": "বাংলা", "coverImageUrl": "https://picsum.photos/seed/bangla6/300/400", "imageHint": "book cover", "downloadUrl": "#" },
+    { "classGrade": "ষষ্ঠ", "subject": "English for Today", "coverImageUrl": "https://picsum.photos/seed/english6/300/400", "imageHint": "book cover", "downloadUrl": "#" },
+    { "classGrade": "ষষ্ঠ", "subject": "গণিত", "coverImageUrl": "https://picsum.photos/seed/math6/300/400", "imageHint": "book cover", "downloadUrl": "#" },
+    { "classGrade": "ষষ্ঠ", "subject": "বিজ্ঞান", "coverImageUrl": "https://picsum.photos/seed/science6/300/400", "imageHint": "book cover", "downloadUrl": "#" },
+    { "classGrade": "ষষ্ঠ", "subject": "তথ্য ও যোগাযোগ প্রযুক্তি", "coverImageUrl": "https://picsum.photos/seed/ict6/300/400", "imageHint": "book cover", "downloadUrl": "#" },
+    { "classGrade": "ষষ্ঠ", "subject": "বাংলাদেশ ও বিশ্বপরিচয়", "coverImageUrl": "https://picsum.photos/seed/bgs6/300/400", "imageHint": "book cover", "downloadUrl": "#" },
+    
+    { "classGrade": "সপ্তম", "subject": "বাংলা", "coverImageUrl": "https://picsum.photos/seed/bangla7/300/400", "imageHint": "book cover", "downloadUrl": "#" },
+    { "classGrade": "সপ্তম", "subject": "English for Today", "coverImageUrl": "https://picsum.photos/seed/english7/300/400", "imageHint": "book cover", "downloadUrl": "#" },
+    { "classGrade": "সপ্তম", "subject": "গণিত", "coverImageUrl": "https://picsum.photos/seed/math7/300/400", "imageHint": "book cover", "downloadUrl": "#" },
+    { "classGrade": "সপ্তম", "subject": "বিজ্ঞান", "coverImageUrl": "https://picsum.photos/seed/science7/300/400", "imageHint": "book cover", "downloadUrl": "#" },
+    { "classGrade": "সপ্তম", "subject": "তথ্য ও যোগাযোগ প্রযুক্তি", "coverImageUrl": "https://picsum.photos/seed/ict7/300/400", "imageHint": "book cover", "downloadUrl": "#" },
+    { "classGrade": "সপ্তম", "subject": "বাংলাদেশ ও বিশ্বপরিচয়", "coverImageUrl": "https://picsum.photos/seed/bgs7/300/400", "imageHint": "book cover", "downloadUrl": "#" },
+    
+    { "classGrade": "অষ্টম", "subject": "বাংলা", "coverImageUrl": "https://picsum.photos/seed/bangla8/300/400", "imageHint": "book cover", "downloadUrl": "#" },
+    { "classGrade": "অষ্টম", "subject": "English for Today", "coverImageUrl": "https://picsum.photos/seed/english8/300/400", "imageHint": "book cover", "downloadUrl": "#" },
+    { "classGrade": "অষ্টম", "subject": "গণিত", "coverImageUrl": "https://picsum.photos/seed/math8/300/400", "imageHint": "book cover", "downloadUrl": "#" },
+    { "classGrade": "অষ্টম", "subject": "বিজ্ঞান", "coverImageUrl": "https://picsum.photos/seed/science8/300/400", "imageHint": "book cover", "downloadUrl": "#" },
+    { "classGrade": "অষ্টম", "subject": "তথ্য ও যোগাযোগ প্রযুক্তি", "coverImageUrl": "https://picsum.photos/seed/ict8/300/400", "imageHint": "book cover", "downloadUrl": "#" },
+    { "classGrade": "অষ্টম", "subject": "বাংলাদেশ ও বিশ্বপরিচয়", "coverImageUrl": "https://picsum.photos/seed/bgs8/300/400", "imageHint": "book cover", "downloadUrl": "#" },
+    
+    { "classGrade": "নবম", "subject": "বাংলা", "coverImageUrl": "https://picsum.photos/seed/bangla9/300/400", "imageHint": "book cover", "downloadUrl": "#" },
+    { "classGrade": "নবম", "subject": "English for Today", "coverImageUrl": "https://picsum.photos/seed/english9/300/400", "imageHint": "book cover", "downloadUrl": "#" },
+    { "classGrade": "নবম", "subject": "গণিত", "coverImageUrl": "https://picsum.photos/seed/math9/300/400", "imageHint": "book cover", "downloadUrl": "#" },
+    { "classGrade": "নবম", "subject": "পদার্থবিজ্ঞান", "coverImageUrl": "https://picsum.photos/seed/physics9/300/400", "imageHint": "book cover", "downloadUrl": "#" },
+    { "classGrade": "নবম", "subject": "রসায়ন", "coverImageUrl": "https://picsum.photos/seed/chemistry9/300/400", "imageHint": "book cover", "downloadUrl": "#" },
+    { "classGrade": "নবম", "subject": "জীববিজ্ঞান", "coverImageUrl": "https://picsum.photos/seed/biology9/300/400", "imageHint": "book cover", "downloadUrl": "#" },
+    
+    { "classGrade": "দশম", "subject": "বাংলা", "coverImageUrl": "https://picsum.photos/seed/bangla10/300/400", "imageHint": "book cover", "downloadUrl": "#" },
+    { "classGrade": "দশম", "subject": "English for Today", "coverImageUrl": "https://picsum.photos/seed/english10/300/400", "imageHint": "book cover", "downloadUrl": "#" },
+    { "classGrade": "দশম", "subject": "গণিত", "coverImageUrl": "https://picsum.photos/seed/math10/300/400", "imageHint": "book cover", "downloadUrl": "#" },
+    { "classGrade": "দশম", "subject": "পদার্থবিজ্ঞান", "coverImageUrl": "https://picsum.photos/seed/physics10/300/400", "imageHint": "book cover", "downloadUrl": "#" },
+    { "classGrade": "দশম", "subject": "রসায়ন", "coverImageUrl": "https://picsum.photos/seed/chemistry10/300/400", "imageHint": "book cover", "downloadUrl": "#" },
+    { "classGrade": "দশম", "subject": "জীববিজ্ঞান", "coverImageUrl": "https://picsum.photos/seed/biology10/300/400", "imageHint": "book cover", "downloadUrl": "#" }
+  ]
+}
