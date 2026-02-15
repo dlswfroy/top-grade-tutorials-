@@ -51,7 +51,7 @@ function QuestionGeneratorPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [generatedContent, setGeneratedContent] = useState('');
   
-  const { register, handleSubmit, watch, formState: { errors } } = useForm<FormValues>({
+  const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       questionType: 'সৃজনশীল',
@@ -130,7 +130,7 @@ function QuestionGeneratorPage() {
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="class">শ্রেণি</Label>
-                  <Select {...register('class')} onValueChange={(value) => setValue('class', value, { shouldValidate: true })}>
+                  <Select onValueChange={(value) => setValue('class', value, { shouldValidate: true })} defaultValue={allFormValues.class}>
                       <SelectTrigger id="class">
                           <SelectValue placeholder="শ্রেণি নির্বাচন করুন" />
                       </SelectTrigger>
@@ -155,7 +155,7 @@ function QuestionGeneratorPage() {
 
                 <div className="space-y-2">
                   <Label htmlFor="questionType">প্রশ্নের ধরন</Label>
-                  <Select {...register('questionType')} onValueChange={(value) => setValue('questionType', value)}>
+                  <Select onValueChange={(value) => setValue('questionType', value)} defaultValue={allFormValues.questionType}>
                     <SelectTrigger id="questionType">
                       <SelectValue placeholder=" ধরন নির্বাচন করুন" />
                     </SelectTrigger>
@@ -231,8 +231,4 @@ function QuestionGeneratorPage() {
   );
 }
 
-export default function QuestionGeneratorPageContainer() {
-    // This is a workaround to satisfy the react-hook-form dependency on `setValue`
-    const { setValue } = useForm();
-    return <QuestionGeneratorPage setValue={setValue} />
-}
+export default QuestionGeneratorPage;
