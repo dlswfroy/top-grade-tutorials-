@@ -16,7 +16,7 @@ const QuestionPaperOutputSchema = z.object({
 // Define the prompt for the AI model
 const questionGenerationPrompt = ai.definePrompt({
     name: 'questionGenerationPrompt',
-    model: 'gemini-pro',
+    model: 'gemini-1.5-pro-latest',
     input: { schema: GenerateQuestionPaperInputSchema },
     output: { schema: QuestionPaperOutputSchema },
     prompt: `You are an expert Bangladeshi educator. Your task is to create a high-quality question paper, written entirely in Bengali, based on the following specifications.
@@ -37,13 +37,7 @@ const questionGenerationPrompt = ai.definePrompt({
 - Do NOT include any other text, greetings, or explanations.
 - Structure your response to fit the 'questionPaperContent' field of the output schema.`,
     config: {
-        temperature: 0.7,
-        safetySettings: [
-            { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
-            { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' },
-            { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE' },
-            { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_NONE' },
-        ]
+        temperature: 0.7
     }
 });
 
