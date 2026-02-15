@@ -14,7 +14,7 @@ export async function generateQuestionAction(values: GenerateQuestionPaperInput)
 
     try {
         const result = await generateQuestionFlow(parsed.data);
-        const generatedText = result.questionPaperContent;
+        const generatedText = result.generatedText;
         
         if (!generatedText) {
             return { success: false, error: 'AI একটি বৈধ প্রশ্নপত্র তৈরি করতে পারেনি। অনুগ্রহ করে আপনার ইনপুট পরিবর্তন করে আবার চেষ্টা করুন।' };

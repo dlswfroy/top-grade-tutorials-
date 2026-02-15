@@ -9,9 +9,9 @@ import { ai } from '@/ai/genkit';
 import { GenerateQuestionPaperInputSchema } from '@/lib/data';
 import { z } from 'zod';
 
-// Define the output schema for the AI model
+// Define the output schema for the flow itself, which is a simple object containing the generated text.
 const QuestionPaperOutputSchema = z.object({
-  questionPaperContent: z.string().describe('The full question paper content, formatted in Markdown, and written entirely in Bengali.'),
+  generatedText: z.string().describe('The full question paper content as a single block of Markdown text.'),
 });
 
 const promptTemplate = `You are an expert Bangladeshi educator. Your task is to create a high-quality question paper, written entirely in Bengali, based on the following specifications.
@@ -26,11 +26,10 @@ const promptTemplate = `You are an expert Bangladeshi educator. Your task is to 
 - Total Marks: {{{totalMarks}}}
 
 **Output requirements:**
-- Your entire response must be the question paper itself, formatted using Markdown.
+- Your entire response must be ONLY the question paper itself, formatted using Markdown.
 - Use Bengali language for all text.
 - Start with a header containing the Subject, Total Marks, and Time Limit.
-- Do NOT include any other text, greetings, or explanations.
-- Structure your response to fit the 'questionPaperContent' field of the output schema.`;
+- Do NOT include any other text, greetings, explanations, or JSON formatting. Just return the raw Markdown text.`;
 
 // Define the main flow
 export const generateQuestionFlow = ai.defineFlow(
@@ -40,19 +39,20 @@ export const generateQuestionFlow = ai.defineFlow(
         outputSchema: QuestionPaperOutputSchema,
     },
     async (input) => {
-        const { output } = await ai.generate({
-            model: 'gemini-1.5-flash',
+        // Request raw text from the AI, which is a simpler and more reliable request.
+        const response = await ai.generate({
+            model: 'gemini-pro', // Using a standard, widely available model.
             prompt: promptTemplate,
             input: input,
-            output: {
-                format: 'json',
-                schema: QuestionPaperOutputSchema,
-            },
         });
         
-        if (!output) {
-            throw new Error("AI did not return a valid output.");
+        const generatedText = response.text;
+
+        if (!generatedText) {
+            throw new Error("AI did not return any text.");
         }
-        return output;
+        
+        // The flow returns an object matching its outputSchema.
+        return { generatedText: generatedText };
     }
 );
