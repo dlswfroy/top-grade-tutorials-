@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
 import {
   Card,
   CardContent,
@@ -27,7 +26,7 @@ import { Loader2, Wand2, Save } from 'lucide-react';
 import { classNames, type QuestionPaper } from '@/lib/data';
 import { useFirestore, errorEmitter, FirestorePermissionError } from '@/firebase';
 import { collection, addDoc } from 'firebase/firestore';
-import { generateQuestionAction } from '@/hooks/use-user';
+import { generateQuestionAction, GenerateQuestionPaperInput, GenerateQuestionPaperInputSchema } from '@/hooks/use-user';
 import {
   Form,
   FormControl,
@@ -38,18 +37,6 @@ import {
 } from "@/components/ui/form";
 
 
-const formSchema = z.object({
-  class: z.string().nonempty({ message: 'শ্রেণি নির্বাচন করুন।' }),
-  subject: z.string().nonempty({ message: 'বিষয় দিন।' }),
-  chapter: z.string().nonempty({ message: 'অধ্যায় দিন।' }),
-  questionType: z.string().nonempty({ message: 'প্রশ্নের ধরন নির্বাচন করুন।' }),
-  numberOfQuestions: z.coerce.number().min(1, { message: 'কমপক্ষে ১টি প্রশ্ন দিন।' }),
-  timeLimit: z.string().nonempty({ message: 'সময় নির্ধারণ করুন।' }),
-  totalMarks: z.coerce.number().min(1, { message: 'কমপক্ষে ১ নম্বর দিন।' }),
-});
-
-type FormValues = z.infer<typeof formSchema>;
-
 function QuestionGeneratorPage() {
   const { toast } = useToast();
   const firestore = useFirestore();
@@ -58,8 +45,8 @@ function QuestionGeneratorPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [generatedContent, setGeneratedContent] = useState('');
   
-  const form = useForm<FormValues>({
-    resolver: zodResolver(formSchema),
+  const form = useForm<GenerateQuestionPaperInput>({
+    resolver: zodResolver(GenerateQuestionPaperInputSchema),
     defaultValues: {
       class: '',
       subject: '',
@@ -71,7 +58,7 @@ function QuestionGeneratorPage() {
     }
   });
 
-  const onGenerate: (data: FormValues) => Promise<void> = async (data) => {
+  const onGenerate = async (data: GenerateQuestionPaperInput) => {
     setIsGenerating(true);
     setGeneratedContent('');
     try {
@@ -125,6 +112,7 @@ function QuestionGeneratorPage() {
     <div className="space-y-8 p-8 rounded-xl bg-pink-100 dark:bg-pink-900/30 border border-pink-200 dark:border-pink-800">
       <div>
         <h1 className="text-3xl font-bold font-headline text-pink-800 dark:text-pink-200">প্রশ্ন জেনারেটর</h1>
+        <p className="text-pink-700 dark:text-pink-300 mt-1">AI-এর সাহায্যে যেকোনো বিষয়ের উপর तुरंत প্রশ্নপত্র তৈরি করুন।</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -280,7 +268,7 @@ function QuestionGeneratorPage() {
                 </div>
               ) : generatedContent ? (
                 <Textarea
-                  className="w-full h-full min-h-[400px] bg-white dark:bg-background whitespace-pre-wrap font-mono"
+                  className="w-full h-full min-h-[400px] bg-white dark:bg-background whitespace-pre-wrap font-mono leading-relaxed"
                   readOnly
                   value={generatedContent}
                 />

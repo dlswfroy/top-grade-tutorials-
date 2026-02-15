@@ -10,7 +10,7 @@ import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 
 // Input schema for the question generation flow
-const GenerateQuestionPaperInputSchema = z.object({
+export const GenerateQuestionPaperInputSchema = z.object({
   class: z.string().nonempty({ message: 'শ্রেণি নির্বাচন করুন।' }),
   subject: z.string().nonempty({ message: 'বিষয় দিন।' }),
   chapter: z.string().nonempty({ message: 'অধ্যায় দিন।' }),
@@ -21,36 +21,34 @@ const GenerateQuestionPaperInputSchema = z.object({
 });
 export type GenerateQuestionPaperInput = z.infer<typeof GenerateQuestionPaperInputSchema>;
 
+const GenerateQuestionPaperOutputSchema = z.object({
+    questionPaper: z.string().describe("The generated question paper in Markdown format."),
+});
 
-// The main flow
-const generateQuestionPaperFlow = ai.defineFlow(
-  {
-    name: 'generateQuestionPaperFlow',
-    inputSchema: GenerateQuestionPaperInputSchema,
-    outputSchema: z.string(), // Output is just the markdown string
-  },
-  async (input) => {
-    const { class: className, subject, chapter, questionType, numberOfQuestions, timeLimit, totalMarks } = input;
-    const response = await ai.generate({
-      model: 'gemini-1.5-flash-preview',
-      prompt: `You are an expert Bangladeshi educator. Your task is to create a high-quality question paper, written entirely in Bengali, based on the following specifications.
+const generateQuestionPaperPrompt = ai.definePrompt(
+    {
+        name: 'generateQuestionPaperPrompt',
+        input: { schema: GenerateQuestionPaperInputSchema },
+        output: { schema: GenerateQuestionPaperOutputSchema },
+        prompt: `You are an expert Bangladeshi educator. Your task is to create a high-quality question paper, written entirely in Bengali, based on the following specifications.
 
 **Instructions:**
-- Class: ${className}
-- Subject: ${subject}
-- Chapter/Topic: ${chapter}
-- Question Type: ${questionType}
-- Number of Questions: ${numberOfQuestions}
-- Time Limit: ${timeLimit}
-- Total Marks: ${totalMarks}
+- Class: {{{class}}}
+- Subject: {{{subject}}}
+- Chapter/Topic: {{{chapter}}}
+- Question Type: {{{questionType}}}
+- Number of Questions: {{{numberOfQuestions}}}
+- Time Limit: {{{timeLimit}}}
+- Total Marks: {{{totalMarks}}}
 
 **Output requirements:**
 - Your entire response must be the question paper itself, formatted using Markdown.
 - Use Bengali language for all text.
 - Start with a header containing the Subject, Total Marks, and Time Limit.
-- Do NOT include any other text, explanations, or JSON formatting. Just the Markdown question paper.`,
+- Place the generated Markdown inside the 'questionPaper' field of the JSON output.
+- Do NOT include any other text or explanations outside the JSON structure.`,
         config: {
-            temperature: 0.7,
+            temperature: 0.8,
         },
         safetySettings: [
             { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
@@ -58,9 +56,23 @@ const generateQuestionPaperFlow = ai.defineFlow(
             { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE' },
             { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_NONE' },
         ]
-    });
-    
-    return response.text;
+    },
+);
+
+
+// The main flow
+const generateQuestionPaperFlow = ai.defineFlow(
+  {
+    name: 'generateQuestionPaperFlow',
+    inputSchema: GenerateQuestionPaperInputSchema,
+    outputSchema: GenerateQuestionPaperOutputSchema,
+  },
+  async (input) => {
+    const { output } = await generateQuestionPaperPrompt(input);
+    if (!output) {
+        throw new Error('AI returned an empty response.');
+    }
+    return output;
   }
 );
 
@@ -75,13 +87,13 @@ export async function generateQuestionAction(values: GenerateQuestionPaperInput)
     }
     
     try {
-        const questionPaper = await generateQuestionPaperFlow(parsed.data);
+        const result = await generateQuestionPaperFlow(parsed.data);
 
-        if (!questionPaper) {
-            return { success: false, error: 'AI একটি খালি উত্তর দিয়েছে। অনুগ্রহ করে আবার চেষ্টা করুন।' };
+        if (!result?.questionPaper) {
+            return { success: false, error: 'AI একটি বৈধ প্রশ্নপত্র তৈরি করতে পারেনি। অনুগ্রহ করে আপনার ইনপুট পরিবর্তন করে আবার চেষ্টা করুন।' };
         }
 
-        return { success: true, data: questionPaper };
+        return { success: true, data: result.questionPaper };
 
     } catch (e: any) {
         console.error("Error in generateQuestionAction:", e);
