@@ -14,13 +14,15 @@ const GenerateQuestionPaperInputSchema = z.object({
 });
 export type GenerateQuestionPaperInput = z.infer<typeof GenerateQuestionPaperInputSchema>;
 
+// Define the schema for the AI's structured output.
 const GenerateQuestionPaperOutputSchema = z.object({
-  generatedContent: z.string().nonempty(),
+    questionPaper: z.string().describe("The generated question paper in well-formatted Bengali markdown."),
 });
 
 const prompt = ai.definePrompt({
   name: 'generateQuestionPaperPrompt',
   input: { schema: GenerateQuestionPaperInputSchema },
+  output: { schema: GenerateQuestionPaperOutputSchema }, // Force structured JSON output
   prompt: `You are an expert Bangladeshi educator. Your task is to create a high-quality question paper in Bengali based on the following specifications.
 
   ## Specifications
@@ -40,7 +42,7 @@ const prompt = ai.definePrompt({
   5.  Start with a clear header containing the Subject, Total Marks, and Time Limit.
   
   ## IMPORTANT: Output Format
-  Your response MUST ONLY be the formatted question paper as a single markdown string. Do NOT include any other text, explanations, or JSON formatting. Just the raw markdown of the question paper.
+  Your response MUST be a JSON object containing a single key "questionPaper", where the value is the formatted question paper as a single markdown string.
   `,
 });
 
@@ -48,18 +50,21 @@ const generateQuestionPaperFlow = ai.defineFlow(
   {
     name: 'generateQuestionPaperFlow',
     inputSchema: GenerateQuestionPaperInputSchema,
-    outputSchema: GenerateQuestionPaperOutputSchema,
+    // The flow's output is just the string content of the paper.
+    outputSchema: z.string(),
   },
   async (input) => {
-    const response = await prompt(input);
-    const generatedText = response.text;
+    // Calling the prompt now returns a structured output.
+    const { output } = await prompt(input);
+    const generatedPaper = output?.questionPaper;
 
-    if (!generatedText) {
-        console.error('AI response did not contain valid text content.', response);
+    if (!generatedPaper) {
+        console.error('AI response did not contain valid question paper content.', output);
         throw new Error('AI did not generate a valid question paper.');
     }
     
-    return { generatedContent: generatedText };
+    // The flow returns only the markdown string.
+    return generatedPaper;
   }
 );
 
@@ -72,8 +77,9 @@ export async function generateQuestionAction(values: GenerateQuestionPaperInput)
     }
     
     try {
+        // The flow now returns the markdown string directly.
         const result = await generateQuestionPaperFlow(parsed.data);
-        return { success: true, data: result.generatedContent };
+        return { success: true, data: result };
     } catch (e: any) {
         console.error("Error in generateQuestionAction:", e);
         
