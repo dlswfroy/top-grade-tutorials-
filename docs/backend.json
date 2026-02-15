@@ -8,7 +8,7 @@
       "properties": {
         "id": { "type": "string" },
         "name": { "type": "string" },
-        "classGrade": { "type": "string" },
+        "classGrade": { "type": "string", "enum": ["ষষ্ঠ", "সপ্তম", "অষ্টম", "নবম", "দশম"] },
         "rollNumber": { "type": "string" },
         "fatherName": { "type": "string" },
         "mobileNumber": { "type": "string" },
@@ -68,7 +68,7 @@
         "properties": {
             "id": { "type": "string" },
             "studentId": { "type": "string" },
-            "classGrade": { "type": "string" },
+            "classGrade": { "type": "string", "enum": ["ষষ্ঠ", "সপ্তম", "অষ্টম", "নবম", "দশম"] },
             "date": { "type": "string", "format": "date" },
             "status": { "type": "string", "enum": ["present", "absent"] }
         },
@@ -80,7 +80,7 @@
         "description": "Stores details about a generated question paper.",
         "properties": {
             "id": { "type": "string" },
-            "class": { "type": "string" },
+            "class": { "type": "string", "enum": ["ষষ্ঠ", "সপ্তম", "অষ্টম", "নবম", "দশম"] },
             "subject": { "type": "string" },
             "chapter": { "type": "string" },
             "questionType": { "type": "string" },
