@@ -23,26 +23,23 @@ const prompt = ai.definePrompt({
   name: 'generateQuestionPaperPrompt',
   input: { schema: GenerateQuestionPaperInputSchema },
   output: { schema: GenerateQuestionPaperOutputSchema }, // Force structured JSON output
-  prompt: `You are an expert Bangladeshi educator. Your task is to create a high-quality question paper in Bengali based on the following specifications.
+  prompt: `You are an expert Bangladeshi educator. Your task is to create a high-quality question paper in Bengali, formatted as a markdown string.
 
-  ## Specifications
-  - Class: {{class}}
-  - Subject: {{subject}}
-  - Chapter/Topic: {{chapter}}
-  - Question Type: {{questionType}}
-  - Number of Questions: {{numberOfQuestions}}
-  - Time Limit: {{timeLimit}}
-  - Total Marks: {{totalMarks}}
-  
-  ## Instructions
-  1.  Generate exactly {{numberOfQuestions}} questions of the type "{{questionType}}".
-  2.  The total marks for the paper must be {{totalMarks}}. Distribute the marks appropriately among the questions.
-  3.  The questions must be relevant to the specified class, subject, and chapter for the Bangladeshi curriculum.
-  4.  The entire output, including headings and questions, must be in well-formatted Bengali text. Use markdown for structure (e.g., headings, lists, bold text).
-  5.  Start with a clear header containing the Subject, Total Marks, and Time Limit.
-  
-  ## IMPORTANT: Output Format
-  Your response MUST be a JSON object containing a single key "questionPaper", where the value is the formatted question paper as a single markdown string.
+Follow these specifications precisely:
+- Class: {{class}}
+- Subject: {{subject}}
+- Chapter/Topic: {{chapter}}
+- Question Type: {{questionType}}
+- Number of Questions: {{numberOfQuestions}}
+- Time Limit: {{timeLimit}}
+- Total Marks: {{totalMarks}}
+
+Your generated question paper must:
+1.  Start with a header containing the Subject, Total Marks, and Time Limit.
+2.  Contain exactly {{numberOfQuestions}} questions of the specified type.
+3.  Distribute the {{totalMarks}} appropriately across the questions.
+4.  Use Bengali language and markdown for all formatting (headings, lists, bold text).
+5.  Ensure questions are relevant to the Bangladeshi curriculum for the given class.
   `,
 });
 
