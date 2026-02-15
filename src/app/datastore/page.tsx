@@ -112,7 +112,7 @@ function QuestionGeneratorPage() {
     <div className="space-y-8 p-8 rounded-xl bg-pink-100 dark:bg-pink-900/30 border border-pink-200 dark:border-pink-800">
       <div>
         <h1 className="text-3xl font-bold font-headline text-pink-800 dark:text-pink-200">প্রশ্ন জেনারেটর</h1>
-        <p className="text-pink-700 dark:text-pink-300 mt-1">AI-এর সাহায্যে যেকোনো বিষয়ের উপর तुरंत প্রশ্নপত্র তৈরি করুন।</p>
+        <p className="text-pink-700 dark:text-pink-300 mt-1">AI-এর সাহায্যে যেকোনো বিষয়ের উপর তাৎক্ষণিকভাবে প্রশ্নপত্র তৈরি করুন।</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
