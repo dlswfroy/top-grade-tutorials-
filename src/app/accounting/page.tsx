@@ -551,6 +551,11 @@ function PaymentList() {
     }, [firestore]);
     const { data: students } = useCollection<Student>(studentsQuery);
     
+    const studentsMap = useMemo(() => {
+        if (!students) return new Map<string, Student>();
+        return new Map(students.map(s => [s.id, s]));
+    }, [students]);
+
     const settingsRef = useMemoFirebase(() => {
         if (!firestore) return null;
         return doc(firestore, 'institution_settings', 'default');
@@ -579,9 +584,9 @@ function PaymentList() {
     }, [payments]);
     
     const studentForReceipt = useMemo(() => {
-        if (!receiptPayment || !students) return null;
-        return students.find(s => s.id === receiptPayment.studentId) || null;
-    }, [receiptPayment, students]);
+        if (!receiptPayment || !studentsMap) return null;
+        return studentsMap.get(receiptPayment.studentId) || null;
+    }, [receiptPayment, studentsMap]);
     
     const handleOpenReceiptDialog = (payment: Payment) => {
         setReceiptPayment(payment);
@@ -703,7 +708,7 @@ function PaymentList() {
                         </TableHeader>
                         <TableBody>
                             {payments?.map(p => {
-                                const student = students?.find(s => s.id === p.studentId);
+                                const student = studentsMap.get(p.studentId);
                                 return (
                                 <TableRow key={p.id}>
                                     <TableCell className="text-gray-800 dark:text-gray-200">{student ? `${student.name} (রোল: ${student.rollNumber})` : 'N/A'}</TableCell>
