@@ -4,7 +4,7 @@
  * This file defines the Genkit flow for generating question papers.
  * It is intended to be called from a server action.
  */
-import { ai, googleAiPlugin } from '@/ai/genkit';
+import { ai } from '@/ai/genkit';
 import { GenerateQuestionPaperInputSchema } from '@/lib/data';
 import { z } from 'zod';
 
@@ -16,7 +16,7 @@ const QuestionPaperOutputSchema = z.object({
 // Define the prompt for the AI model
 const questionGenerationPrompt = ai.definePrompt({
     name: 'questionGenerationPrompt',
-    model: googleAiPlugin.model('gemini-pro'),
+    model: 'gemini-pro',
     input: { schema: GenerateQuestionPaperInputSchema },
     output: { schema: QuestionPaperOutputSchema },
     prompt: `You are an expert Bangladeshi educator. Your task is to create a high-quality question paper, written entirely in Bengali, based on the following specifications.
