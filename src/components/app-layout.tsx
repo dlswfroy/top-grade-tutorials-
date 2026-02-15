@@ -72,7 +72,7 @@ function Logo({ settings, isLoading }: { settings: InstitutionSettings | null, i
                     <AvatarFallback>{institutionName.slice(0, 2)}</AvatarFallback>
                 </Avatar>
             )}
-            <h1 className="text-3xl font-headline font-bold text-yellow-300 [text-shadow:1px_1px_1px_#8B4513] whitespace-nowrap">{institutionName}</h1>
+            <h1 className="text-3xl font-headline font-bold text-yellow-300 whitespace-nowrap">{institutionName}</h1>
         </Link>
     );
 }
@@ -214,7 +214,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                                 <span className="sr-only">Open Menu</span>
                             </Button>
                         </SheetTrigger>
-                        <SheetContent side="left" className="w-[220px] bg-[#1A73E8] text-white border-r-0 p-0">
+                        <SheetContent side="left" className="w-[200px] bg-[#1A73E8] text-white border-r-0 p-0">
                              <SheetTitle className="sr-only">Mobile Menu</SheetTitle>
                             <div className="p-4 border-b border-white/20">
                                 <Logo settings={settings} isLoading={isLoadingSettings} />
