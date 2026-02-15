@@ -15,31 +15,40 @@ const GenerateQuestionPaperInputSchema = z.object({
 export type GenerateQuestionPaperInput = z.infer<typeof GenerateQuestionPaperInputSchema>;
 
 const GenerateQuestionPaperOutputSchema = z.object({
-  generatedContent: z.string(),
+  generatedContent: z.string().nonempty(),
 });
 
 const prompt = ai.definePrompt({
   name: 'generateQuestionPaperPrompt',
   input: { schema: GenerateQuestionPaperInputSchema },
   output: { schema: GenerateQuestionPaperOutputSchema },
-  prompt: `You are an expert Bangladeshi educator. Your task is to create a high-quality question paper based on the following specifications. The output must be in Bengali.
+  prompt: `You are an expert Bangladeshi educator. Your task is to create a high-quality question paper in Bengali based on the following specifications.
 
-  Class: {{class}}
-  Subject: {{subject}}
-  Chapter/Topic: {{chapter}}
-  Question Type: {{questionType}}
-  Number of Questions: {{numberOfQuestions}}
-  Time Limit: {{timeLimit}}
-  Total Marks: {{totalMarks}}
+  ## Specifications
+  - Class: {{class}}
+  - Subject: {{subject}}
+  - Chapter/Topic: {{chapter}}
+  - Question Type: {{questionType}}
+  - Number of Questions: {{numberOfQuestions}}
+  - Time Limit: {{timeLimit}}
+  - Total Marks: {{totalMarks}}
   
-  Instructions:
+  ## Instructions
   1.  Generate exactly {{numberOfQuestions}} questions of the type "{{questionType}}".
   2.  The total marks for the paper must be {{totalMarks}}. Distribute the marks appropriately among the questions.
   3.  The questions must be relevant to the specified class, subject, and chapter for the Bangladeshi curriculum.
-  4.  The entire output, including headings and questions, must be in well-formatted Bengali as a single block of text.
-  5.  Start with a header that includes the subject, total marks, and time limit.
+  4.  The entire output, including headings and questions, must be in well-formatted Bengali text. Use markdown for structure (e.g., headings, lists, bold text).
+  5.  Start with a clear header containing the Subject, Total Marks, and Time Limit.
   
-  Generate the question paper and provide it in the 'generatedContent' field.
+  ## IMPORTANT: Output Format
+  Your response MUST be a valid JSON object. This object must contain a single key called "generatedContent". The value for this key must be the complete, formatted question paper as a single string.
+
+  ### Example of the required JSON output format:
+  \`\`\`json
+  {
+    "generatedContent": "বিষয়: গণিত\\nপূর্ণমান: ৫০\\nসময়: ২ ঘণ্টা\\n\\n১. সৃজনশীল প্রশ্ন:\\nক) ... (২)\\nখ) ... (৪)\\nগ) ... (৪)\\n\\n২. সংক্ষিপ্ত প্রশ্ন:\\nক) ... (১)\\nখ) ... (১)"
+  }
+  \`\`\`
   `,
 });
 
@@ -51,7 +60,13 @@ const generateQuestionPaperFlow = ai.defineFlow(
   },
   async (input) => {
     const { output } = await prompt(input);
-    return output!;
+
+    if (!output?.generatedContent) {
+        console.error('AI response did not contain valid generatedContent.', output);
+        throw new Error('AI did not generate a valid question paper.');
+    }
+    
+    return output;
   }
 );
 
@@ -59,7 +74,6 @@ const generateQuestionPaperFlow = ai.defineFlow(
 export async function generateQuestionAction(values: GenerateQuestionPaperInput) {
     const parsed = GenerateQuestionPaperInputSchema.safeParse(values);
     if (!parsed.success) {
-        // Aggregate errors
         const errorMessages = Object.values(parsed.error.flatten().fieldErrors).flat().join(' ');
         return { success: false, error: errorMessages || "ফর্মের তথ্য সঠিক নয়।" };
     }
@@ -68,7 +82,13 @@ export async function generateQuestionAction(values: GenerateQuestionPaperInput)
         const result = await generateQuestionPaperFlow(parsed.data);
         return { success: true, data: result.generatedContent };
     } catch (e: any) {
-        console.error(e);
-        return { success: false, error: 'প্রশ্ন তৈরি করতে গিয়ে একটি সমস্যা হয়েছে।' };
+        console.error("Error in generateQuestionAction:", e);
+        
+        let userMessage = 'প্রশ্ন তৈরি করতে গিয়ে একটি অপ্রত্যাশিত সমস্যা হয়েছে। অনুগ্রহ করে আবার চেষ্টা করুন।';
+        if (e.message?.includes('AI did not generate')) {
+            userMessage = 'AI একটি বৈধ প্রশ্নপত্র তৈরি করতে পারেনি। অনুগ্রহ করে আপনার ইনপুট পরিবর্তন করে আবার চেষ্টা করুন।';
+        }
+
+        return { success: false, error: userMessage };
     }
 }
