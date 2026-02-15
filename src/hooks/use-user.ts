@@ -3,23 +3,12 @@
  * @fileOverview A question generation AI flow.
  *
  * - generateQuestionAction - The server action to call the flow.
- * - GenerateQuestionPaperInput - The input type for the flow.
  */
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
+import { GenerateQuestionPaperInputSchema, type GenerateQuestionPaperInput } from '@/lib/data';
 
-// Input schema for the question generation flow
-export const GenerateQuestionPaperInputSchema = z.object({
-  class: z.string().nonempty({ message: 'শ্রেণি নির্বাচন করুন।' }),
-  subject: z.string().nonempty({ message: 'বিষয় দিন।' }),
-  chapter: z.string().nonempty({ message: 'অধ্যায় দিন।' }),
-  questionType: z.string().nonempty({ message: 'প্রশ্নের ধরন নির্বাচন করুন।' }),
-  numberOfQuestions: z.coerce.number().min(1, { message: 'কমপক্ষে ১টি প্রশ্ন দিন।' }),
-  timeLimit: z.string().nonempty({ message: 'সময় নির্ধারণ করুন।' }),
-  totalMarks: z.coerce.number().min(1, { message: 'কমপক্ষে ১ নম্বর দিন।' }),
-});
-export type GenerateQuestionPaperInput = z.infer<typeof GenerateQuestionPaperInputSchema>;
 
 const GenerateQuestionPaperOutputSchema = z.object({
     questionPaper: z.string().describe("The generated question paper in Markdown format."),

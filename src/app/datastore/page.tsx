@@ -23,10 +23,10 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Wand2, Save } from 'lucide-react';
-import { classNames, type QuestionPaper } from '@/lib/data';
+import { classNames, type QuestionPaper, GenerateQuestionPaperInputSchema, type GenerateQuestionPaperInput } from '@/lib/data';
 import { useFirestore, errorEmitter, FirestorePermissionError } from '@/firebase';
 import { collection, addDoc } from 'firebase/firestore';
-import { generateQuestionAction, GenerateQuestionPaperInput, GenerateQuestionPaperInputSchema } from '@/hooks/use-user';
+import { generateQuestionAction } from '@/hooks/use-user';
 import {
   Form,
   FormControl,
