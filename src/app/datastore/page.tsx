@@ -130,7 +130,7 @@ function QuestionGeneratorPage() {
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="class">শ্রেণি</Label>
-                  <Select onValueChange={(value) => setValue('class', value, { shouldValidate: true })} defaultValue={allFormValues.class}>
+                  <Select onValueChange={(value) => setValue('class', value, { shouldValidate: true })} value={allFormValues.class || ''}>
                       <SelectTrigger id="class">
                           <SelectValue placeholder="শ্রেণি নির্বাচন করুন" />
                       </SelectTrigger>
@@ -155,7 +155,7 @@ function QuestionGeneratorPage() {
 
                 <div className="space-y-2">
                   <Label htmlFor="questionType">প্রশ্নের ধরন</Label>
-                  <Select onValueChange={(value) => setValue('questionType', value)} defaultValue={allFormValues.questionType}>
+                  <Select onValueChange={(value) => setValue('questionType', value)} value={allFormValues.questionType}>
                     <SelectTrigger id="questionType">
                       <SelectValue placeholder=" ধরন নির্বাচন করুন" />
                     </SelectTrigger>
