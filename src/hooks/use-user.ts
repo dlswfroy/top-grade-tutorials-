@@ -14,7 +14,6 @@ const GenerateQuestionPaperInputSchema = z.object({
 });
 export type GenerateQuestionPaperInput = z.infer<typeof GenerateQuestionPaperInputSchema>;
 
-// Define the schema for the AI's structured output.
 const GenerateQuestionPaperOutputSchema = z.object({
     questionPaper: z.string().describe("The generated question paper in well-formatted Bengali markdown."),
 });
@@ -22,10 +21,11 @@ const GenerateQuestionPaperOutputSchema = z.object({
 const prompt = ai.definePrompt({
   name: 'generateQuestionPaperPrompt',
   input: { schema: GenerateQuestionPaperInputSchema },
-  output: { schema: GenerateQuestionPaperOutputSchema }, // Force structured JSON output
-  prompt: `You are an expert Bangladeshi educator. Your task is to create a high-quality question paper in Bengali, formatted as a markdown string.
+  output: { schema: GenerateQuestionPaperOutputSchema },
+  prompt: `You are an expert Bangladeshi educator. Your task is to create a high-quality question paper.
+The question paper content should be a single markdown string, written in Bengali.
 
-Follow these specifications precisely:
+Follow these specifications for the content of the question paper:
 - Class: {{class}}
 - Subject: {{subject}}
 - Chapter/Topic: {{chapter}}
@@ -34,12 +34,14 @@ Follow these specifications precisely:
 - Time Limit: {{timeLimit}}
 - Total Marks: {{totalMarks}}
 
-Your generated question paper must:
+The markdown string for the question paper must:
 1.  Start with a header containing the Subject, Total Marks, and Time Limit.
 2.  Contain exactly {{numberOfQuestions}} questions of the specified type.
 3.  Distribute the {{totalMarks}} appropriately across the questions.
 4.  Use Bengali language and markdown for all formatting (headings, lists, bold text).
 5.  Ensure questions are relevant to the Bangladeshi curriculum for the given class.
+
+Your final output will be a JSON object. Place the entire markdown string you created into the \`questionPaper\` field of that JSON object.
   `,
 });
 
@@ -47,21 +49,17 @@ const generateQuestionPaperFlow = ai.defineFlow(
   {
     name: 'generateQuestionPaperFlow',
     inputSchema: GenerateQuestionPaperInputSchema,
-    // The flow's output is just the string content of the paper.
-    outputSchema: z.string(),
+    outputSchema: GenerateQuestionPaperOutputSchema,
   },
   async (input) => {
-    // Calling the prompt now returns a structured output.
     const { output } = await prompt(input);
-    const generatedPaper = output?.questionPaper;
 
-    if (!generatedPaper) {
-        console.error('AI response did not contain valid question paper content.', output);
-        throw new Error('AI did not generate a valid question paper.');
+    if (!output?.questionPaper) {
+        console.error('AI response is missing the questionPaper field.', output);
+        throw new Error('AI did not generate valid question paper content.');
     }
     
-    // The flow returns only the markdown string.
-    return generatedPaper;
+    return output;
   }
 );
 
@@ -74,9 +72,8 @@ export async function generateQuestionAction(values: GenerateQuestionPaperInput)
     }
     
     try {
-        // The flow now returns the markdown string directly.
         const result = await generateQuestionPaperFlow(parsed.data);
-        return { success: true, data: result };
+        return { success: true, data: result.questionPaper };
     } catch (e: any) {
         console.error("Error in generateQuestionAction:", e);
         
