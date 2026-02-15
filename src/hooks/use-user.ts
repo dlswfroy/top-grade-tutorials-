@@ -14,16 +14,18 @@ const GenerateQuestionPaperInputSchema = z.object({
 });
 export type GenerateQuestionPaperInput = z.infer<typeof GenerateQuestionPaperInputSchema>;
 
-const GenerateQuestionPaperOutputSchema = z.string().describe("The generated question paper in well-formatted Bengali markdown.");
 
-const generateQuestionPaperFlow = ai.defineFlow(
-  {
-    name: 'generateQuestionPaperFlow',
-    inputSchema: GenerateQuestionPaperInputSchema,
-    outputSchema: GenerateQuestionPaperOutputSchema,
-  },
-  async (input) => {
-    const prompt = `You are an expert Bangladeshi educator. Your task is to create a high-quality question paper, formatted as a single markdown string and written in Bengali.
+export async function generateQuestionAction(values: GenerateQuestionPaperInput) {
+    const parsed = GenerateQuestionPaperInputSchema.safeParse(values);
+    if (!parsed.success) {
+        const errorMessages = Object.values(parsed.error.flatten().fieldErrors).flat().join(' ');
+        return { success: false, error: errorMessages || "ফর্মের তথ্য সঠিক নয়।" };
+    }
+    
+    const input = parsed.data;
+
+    try {
+        const prompt = `You are an expert Bangladeshi educator. Your task is to create a high-quality question paper, formatted as a single markdown string and written in Bengali.
 
 Follow these specifications for the content of the question paper:
 - Class: ${input.class}
@@ -42,47 +44,34 @@ The markdown string for the question paper must:
 5.  Ensure questions are relevant to the Bangladeshi curriculum for the given class.
 
 Your entire response should be only the markdown content of the question paper, and nothing else.`;
-    
-    const { text } = await ai.generate({
-        prompt: prompt,
-        model: 'gemini-1.5-flash-preview',
-        config: {
-            temperature: 0.7,
-        },
-        safetySettings: [
-          {
-            category: 'HARM_CATEGORY_HATE_SPEECH',
-            threshold: 'BLOCK_ONLY_HIGH',
-          },
-          {
-            category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
-            threshold: 'BLOCK_ONLY_HIGH',
-          },
-          {
-            category: 'HARM_CATEGORY_HARASSMENT',
-            threshold: 'BLOCK_ONLY_HIGH',
-          },
-          {
-            category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
-            threshold: 'BLOCK_ONLY_HIGH',
-          },
-        ],
-    });
-    
-    return text;
-  }
-);
 
+        const { text } = await ai.generate({
+            prompt: prompt,
+            model: 'gemini-1.5-flash-preview',
+            config: {
+                temperature: 0.7,
+            },
+            safetySettings: [
+              {
+                category: 'HARM_CATEGORY_HATE_SPEECH',
+                threshold: 'BLOCK_ONLY_HIGH',
+              },
+              {
+                category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
+                threshold: 'BLOCK_ONLY_HIGH',
+              },
+              {
+                category: 'HARM_CATEGORY_HARASSMENT',
+                threshold: 'BLOCK_ONLY_HIGH',
+              },
+              {
+                category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
+                threshold: 'BLOCK_ONLY_HIGH',
+              },
+            ],
+        });
 
-export async function generateQuestionAction(values: GenerateQuestionPaperInput) {
-    const parsed = GenerateQuestionPaperInputSchema.safeParse(values);
-    if (!parsed.success) {
-        const errorMessages = Object.values(parsed.error.flatten().fieldErrors).flat().join(' ');
-        return { success: false, error: errorMessages || "ফর্মের তথ্য সঠিক নয়।" };
-    }
-    
-    try {
-        const result = await generateQuestionPaperFlow(parsed.data);
+        const result = text;
         if (!result) {
              throw new Error('AI did not generate any content.');
         }
