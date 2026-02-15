@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useForm, type SubmitHandler } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import {
@@ -14,7 +14,6 @@ import {
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -29,6 +28,14 @@ import { classNames, type QuestionPaper } from '@/lib/data';
 import { useFirestore, errorEmitter, FirestorePermissionError } from '@/firebase';
 import { collection, addDoc } from 'firebase/firestore';
 import { generateQuestionAction } from '@/hooks/use-user';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 
 
 const formSchema = z.object({
@@ -51,9 +58,12 @@ function QuestionGeneratorPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [generatedContent, setGeneratedContent] = useState('');
   
-  const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm<FormValues>({
+  const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
+      class: '',
+      subject: '',
+      chapter: '',
       questionType: 'সৃজনশীল',
       numberOfQuestions: 5,
       timeLimit: '২ ঘণ্টা',
@@ -61,9 +71,7 @@ function QuestionGeneratorPage() {
     }
   });
 
-  const allFormValues = watch();
-
-  const onGenerate: SubmitHandler<FormValues> = async (data) => {
+  const onGenerate: (data: FormValues) => Promise<void> = async (data) => {
     setIsGenerating(true);
     setGeneratedContent('');
     try {
@@ -92,7 +100,7 @@ function QuestionGeneratorPage() {
     setIsSaving(true);
     try {
         const questionData: Omit<QuestionPaper, 'id'> = {
-            ...allFormValues,
+            ...form.getValues(),
             generatedContent: generatedContent,
             generatedAt: new Date().toISOString(),
         };
@@ -126,73 +134,132 @@ function QuestionGeneratorPage() {
               <CardTitle className="font-bold text-pink-900 dark:text-pink-100">প্রশ্নপত্রের তথ্য</CardTitle>
               <CardDescription>প্রশ্ন তৈরি করার জন্য নিচের ফর্মটি পূরণ করুন।</CardDescription>
             </CardHeader>
-            <form onSubmit={handleSubmit(onGenerate)}>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="class">শ্রেণি</Label>
-                  <Select onValueChange={(value) => setValue('class', value, { shouldValidate: true })} value={allFormValues.class || ''}>
-                      <SelectTrigger id="class">
-                          <SelectValue placeholder="শ্রেণি নির্বাচন করুন" />
-                      </SelectTrigger>
-                      <SelectContent>
-                          {classNames.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-                      </SelectContent>
-                  </Select>
-                  {errors.class && <p className="text-sm text-red-600">{errors.class.message}</p>}
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="subject">বিষয়</Label>
-                  <Input id="subject" placeholder="যেমন: গণিত" {...register('subject')} />
-                   {errors.subject && <p className="text-sm text-red-600">{errors.subject.message}</p>}
-                </div>
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onGenerate)}>
+                <CardContent className="space-y-4">
+                  <FormField
+                    control={form.control}
+                    name="class"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>শ্রেণি</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="শ্রেণি নির্বাচন করুন" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {classNames.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="subject"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>বিষয়</FormLabel>
+                        <FormControl>
+                          <Input placeholder="যেমন: গণিত" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-                <div className="space-y-2">
-                  <Label htmlFor="chapter">অধ্যায়</Label>
-                  <Input id="chapter" placeholder="যেমন: ত্রিকোণমিতি" {...register('chapter')} />
-                  {errors.chapter && <p className="text-sm text-red-600">{errors.chapter.message}</p>}
-                </div>
+                  <FormField
+                    control={form.control}
+                    name="chapter"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>অধ্যায়</FormLabel>
+                        <FormControl>
+                          <Input placeholder="যেমন: ত্রিকোণমিতি" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="questionType"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>প্রশ্নের ধরন</FormLabel>
+                         <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder=" ধরন নির্বাচন করুন" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="সৃজনশীল">সৃজনশীল (Creative)</SelectItem>
+                            <SelectItem value="বহুনির্বাচনী">বহুনির্বাচনী (MCQ)</SelectItem>
+                            <SelectItem value="সংক্ষিপ্ত প্রশ্ন">সংক্ষিপ্ত প্রশ্ন (Short Answer)</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                     <FormField
+                        control={form.control}
+                        name="numberOfQuestions"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>প্রশ্ন সংখ্যা</FormLabel>
+                            <FormControl>
+                              <Input type="number" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="totalMarks"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>পূর্ণমান</FormLabel>
+                            <FormControl>
+                              <Input type="number" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                  </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="questionType">প্রশ্নের ধরন</Label>
-                  <Select onValueChange={(value) => setValue('questionType', value)} value={allFormValues.questionType}>
-                    <SelectTrigger id="questionType">
-                      <SelectValue placeholder=" ধরন নির্বাচন করুন" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="সৃজনশীল">সৃজনশীল (Creative)</SelectItem>
-                      <SelectItem value="বহুনির্বাচনী">বহুনির্বাচনী (MCQ)</SelectItem>
-                      <SelectItem value="সংক্ষিপ্ত প্রশ্ন">সংক্ষিপ্ত প্রশ্ন (Short Answer)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="numberOfQuestions">প্রশ্ন সংখ্যা</Label>
-                      <Input id="numberOfQuestions" type="number" {...register('numberOfQuestions')} />
-                      {errors.numberOfQuestions && <p className="text-sm text-red-600">{errors.numberOfQuestions.message}</p>}
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="totalMarks">পূর্ণমান</Label>
-                      <Input id="totalMarks" type="number" {...register('totalMarks')} />
-                      {errors.totalMarks && <p className="text-sm text-red-600">{errors.totalMarks.message}</p>}
-                    </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="timeLimit">সময়</Label>
-                  <Input id="timeLimit" placeholder="যেমন: ২ ঘণ্টা ৩০ মিনিট" {...register('timeLimit')} />
-                   {errors.timeLimit && <p className="text-sm text-red-600">{errors.timeLimit.message}</p>}
-                </div>
-              </CardContent>
-              <CardFooter>
-                 <Button type="submit" disabled={isGenerating} className="w-full">
-                  {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2 h-4 w-4" />}
-                  {isGenerating ? 'প্রশ্ন তৈরি হচ্ছে...' : 'প্রশ্ন তৈরি করুন'}
-                </Button>
-              </CardFooter>
-            </form>
+                   <FormField
+                    control={form.control}
+                    name="timeLimit"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>সময়</FormLabel>
+                        <FormControl>
+                          <Input placeholder="যেমন: ২ ঘণ্টা ৩০ মিনিট" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </CardContent>
+                <CardFooter>
+                  <Button type="submit" disabled={isGenerating} className="w-full">
+                    {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2 h-4 w-4" />}
+                    {isGenerating ? 'প্রশ্ন তৈরি হচ্ছে...' : 'প্রশ্ন তৈরি করুন'}
+                  </Button>
+                </CardFooter>
+              </form>
+            </Form>
           </Card>
         </div>
 
