@@ -71,6 +71,7 @@ const permissionsList = [
     { id: 'teachers', label: 'শিক্ষক' },
     { id: 'accounting', label: 'হিসাব' },
     { id: 'attendance', label: 'হাজিরা' },
+    { id: 'datastore', label: 'তথ্য ভান্ডার' },
     { id: 'settings', label: 'সেটিংস' },
 ];
 

@@ -176,6 +176,7 @@ export default function LoginPage() {
                         teachers: true,
                         accounting: true,
                         attendance: true,
+                        datastore: true,
                         settings: false,
                     };
                 }
