@@ -26,7 +26,7 @@ import { Loader2, Wand2, Save } from 'lucide-react';
 import { classNames, type QuestionPaper, GenerateQuestionPaperInputSchema, type GenerateQuestionPaperInput } from '@/lib/data';
 import { useFirestore, errorEmitter, FirestorePermissionError } from '@/firebase';
 import { collection, addDoc } from 'firebase/firestore';
-import { generateQuestionAction } from '@/hooks/use-user';
+import { generateQuestionAction } from '@/actions/question-actions';
 import {
   Form,
   FormControl,
