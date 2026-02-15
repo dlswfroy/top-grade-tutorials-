@@ -1,3 +1,4 @@
+'use server';
 /**
  * @fileOverview A question generation AI flow.
  *
@@ -13,13 +14,7 @@ const QuestionPaperOutputSchema = z.object({
   questionPaperContent: z.string().describe('The full question paper content, formatted in Markdown, and written entirely in Bengali.'),
 });
 
-// Define the prompt for the AI model
-const questionGenerationPrompt = ai.definePrompt({
-    name: 'questionGenerationPrompt',
-    model: 'gemini-1.5-flash',
-    input: { schema: GenerateQuestionPaperInputSchema },
-    output: { schema: QuestionPaperOutputSchema },
-    prompt: `You are an expert Bangladeshi educator. Your task is to create a high-quality question paper, written entirely in Bengali, based on the following specifications.
+const promptTemplate = `You are an expert Bangladeshi educator. Your task is to create a high-quality question paper, written entirely in Bengali, based on the following specifications.
 
 **Instructions:**
 - Class: {{{class}}}
@@ -35,8 +30,7 @@ const questionGenerationPrompt = ai.definePrompt({
 - Use Bengali language for all text.
 - Start with a header containing the Subject, Total Marks, and Time Limit.
 - Do NOT include any other text, greetings, or explanations.
-- Structure your response to fit the 'questionPaperContent' field of the output schema.`,
-});
+- Structure your response to fit the 'questionPaperContent' field of the output schema.`;
 
 // Define the main flow
 export const generateQuestionFlow = ai.defineFlow(
@@ -46,7 +40,16 @@ export const generateQuestionFlow = ai.defineFlow(
         outputSchema: QuestionPaperOutputSchema,
     },
     async (input) => {
-        const { output } = await questionGenerationPrompt(input);
+        const { output } = await ai.generate({
+            model: 'gemini-1.5-flash',
+            prompt: promptTemplate,
+            input: input,
+            output: {
+                format: 'json',
+                schema: QuestionPaperOutputSchema,
+            },
+        });
+        
         if (!output) {
             throw new Error("AI did not return a valid output.");
         }
