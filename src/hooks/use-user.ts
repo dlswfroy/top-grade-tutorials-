@@ -21,7 +21,6 @@ const GenerateQuestionPaperOutputSchema = z.object({
 const prompt = ai.definePrompt({
   name: 'generateQuestionPaperPrompt',
   input: { schema: GenerateQuestionPaperInputSchema },
-  output: { schema: GenerateQuestionPaperOutputSchema },
   prompt: `You are an expert Bangladeshi educator. Your task is to create a high-quality question paper in Bengali based on the following specifications.
 
   ## Specifications
@@ -41,14 +40,7 @@ const prompt = ai.definePrompt({
   5.  Start with a clear header containing the Subject, Total Marks, and Time Limit.
   
   ## IMPORTANT: Output Format
-  Your response MUST be a valid JSON object. This object must contain a single key called "generatedContent". The value for this key must be the complete, formatted question paper as a single string.
-
-  ### Example of the required JSON output format:
-  \`\`\`json
-  {
-    "generatedContent": "বিষয়: গণিত\\nপূর্ণমান: ৫০\\nসময়: ২ ঘণ্টা\\n\\n১. সৃজনশীল প্রশ্ন:\\nক) ... (২)\\nখ) ... (৪)\\nগ) ... (৪)\\n\\n২. সংক্ষিপ্ত প্রশ্ন:\\nক) ... (১)\\nখ) ... (১)"
-  }
-  \`\`\`
+  Your response MUST ONLY be the formatted question paper as a single markdown string. Do NOT include any other text, explanations, or JSON formatting. Just the raw markdown of the question paper.
   `,
 });
 
@@ -59,14 +51,15 @@ const generateQuestionPaperFlow = ai.defineFlow(
     outputSchema: GenerateQuestionPaperOutputSchema,
   },
   async (input) => {
-    const { output } = await prompt(input);
+    const response = await prompt(input);
+    const generatedText = response.text;
 
-    if (!output?.generatedContent) {
-        console.error('AI response did not contain valid generatedContent.', output);
+    if (!generatedText) {
+        console.error('AI response did not contain valid text content.', response);
         throw new Error('AI did not generate a valid question paper.');
     }
     
-    return output;
+    return { generatedContent: generatedText };
   }
 );
 
