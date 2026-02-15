@@ -75,7 +75,7 @@ function Logo({ settings, isLoading }: { settings: InstitutionSettings | null, i
                     <AvatarFallback>{institutionName.slice(0, 2)}</AvatarFallback>
                 </Avatar>
             )}
-            <h1 className="text-3xl font-headline font-bold text-white whitespace-nowrap">{institutionName}</h1>
+            <h1 className="text-4xl font-headline font-bold text-white whitespace-nowrap">{institutionName}</h1>
         </Link>
     );
 }
