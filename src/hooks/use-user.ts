@@ -22,8 +22,7 @@ const prompt = ai.definePrompt({
   name: 'generateQuestionPaperPrompt',
   input: { schema: GenerateQuestionPaperInputSchema },
   output: { schema: GenerateQuestionPaperOutputSchema },
-  prompt: `You are an expert Bangladeshi educator. Your task is to create a high-quality question paper.
-The question paper content should be a single markdown string, written in Bengali.
+  prompt: `You are an expert Bangladeshi educator. Your task is to create a high-quality question paper, formatted as a single markdown string and written in Bengali.
 
 Follow these specifications for the content of the question paper:
 - Class: {{class}}
@@ -40,8 +39,6 @@ The markdown string for the question paper must:
 3.  Distribute the {{totalMarks}} appropriately across the questions.
 4.  Use Bengali language and markdown for all formatting (headings, lists, bold text).
 5.  Ensure questions are relevant to the Bangladeshi curriculum for the given class.
-
-Your final output MUST be a JSON object. Place the entire markdown string you created into the \`questionPaper\` field of that JSON object.
   `,
   config: {
     safetySettings: [
@@ -100,6 +97,8 @@ export async function generateQuestionAction(values: GenerateQuestionPaperInput)
         let userMessage = 'প্রশ্ন তৈরি করতে গিয়ে একটি অপ্রত্যাশিত সমস্যা হয়েছে। অনুগ্রহ করে আবার চেষ্টা করুন।';
         if (e.message?.includes('AI did not generate')) {
             userMessage = 'AI একটি বৈধ প্রশ্নপত্র তৈরি করতে পারেনি। অনুগ্রহ করে আপনার ইনপুট পরিবর্তন করে আবার চেষ্টা করুন।';
+        } else if (e.message?.includes('blocked')) {
+            userMessage = 'নিরাপত্তার কারণে আপনার অনুরোধটি ব্লক করা হয়েছে। অনুগ্রহ করে আপনার ইনপুট পরিবর্তন করুন।';
         }
 
         return { success: false, error: userMessage };
