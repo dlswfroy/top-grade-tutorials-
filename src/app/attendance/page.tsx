@@ -62,6 +62,11 @@ function TakeAttendance() {
   }, [firestore, selectedClass]);
   const { data: students, isLoading: isLoadingStudents } = useCollection<Student>(studentsQuery);
 
+  const sortedStudents = useMemo(() => {
+    if (!students) return [];
+    return [...students].sort((a, b) => (parseInt(a.rollNumber, 10) || 0) - (parseInt(b.rollNumber, 10) || 0));
+  }, [students]);
+
   // Fetch existing attendance for the selected class and date
   const attendanceQuery = useMemoFirebase(() => {
     if (!firestore || !selectedClass || !formattedDate) return null;
@@ -92,7 +97,7 @@ function TakeAttendance() {
   };
 
   const handleSaveAttendance = async () => {
-    if (!firestore || !students || students.length === 0 || !formattedDate) {
+    if (!firestore || !sortedStudents || sortedStudents.length === 0 || !formattedDate) {
         toast({ variant: 'destructive', title: 'ত্রুটি', description: 'শ্রেণি ও তারিখ নির্বাচন করুন এবং অন্তত একজন শিক্ষার্থী থাকতে হবে।' });
         return;
     }
@@ -101,7 +106,7 @@ function TakeAttendance() {
     try {
         const batch = writeBatch(firestore);
         
-        students.forEach(student => {
+        sortedStudents.forEach(student => {
             const status = attendance[student.id] || 'absent'; // Default to absent if not marked
             const attendanceId = `${student.id}_${formattedDate}`;
             const attendanceRef = doc(firestore, 'attendance', attendanceId);
@@ -174,7 +179,7 @@ function TakeAttendance() {
                  <div className="flex justify-center items-center h-64">
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 </div>
-            ) : students && students.length > 0 ? (
+            ) : sortedStudents && sortedStudents.length > 0 ? (
                 <>
                 {isAttendanceAlreadySaved && (
                     <Alert className="mb-4">
@@ -194,7 +199,7 @@ function TakeAttendance() {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {students.map(student => (
+                        {sortedStudents.map(student => (
                              <TableRow key={student.id}>
                                 <TableCell className="text-gray-700 dark:text-gray-300">{student.rollNumber}</TableCell>
                                 <TableCell className="font-medium text-gray-800 dark:text-gray-200">{student.name}</TableCell>
@@ -251,6 +256,11 @@ function AttendanceReport() {
   }, [firestore, selectedClass]);
   const { data: students, isLoading: isLoadingStudents } = useCollection<Student>(studentsQuery);
 
+  const sortedStudents = useMemo(() => {
+    if (!students) return [];
+    return [...students].sort((a, b) => (parseInt(a.rollNumber, 10) || 0) - (parseInt(b.rollNumber, 10) || 0));
+  }, [students]);
+
   const attendanceQuery = useMemoFirebase(() => {
     if (!firestore || !selectedClass || !formattedDate) return null;
     return query(collection(firestore, 'attendance'), where('classGrade', '==', selectedClass), where('date', '==', formattedDate));
@@ -263,12 +273,12 @@ function AttendanceReport() {
   }, [attendanceData]);
 
   const { presentCount, absentCount } = useMemo(() => {
-    if (!students || !attendanceData) return { presentCount: 0, absentCount: 0 };
+    if (!sortedStudents || !attendanceData) return { presentCount: 0, absentCount: 0 };
     const present = attendanceData.filter(a => a.status === 'present').length;
     const absent = attendanceData.filter(a => a.status === 'absent').length;
-    const notMarked = students.length - (present + absent);
+    const notMarked = sortedStudents.length - (present + absent);
     return { presentCount: present, absentCount: absent + notMarked };
-  }, [students, attendanceData]);
+  }, [sortedStudents, attendanceData]);
 
 
   return (
@@ -308,7 +318,7 @@ function AttendanceReport() {
           <div className="flex justify-center items-center h-64">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
-        ) : students && students.length > 0 ? (
+        ) : sortedStudents && sortedStudents.length > 0 ? (
           <>
             <div className="mb-4 grid gap-4 md:grid-cols-3">
                 <Card>
@@ -317,7 +327,7 @@ function AttendanceReport() {
                         <Users className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold text-gray-800 dark:text-gray-200">{students.length}</div>
+                        <div className="text-2xl font-bold text-gray-800 dark:text-gray-200">{sortedStudents.length}</div>
                     </CardContent>
                 </Card>
                 <Card>
@@ -348,7 +358,7 @@ function AttendanceReport() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {students.map(student => {
+                {sortedStudents.map(student => {
                   const status = attendanceMap.get(student.id);
                   return (
                     <TableRow key={student.id}>

@@ -256,7 +256,17 @@ function StudentsPage() {
 
   const filteredStudents = useMemo(() => {
     if (!students) return [];
-    return students.filter(
+
+    const sorted = [...students].sort((a, b) => {
+        const classIndexA = classNames.indexOf(a.classGrade);
+        const classIndexB = classNames.indexOf(b.classGrade);
+        if (classIndexA !== classIndexB) {
+            return classIndexA - classIndexB;
+        }
+        return (parseInt(a.rollNumber, 10) || 0) - (parseInt(b.rollNumber, 10) || 0);
+    });
+
+    return sorted.filter(
       (student) =>
         (!activeClassFilter || student.classGrade === activeClassFilter) &&
         (activeSearchTerm === '' ||
@@ -376,6 +386,7 @@ function StudentsPage() {
                 <Table>
                     <TableHeader>
                     <TableRow>
+                        <TableHead className="font-bold text-green-700 dark:text-green-300">ক্রমিক নং</TableHead>
                         <TableHead className="font-bold text-green-700 dark:text-green-300">ছবি</TableHead>
                         <TableHead className="font-bold text-green-700 dark:text-green-300">রোল</TableHead>
                         <TableHead className="font-bold text-green-700 dark:text-green-300">নাম</TableHead>
@@ -387,8 +398,9 @@ function StudentsPage() {
                     </TableRow>
                     </TableHeader>
                     <TableBody>
-                    {filteredStudents?.map((student) => (
+                    {filteredStudents?.map((student, index) => (
                         <TableRow key={student.id}>
+                        <TableCell className="font-medium text-gray-800 dark:text-gray-200">{index + 1}</TableCell>
                         <TableCell>
                             <Avatar>
                             <AvatarImage src={student.imageUrl} data-ai-hint={student.imageHint || 'student person'} alt={student.name} />
