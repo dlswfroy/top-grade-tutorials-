@@ -5,6 +5,7 @@
  * It is intended to be called from a server action.
  */
 import { ai } from '@/ai/genkit';
+import { googleAI } from '@genkit-ai/google-genai';
 import { GenerateQuestionPaperInputSchema } from '@/lib/data';
 import { z } from 'zod';
 
@@ -16,7 +17,7 @@ const QuestionPaperOutputSchema = z.object({
 // Define the prompt for the AI model
 const questionGenerationPrompt = ai.definePrompt({
     name: 'questionGenerationPrompt',
-    model: 'gemini-pro',
+    model: googleAI.model('gemini-pro'),
     input: { schema: GenerateQuestionPaperInputSchema },
     output: { schema: QuestionPaperOutputSchema },
     prompt: `You are an expert Bangladeshi educator. Your task is to create a high-quality question paper, written entirely in Bengali, based on the following specifications.
