@@ -1,7 +1,20 @@
 'use client';
-import { useState, useMemo } from 'react';
-import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
-import { BookOpen, Download } from 'lucide-react';
+
+import { useState } from 'react';
+import { useForm, type SubmitHandler } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardFooter,
+  CardDescription,
+} from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -9,88 +22,217 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Label } from '@/components/ui/label';
-import { classNames } from '@/lib/data';
-import { boardBooks } from '@/lib/board-books';
-import Image from 'next/image';
-import { Button } from '@/components/ui/button';
-import Link from 'next/link';
+import { Textarea } from '@/components/ui/textarea';
+import { useToast } from '@/hooks/use-toast';
+import { Loader2, Wand2, Save } from 'lucide-react';
+import { classNames, type QuestionPaper } from '@/lib/data';
+import { useFirestore, errorEmitter, FirestorePermissionError } from '@/firebase';
+import { collection, addDoc } from 'firebase/firestore';
+import { generateQuestionAction } from '@/hooks/use-user';
 
-function DataStorePage() {
-  const [selectedClass, setSelectedClass] = useState('');
 
-  const filteredBooks = useMemo(() => {
-    if (!selectedClass) return [];
-    return boardBooks.filter(book => book.classGrade === selectedClass);
-  }, [selectedClass]);
+const formSchema = z.object({
+  class: z.string().nonempty({ message: 'শ্রেণি নির্বাচন করুন।' }),
+  subject: z.string().nonempty({ message: 'বিষয় দিন।' }),
+  chapter: z.string().nonempty({ message: 'অধ্যায় দিন।' }),
+  questionType: z.string().nonempty({ message: 'প্রশ্নের ধরন নির্বাচন করুন।' }),
+  numberOfQuestions: z.coerce.number().min(1, { message: 'কমপক্ষে ১টি প্রশ্ন দিন।' }),
+  timeLimit: z.string().nonempty({ message: 'সময় নির্ধারণ করুন।' }),
+  totalMarks: z.coerce.number().min(1, { message: 'কমপক্ষে ১ নম্বর দিন।' }),
+});
+
+type FormValues = z.infer<typeof formSchema>;
+
+function QuestionGeneratorPage() {
+  const { toast } = useToast();
+  const firestore = useFirestore();
+
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [generatedContent, setGeneratedContent] = useState('');
+  
+  const { register, handleSubmit, watch, formState: { errors } } = useForm<FormValues>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      questionType: 'সৃজনশীল',
+      numberOfQuestions: 5,
+      timeLimit: '২ ঘণ্টা',
+      totalMarks: 50,
+    }
+  });
+
+  const allFormValues = watch();
+
+  const onGenerate: SubmitHandler<FormValues> = async (data) => {
+    setIsGenerating(true);
+    setGeneratedContent('');
+    try {
+        const result = await generateQuestionAction(data);
+        if (result.success && result.data) {
+            setGeneratedContent(result.data);
+            toast({ title: 'সফল', description: 'আপনার প্রশ্নপত্র তৈরি হয়েছে।' });
+        } else {
+            toast({ variant: 'destructive', title: 'ত্রুটি', description: result.error });
+        }
+    } catch (error) {
+        console.error(error);
+        toast({ variant: 'destructive', title: 'ত্রুটি', description: 'প্রশ্ন তৈরি করতে গিয়ে একটি অপ্রত্যাশিত সমস্যা হয়েছে।' });
+    } finally {
+        setIsGenerating(false);
+    }
+  };
+
+  const handleSave = async () => {
+    if (!generatedContent) {
+        toast({ variant: 'destructive', title: 'ত্রুটি', description: 'প্রথমে একটি প্রশ্নপত্র তৈরি করুন।' });
+        return;
+    }
+    if (!firestore) return;
+
+    setIsSaving(true);
+    try {
+        const questionData: Omit<QuestionPaper, 'id'> = {
+            ...allFormValues,
+            generatedContent: generatedContent,
+            generatedAt: new Date().toISOString(),
+        };
+
+        const questionPapersCollection = collection(firestore, 'question_papers');
+        await addDoc(questionPapersCollection, questionData);
+
+        toast({ title: 'সফল', description: 'প্রশ্নপত্রটি সফলভাবে সেভ করা হয়েছে।' });
+    } catch (error) {
+        console.error("Error saving question paper:", error);
+        errorEmitter.emit('permission-error', new FirestorePermissionError({
+            path: 'question_papers',
+            operation: 'create',
+        }));
+    } finally {
+        setIsSaving(false);
+    }
+  };
+
 
   return (
-    <div className="space-y-8 p-8 rounded-xl bg-purple-100 dark:bg-purple-900/30 border border-purple-200 dark:border-purple-800">
+    <div className="space-y-8 p-8 rounded-xl bg-pink-100 dark:bg-pink-900/30 border border-pink-200 dark:border-pink-800">
       <div>
-        <h1 className="text-3xl font-bold font-headline text-purple-800 dark:text-purple-200">তথ্য ভান্ডার</h1>
+        <h1 className="text-3xl font-bold font-headline text-pink-800 dark:text-pink-200">প্রশ্ন জেনারেটর</h1>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="font-bold text-purple-900 dark:text-purple-100">বোর্ড বইসমূহ</CardTitle>
-          <CardContent className="p-0 pt-4">
-              <div className="w-full sm:w-auto flex-1 space-y-2">
-                  <Label htmlFor="class-select" className="text-purple-800 dark:text-purple-300">শ্রেণি নির্বাচন করুন</Label>
-                  <Select value={selectedClass} onValueChange={setSelectedClass}>
-                  <SelectTrigger id="class-select" className="sm:max-w-xs">
-                      <SelectValue placeholder="শ্রেণি নির্বাচন করুন" />
-                  </SelectTrigger>
-                  <SelectContent>
-                      {classNames.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-                  </SelectContent>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-1">
+          <Card>
+            <CardHeader>
+              <CardTitle className="font-bold text-pink-900 dark:text-pink-100">প্রশ্নপত্রের তথ্য</CardTitle>
+              <CardDescription>প্রশ্ন তৈরি করার জন্য নিচের ফর্মটি পূরণ করুন।</CardDescription>
+            </CardHeader>
+            <form onSubmit={handleSubmit(onGenerate)}>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="class">শ্রেণি</Label>
+                  <Select {...register('class')} onValueChange={(value) => setValue('class', value, { shouldValidate: true })}>
+                      <SelectTrigger id="class">
+                          <SelectValue placeholder="শ্রেণি নির্বাচন করুন" />
+                      </SelectTrigger>
+                      <SelectContent>
+                          {classNames.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                      </SelectContent>
                   </Select>
-              </div>
-          </CardContent>
-        </CardHeader>
-        <CardContent>
-          {selectedClass ? (
-             filteredBooks.length > 0 ? (
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
-                    {filteredBooks.map((book) => (
-                        <Card key={book.subject} className="overflow-hidden">
-                            <CardContent className="p-0">
-                                <div className="aspect-[3/4] relative">
-                                    <Image
-                                        src={book.coverImageUrl}
-                                        alt={book.subject}
-                                        fill
-                                        className="object-cover"
-                                        data-ai-hint={book.imageHint}
-                                    />
-                                </div>
-                            </CardContent>
-                            <CardFooter className="p-2 flex-col items-start space-y-2">
-                                <h3 className="font-bold text-sm text-purple-900 dark:text-purple-100">{book.subject}</h3>
-                                <Button asChild size="sm" className="w-full">
-                                    <Link href={book.downloadUrl} target="_blank">
-                                        <Download className="mr-2 h-4 w-4" />
-                                        ডাউনলোড
-                                    </Link>
-                                </Button>
-                            </CardFooter>
-                        </Card>
-                    ))}
+                  {errors.class && <p className="text-sm text-red-600">{errors.class.message}</p>}
                 </div>
-             ) : (
-                <div className="flex flex-col items-center justify-center text-center p-10 border-2 border-dashed rounded-lg h-48">
-                    <p className="text-muted-foreground">এই শ্রেণির জন্য কোনো বই পাওয়া যায়নি।</p>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="subject">বিষয়</Label>
+                  <Input id="subject" placeholder="যেমন: গণিত" {...register('subject')} />
+                   {errors.subject && <p className="text-sm text-red-600">{errors.subject.message}</p>}
                 </div>
-             )
-          ) : (
-            <div className="flex flex-col items-center justify-center text-center p-10 border-2 border-dashed rounded-lg h-48">
-              <BookOpen className="h-12 w-12 text-purple-400 mb-4" />
-              <p className="text-muted-foreground">বই দেখতে অনুগ্রহ করে একটি শ্রেণি নির্বাচন করুন।</p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+
+                <div className="space-y-2">
+                  <Label htmlFor="chapter">অধ্যায়</Label>
+                  <Input id="chapter" placeholder="যেমন: ত্রিকোণমিতি" {...register('chapter')} />
+                  {errors.chapter && <p className="text-sm text-red-600">{errors.chapter.message}</p>}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="questionType">প্রশ্নের ধরন</Label>
+                  <Select {...register('questionType')} onValueChange={(value) => setValue('questionType', value)}>
+                    <SelectTrigger id="questionType">
+                      <SelectValue placeholder=" ধরন নির্বাচন করুন" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="সৃজনশীল">সৃজনশীল (Creative)</SelectItem>
+                      <SelectItem value="বহুনির্বাচনী">বহুনির্বাচনী (MCQ)</SelectItem>
+                      <SelectItem value="সংক্ষিপ্ত প্রশ্ন">সংক্ষিপ্ত প্রশ্ন (Short Answer)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="numberOfQuestions">প্রশ্ন সংখ্যা</Label>
+                      <Input id="numberOfQuestions" type="number" {...register('numberOfQuestions')} />
+                      {errors.numberOfQuestions && <p className="text-sm text-red-600">{errors.numberOfQuestions.message}</p>}
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="totalMarks">পূর্ণমান</Label>
+                      <Input id="totalMarks" type="number" {...register('totalMarks')} />
+                      {errors.totalMarks && <p className="text-sm text-red-600">{errors.totalMarks.message}</p>}
+                    </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="timeLimit">সময়</Label>
+                  <Input id="timeLimit" placeholder="যেমন: ২ ঘণ্টা ৩০ মিনিট" {...register('timeLimit')} />
+                   {errors.timeLimit && <p className="text-sm text-red-600">{errors.timeLimit.message}</p>}
+                </div>
+              </CardContent>
+              <CardFooter>
+                 <Button type="submit" disabled={isGenerating} className="w-full">
+                  {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2 h-4 w-4" />}
+                  {isGenerating ? 'প্রশ্ন তৈরি হচ্ছে...' : 'প্রশ্ন তৈরি করুন'}
+                </Button>
+              </CardFooter>
+            </form>
+          </Card>
+        </div>
+
+        <div className="lg:col-span-2">
+          <Card className="h-full flex flex-col">
+            <CardHeader className="flex-row justify-between items-center">
+                <CardTitle className="font-bold text-pink-900 dark:text-pink-100">তৈরি হওয়া প্রশ্নপত্র</CardTitle>
+                <Button onClick={handleSave} disabled={isSaving || !generatedContent}>
+                    {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                    {isSaving ? 'সেভ হচ্ছে...' : 'প্রশ্ন সেভ করুন'}
+                </Button>
+            </CardHeader>
+            <CardContent className="flex-grow">
+              {isGenerating ? (
+                <div className="flex flex-col items-center justify-center h-full text-center p-12 border-2 border-dashed rounded-lg">
+                  <Loader2 className="h-10 w-10 animate-spin text-primary mb-4" />
+                  <p className="text-muted-foreground">আপনার প্রশ্নপত্র তৈরি হচ্ছে... <br /> এটি কয়েক মুহূর্ত সময় নিতে পারে।</p>
+                </div>
+              ) : generatedContent ? (
+                <Textarea
+                  className="w-full h-full min-h-[400px] bg-white dark:bg-background whitespace-pre-wrap font-mono"
+                  readOnly
+                  value={generatedContent}
+                />
+              ) : (
+                <div className="flex flex-col items-center justify-center text-center p-12 border-2 border-dashed rounded-lg h-full">
+                  <Wand2 className="h-12 w-12 text-pink-400 mb-4" />
+                  <p className="text-muted-foreground">প্রশ্নপত্র তৈরি করতে বাম পাশের ফর্মটি পূরণ করে "প্রশ্ন তৈরি করুন" বাটনে ক্লিক করুন।</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      </div>
     </div>
   );
 }
 
-export default DataStorePage;
+export default function QuestionGeneratorPageContainer() {
+    // This is a workaround to satisfy the react-hook-form dependency on `setValue`
+    const { setValue } = useForm();
+    return <QuestionGeneratorPage setValue={setValue} />
+}

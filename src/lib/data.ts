@@ -48,6 +48,19 @@ export type Attendance = {
     status: 'present' | 'absent';
 }
 
+export type QuestionPaper = {
+  id: string;
+  class: string;
+  subject: string;
+  chapter: string;
+  questionType: string;
+  numberOfQuestions: number;
+  timeLimit: string;
+  totalMarks: number;
+  generatedContent: string;
+  generatedAt: string;
+};
+
 export type UserRole = {
   id: string;
   email: string;
