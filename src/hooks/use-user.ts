@@ -41,8 +41,28 @@ The markdown string for the question paper must:
 4.  Use Bengali language and markdown for all formatting (headings, lists, bold text).
 5.  Ensure questions are relevant to the Bangladeshi curriculum for the given class.
 
-Your final output will be a JSON object. Place the entire markdown string you created into the \`questionPaper\` field of that JSON object.
+Your final output MUST be a JSON object. Place the entire markdown string you created into the \`questionPaper\` field of that JSON object.
   `,
+  config: {
+    safetySettings: [
+      {
+        category: 'HARM_CATEGORY_HATE_SPEECH',
+        threshold: 'BLOCK_ONLY_HIGH',
+      },
+      {
+        category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
+        threshold: 'BLOCK_ONLY_HIGH',
+      },
+      {
+        category: 'HARM_CATEGORY_HARASSMENT',
+        threshold: 'BLOCK_ONLY_HIGH',
+      },
+      {
+        category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
+        threshold: 'BLOCK_ONLY_HIGH',
+      },
+    ],
+  },
 });
 
 const generateQuestionPaperFlow = ai.defineFlow(
