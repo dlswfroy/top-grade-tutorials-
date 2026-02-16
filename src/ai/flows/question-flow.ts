@@ -8,7 +8,6 @@
 import { ai } from '@/ai/genkit';
 import { GenerateQuestionPaperInputSchema } from '@/lib/data';
 import { z } from 'zod';
-import { googleAI } from '@genkit-ai/google-genai';
 
 // Define the output schema for the flow itself, which is a simple object containing the generated text.
 const QuestionPaperOutputSchema = z.object({
@@ -44,7 +43,7 @@ export const generateQuestionFlow = ai.defineFlow(
         
         // Request raw text from the AI using the fully populated prompt.
         const response = await ai.generate({
-            model: googleAI.model('gemini-pro'),
+            model: 'googleai/gemini-pro',
             prompt: populatedPrompt,
         });
         
