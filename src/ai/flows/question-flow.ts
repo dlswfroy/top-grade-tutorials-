@@ -43,7 +43,7 @@ export const generateQuestionFlow = ai.defineFlow(
         
         // Request raw text from the AI using the fully populated prompt.
         const response = await ai.generate({
-            model: 'gemini-1.5-pro-latest', // Using a modern, globally available model.
+            model: 'googleai/gemini-1.5-pro-latest', // Using a modern, globally available model with the correct identifier.
             prompt: populatedPrompt,
         });
         
