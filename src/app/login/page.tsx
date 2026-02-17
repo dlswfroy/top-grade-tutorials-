@@ -177,6 +177,7 @@ export default function LoginPage() {
                         accounting: true,
                         attendance: true,
                         datastore: true,
+                        'gemini-chat': true,
                         marksheet: true,
                         'board-books': true,
                         settings: false,

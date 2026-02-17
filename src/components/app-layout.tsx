@@ -16,6 +16,7 @@ import {
   Wand2,
   BookOpenCheck,
   Library,
+  MessageSquare,
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -43,6 +44,7 @@ const menuItems = [
   { href: '/accounting', label: 'হিসাব', icon: Calculator, key: 'accounting' },
   { href: '/attendance', label: 'হাজিরা', icon: CalendarCheck, key: 'attendance' },
   { href: '/datastore', label: 'প্রশ্ন জেনারেটর', icon: Wand2, key: 'datastore' },
+  { href: '/gemini-chat', label: 'Gemini চ্যাট', icon: MessageSquare, key: 'gemini-chat' },
   { href: '/marksheet', label: 'মার্কশিট', icon: BookOpenCheck, key: 'marksheet' },
   { href: '/board-books', label: 'বোর্ড বই', icon: Library, key: 'board-books' },
   { href: '/settings', label: 'সেটিংস', icon: Settings, key: 'settings' },
@@ -55,6 +57,7 @@ const menuItemStyles: { [key: string]: string } = {
     accounting: 'border-teal-300 text-teal-300',
     attendance: 'border-lime-300 text-lime-300',
     datastore: 'border-pink-300 text-pink-300',
+    'gemini-chat': 'border-rose-400 text-rose-400',
     marksheet: 'border-purple-300 text-purple-300',
     'board-books': 'border-violet-400 text-violet-400',
     settings: 'border-green-400 text-green-400',
@@ -72,16 +75,16 @@ function Logo({ settings, isLoading }: { settings: InstitutionSettings | null, i
     const logoUrl = settings?.logoUrl || logoFromPlaceholders?.imageUrl;
 
     return (
-        <Link href="/" className="flex items-center gap-3">
+        <Link href="/" className="flex items-center gap-2 sm:gap-3">
             {isLoading ? (
-                <Loader2 className="h-12 w-12 animate-spin text-white" />
+                <Loader2 className="h-8 w-8 sm:h-12 sm:w-12 animate-spin text-white" />
             ) : (
-                <Avatar className="h-10 w-10 sm:h-12 sm:w-12 bg-white">
+                <Avatar className="h-8 w-8 sm:h-12 sm:w-12 bg-white">
                     <AvatarImage src={logoUrl} alt={institutionName} className="object-contain p-1" />
                     <AvatarFallback>{institutionName.slice(0, 2)}</AvatarFallback>
                 </Avatar>
             )}
-            <h1 className="text-lg sm:text-xl font-headline font-bold text-white">{institutionName}</h1>
+            <h1 className="text-md sm:text-xl font-headline font-bold text-white">{institutionName}</h1>
         </Link>
     );
 }
@@ -223,7 +226,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                                 <span className="sr-only">Open Menu</span>
                             </Button>
                         </SheetTrigger>
-                        <SheetContent side="left" className="w-[280px] sm:w-[300px] bg-[#1A73E8] text-white border-r-0 p-0">
+                        <SheetContent side="left" className="w-[280px] sm:w-[320px] bg-[#1A73E8] text-white border-r-0 p-0">
                              <SheetTitle className="sr-only">Mobile Menu</SheetTitle>
                             <div className="p-4 border-b border-white/20">
                                 <Logo settings={settings} isLoading={isLoadingSettings} />

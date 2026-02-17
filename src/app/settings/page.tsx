@@ -73,6 +73,7 @@ const permissionsList = [
     { id: 'accounting', label: 'হিসাব' },
     { id: 'attendance', label: 'হাজিরা' },
     { id: 'datastore', label: 'প্রশ্ন জেনারেটর' },
+    { id: 'gemini-chat', label: 'Gemini চ্যাট' },
     { id: 'marksheet', label: 'মার্কশিট' },
     { id: 'board-books', label: 'বোর্ড বই' },
     { id: 'settings', label: 'সেটিংস' },
