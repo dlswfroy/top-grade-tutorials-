@@ -792,5 +792,3 @@ export default function SettingsPageContainer() {
         <SettingsPage />
     )
 }
-
-    

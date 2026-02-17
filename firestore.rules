@@ -32,6 +32,10 @@ service cloud.firestore {
         allow read, write: if isAuth();
     }
 
+    match /marksheets/{marksheetId} {
+      allow read, write: if isAuth();
+    }
+
     match /institution_settings/default {
         allow read: if true;
         allow write: if isAdmin();
