@@ -5,8 +5,8 @@
  * This file defines the Genkit flow for generating question papers.
  * It is intended to be called from a server action.
  */
-import { ai } from '@/ai/genkit';
-import { GenerateQuestionPaperInputSchema } from '@/lib/data';
+import { ai, googleAiPlugin } from '@/ai/genkit';
+import { GenerateQuestionPaperInputSchema, type GenerateQuestionPaperInput } from '@/lib/data';
 import { z } from 'zod';
 
 // Define the output schema for the flow itself, which is a simple object containing the generated text.
@@ -14,8 +14,8 @@ const QuestionPaperOutputSchema = z.object({
   generatedText: z.string().describe('The full question paper content as a single block of Markdown text.'),
 });
 
-// Define the main flow
-export const generateQuestionFlow = ai.defineFlow(
+// Define the main flow. This is not exported directly.
+const _generateQuestionFlow = ai.defineFlow(
     {
         name: 'generateQuestionFlow',
         inputSchema: GenerateQuestionPaperInputSchema,
@@ -40,10 +40,9 @@ export const generateQuestionFlow = ai.defineFlow(
 - বিষয়ের নাম, পূর্ণমান এবং সময় দিয়ে একটি হেডার দিয়ে শুরু করুন।
 - অন্য কোনো লেখা, সম্ভাষণ, ব্যাখ্যা বা JSON ফরম্যাটিং যোগ করবেন না। শুধু মূল মার্কডাউন টেক্সটটি ফেরত দিন।`;
         
-        // Request raw text from the AI using the fully populated prompt.
-        // Using a standard and reliable model 'gemini-pro'.
+        // Using a standard and reliable model, explicitly referenced from the plugin
         const response = await ai.generate({
-            model: 'gemini-pro',
+            model: googleAiPlugin.model('gemini-pro'),
             prompt: populatedPrompt,
         });
         
@@ -57,3 +56,11 @@ export const generateQuestionFlow = ai.defineFlow(
         return { generatedText: generatedText };
     }
 );
+
+/**
+ * This is the exported async wrapper function.
+ * Server Actions should call this function instead of the flow object directly.
+ */
+export async function generateQuestionFlow(input: GenerateQuestionPaperInput): Promise<z.infer<typeof QuestionPaperOutputSchema>> {
+    return _generateQuestionFlow(input);
+}

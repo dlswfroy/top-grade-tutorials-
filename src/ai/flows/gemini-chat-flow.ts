@@ -2,7 +2,7 @@
 /**
  * @fileOverview A simple conversational AI flow.
  */
-import { ai } from '@/ai/genkit';
+import { ai, googleAiPlugin } from '@/ai/genkit';
 import { z } from 'zod';
 import { type Message } from 'genkit';
 
@@ -41,7 +41,7 @@ const _geminiChatFlow = ai.defineFlow(
 
         // The 'generate' function takes the history and the current prompt separately.
         const response = await ai.generate({
-            model: 'gemini-pro',
+            model: googleAiPlugin.model('gemini-pro'),
             history: messages,
             prompt: lastMessage.content,
         });
