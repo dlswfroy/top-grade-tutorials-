@@ -14,6 +14,7 @@ import {
   GraduationCap,
   LogOut,
   Wand2,
+  BookOpenCheck,
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -41,6 +42,7 @@ const menuItems = [
   { href: '/accounting', label: 'হিসাব', icon: Calculator, key: 'accounting' },
   { href: '/attendance', label: 'হাজিরা', icon: CalendarCheck, key: 'attendance' },
   { href: '/datastore', label: 'প্রশ্ন জেনারেটর', icon: Wand2, key: 'datastore' },
+  { href: '/marksheet', label: 'মার্কশিট', icon: BookOpenCheck, key: 'marksheet' },
   { href: '/settings', label: 'সেটিংস', icon: Settings, key: 'settings' },
 ];
 
@@ -51,6 +53,7 @@ const menuItemStyles: { [key: string]: string } = {
     accounting: 'border-teal-300 text-teal-300',
     attendance: 'border-lime-300 text-lime-300',
     datastore: 'border-pink-300 text-pink-300',
+    marksheet: 'border-purple-300 text-purple-300',
     settings: 'border-green-400 text-green-400',
 };
 
@@ -66,16 +69,16 @@ function Logo({ settings, isLoading }: { settings: InstitutionSettings | null, i
     const logoUrl = settings?.logoUrl || logoFromPlaceholders?.imageUrl;
 
     return (
-        <Link href="/" className="flex items-center gap-4">
+        <Link href="/" className="flex items-center gap-3">
             {isLoading ? (
-                <Loader2 className="h-16 w-16 animate-spin text-white" />
+                <Loader2 className="h-12 w-12 animate-spin text-white" />
             ) : (
-                <Avatar className="h-16 w-16 bg-white">
+                <Avatar className="h-12 w-12 bg-white">
                     <AvatarImage src={logoUrl} alt={institutionName} className="object-contain p-1" />
                     <AvatarFallback>{institutionName.slice(0, 2)}</AvatarFallback>
                 </Avatar>
             )}
-            <h1 className="text-4xl font-headline font-bold text-white whitespace-nowrap">{institutionName}</h1>
+            <h1 className="text-xl sm:text-2xl font-headline font-bold text-white">{institutionName}</h1>
         </Link>
     );
 }
@@ -158,7 +161,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       <div className="min-h-screen flex flex-col bg-muted/40">
           <header className="sticky top-0 z-40 w-full bg-[#1A73E8] text-white shadow-lg border-b-2 border-black/30">
               <div className="flex h-20 items-center justify-between px-4">
-                  <div className="flex items-center gap-6">
+                  <div className="flex items-center gap-2">
                     <Logo settings={settings} isLoading={isLoadingSettings} />
                   </div>
                   
@@ -180,12 +183,12 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                         ))}
                     </nav>
 
-                  <div className="flex items-center justify-end gap-4">
+                  <div className="flex items-center justify-end gap-2">
                     {user ? (
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" className="relative h-14 w-14 rounded-full p-0 focus-visible:ring-white">
-                                    <Avatar className="h-14 w-14">
+                                <Button variant="ghost" className="relative h-12 w-12 rounded-full p-0 focus-visible:ring-white">
+                                    <Avatar className="h-12 w-12">
                                         <AvatarImage src={userRole?.imageUrl || user.photoURL || `https://i.pravatar.cc/150?u=${user.uid}`} alt={user.displayName || 'User'} />
                                         <AvatarFallback>{user.displayName?.charAt(0) || user.email?.charAt(0)}</AvatarFallback>
                                     </Avatar>
@@ -217,7 +220,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                                 <span className="sr-only">Open Menu</span>
                             </Button>
                         </SheetTrigger>
-                        <SheetContent side="left" className="w-[200px] bg-[#1A73E8] text-white border-r-0 p-0">
+                        <SheetContent side="left" className="w-[250px] bg-[#1A73E8] text-white border-r-0 p-0">
                              <SheetTitle className="sr-only">Mobile Menu</SheetTitle>
                             <div className="p-4 border-b border-white/20">
                                 <Logo settings={settings} isLoading={isLoadingSettings} />
