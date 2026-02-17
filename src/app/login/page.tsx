@@ -177,6 +177,8 @@ export default function LoginPage() {
                         accounting: true,
                         attendance: true,
                         datastore: true,
+                        marksheet: true,
+                        'board-books': true,
                         settings: false,
                     };
                 }

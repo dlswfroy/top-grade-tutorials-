@@ -15,6 +15,7 @@ import {
   LogOut,
   Wand2,
   BookOpenCheck,
+  Library,
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -43,6 +44,7 @@ const menuItems = [
   { href: '/attendance', label: 'হাজিরা', icon: CalendarCheck, key: 'attendance' },
   { href: '/datastore', label: 'প্রশ্ন জেনারেটর', icon: Wand2, key: 'datastore' },
   { href: '/marksheet', label: 'মার্কশিট', icon: BookOpenCheck, key: 'marksheet' },
+  { href: '/board-books', label: 'বোর্ড বই', icon: Library, key: 'board-books' },
   { href: '/settings', label: 'সেটিংস', icon: Settings, key: 'settings' },
 ];
 
@@ -54,6 +56,7 @@ const menuItemStyles: { [key: string]: string } = {
     attendance: 'border-lime-300 text-lime-300',
     datastore: 'border-pink-300 text-pink-300',
     marksheet: 'border-purple-300 text-purple-300',
+    'board-books': 'border-violet-400 text-violet-400',
     settings: 'border-green-400 text-green-400',
 };
 
@@ -73,12 +76,12 @@ function Logo({ settings, isLoading }: { settings: InstitutionSettings | null, i
             {isLoading ? (
                 <Loader2 className="h-12 w-12 animate-spin text-white" />
             ) : (
-                <Avatar className="h-12 w-12 bg-white">
+                <Avatar className="h-10 w-10 sm:h-12 sm:w-12 bg-white">
                     <AvatarImage src={logoUrl} alt={institutionName} className="object-contain p-1" />
                     <AvatarFallback>{institutionName.slice(0, 2)}</AvatarFallback>
                 </Avatar>
             )}
-            <h1 className="text-xl sm:text-2xl font-headline font-bold text-white">{institutionName}</h1>
+            <h1 className="text-lg sm:text-xl font-headline font-bold text-white">{institutionName}</h1>
         </Link>
     );
 }
@@ -160,7 +163,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   return (
       <div className="min-h-screen flex flex-col bg-muted/40">
           <header className="sticky top-0 z-40 w-full bg-[#1A73E8] text-white shadow-lg border-b-2 border-black/30">
-              <div className="flex h-20 items-center justify-between px-4">
+              <div className="flex h-20 items-center justify-between px-2 sm:px-4">
                   <div className="flex items-center gap-2">
                     <Logo settings={settings} isLoading={isLoadingSettings} />
                   </div>
@@ -187,8 +190,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                     {user ? (
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" className="relative h-12 w-12 rounded-full p-0 focus-visible:ring-white">
-                                    <Avatar className="h-12 w-12">
+                                <Button variant="ghost" className="relative h-10 w-10 sm:h-12 sm:w-12 rounded-full p-0 focus-visible:ring-white">
+                                    <Avatar className="h-10 w-10 sm:h-12 sm:w-12">
                                         <AvatarImage src={userRole?.imageUrl || user.photoURL || `https://i.pravatar.cc/150?u=${user.uid}`} alt={user.displayName || 'User'} />
                                         <AvatarFallback>{user.displayName?.charAt(0) || user.email?.charAt(0)}</AvatarFallback>
                                     </Avatar>
@@ -220,7 +223,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                                 <span className="sr-only">Open Menu</span>
                             </Button>
                         </SheetTrigger>
-                        <SheetContent side="left" className="w-[250px] bg-[#1A73E8] text-white border-r-0 p-0">
+                        <SheetContent side="left" className="w-[280px] sm:w-[300px] bg-[#1A73E8] text-white border-r-0 p-0">
                              <SheetTitle className="sr-only">Mobile Menu</SheetTitle>
                             <div className="p-4 border-b border-white/20">
                                 <Logo settings={settings} isLoading={isLoadingSettings} />
