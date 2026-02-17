@@ -176,10 +176,7 @@ export default function LoginPage() {
                         teachers: true,
                         accounting: true,
                         attendance: true,
-                        datastore: true,
-                        'gemini-chat': true,
                         marksheet: true,
-                        'board-books': true,
                         settings: false,
                     };
                 }
@@ -330,3 +327,5 @@ export default function LoginPage() {
     </div>
   );
 }
+
+    

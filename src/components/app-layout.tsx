@@ -13,10 +13,7 @@ import {
   Menu,
   GraduationCap,
   LogOut,
-  Wand2,
   BookOpenCheck,
-  Library,
-  MessageSquare,
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -43,10 +40,7 @@ const menuItems = [
   { href: '/teachers', label: 'শিক্ষক', icon: GraduationCap, key: 'teachers' },
   { href: '/accounting', label: 'হিসাব', icon: Calculator, key: 'accounting' },
   { href: '/attendance', label: 'হাজিরা', icon: CalendarCheck, key: 'attendance' },
-  { href: '/datastore', label: 'প্রশ্ন জেনারেটর', icon: Wand2, key: 'datastore' },
-  { href: '/gemini-chat', label: 'Gemini চ্যাট', icon: MessageSquare, key: 'gemini-chat' },
   { href: '/marksheet', label: 'মার্কশিট', icon: BookOpenCheck, key: 'marksheet' },
-  { href: '/board-books', label: 'বোর্ড বই', icon: Library, key: 'board-books' },
   { href: '/settings', label: 'সেটিংস', icon: Settings, key: 'settings' },
 ];
 
@@ -56,10 +50,7 @@ const menuItemStyles: { [key: string]: string } = {
     teachers: 'border-cyan-300 text-cyan-300',
     accounting: 'border-teal-300 text-teal-300',
     attendance: 'border-lime-300 text-lime-300',
-    datastore: 'border-pink-300 text-pink-300',
-    'gemini-chat': 'border-rose-400 text-rose-400',
     marksheet: 'border-purple-300 text-purple-300',
-    'board-books': 'border-violet-400 text-violet-400',
     settings: 'border-green-400 text-green-400',
 };
 
@@ -259,3 +250,5 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       </div>
   );
 }
+
+    

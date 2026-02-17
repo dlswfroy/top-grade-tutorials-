@@ -74,24 +74,6 @@
         },
         "required": ["studentId", "classGrade", "date", "status"]
     },
-    "QuestionPaper": {
-        "title": "QuestionPaper",
-        "type": "object",
-        "description": "Stores details about a generated question paper.",
-        "properties": {
-            "id": { "type": "string" },
-            "class": { "type": "string", "enum": ["ষষ্ঠ", "সপ্তম", "অষ্টম", "নবম", "দশম"] },
-            "subject": { "type": "string" },
-            "chapter": { "type": "string" },
-            "questionType": { "type": "string" },
-            "numberOfQuestions": { "type": "number" },
-            "timeLimit": { "type": "string" },
-            "totalMarks": { "type": "number" },
-            "generatedContent": { "type": "string" },
-            "generatedAt": { "type": "string", "format": "date-time" }
-        },
-        "required": ["class", "subject", "chapter", "questionType", "numberOfQuestions", "timeLimit", "totalMarks", "generatedContent", "generatedAt"]
-    },
     "UserRole": {
         "title": "UserRole",
         "type": "object",
@@ -158,10 +140,6 @@
         "schema": { "$ref": "#/entities/Attendance" },
         "description": "Contains daily student attendance records."
       },
-      "question_papers": {
-        "schema": { "$ref": "#/entities/QuestionPaper" },
-        "description": "Stores details of AI-generated question papers."
-      },
       "user_roles": {
           "schema": { "$ref": "#/entities/UserRole" },
           "description": "Stores the role for each user."
@@ -177,3 +155,5 @@
     }
   }
 }
+
+    
