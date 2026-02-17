@@ -41,7 +41,7 @@ const _geminiChatFlow = ai.defineFlow(
 
         // The 'generate' function takes the history and the current prompt separately.
         const response = await ai.generate({
-            model: 'googleai/gemini-pro',
+            model: 'gemini-pro',
             history: messages,
             prompt: lastMessage.content,
         });

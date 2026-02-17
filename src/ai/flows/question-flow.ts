@@ -43,7 +43,7 @@ export const generateQuestionFlow = ai.defineFlow(
         // Request raw text from the AI using the fully populated prompt.
         // Using a standard and reliable model 'gemini-pro'.
         const response = await ai.generate({
-            model: 'googleai/gemini-pro',
+            model: 'gemini-pro',
             prompt: populatedPrompt,
         });
         
