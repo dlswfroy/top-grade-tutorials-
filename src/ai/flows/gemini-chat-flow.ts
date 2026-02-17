@@ -4,6 +4,7 @@
  */
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
+import { type Message } from 'genkit';
 
 const ChatHistorySchema = z.array(z.object({
     role: z.enum(['user', 'model']),
@@ -24,20 +25,25 @@ const _geminiChatFlow = ai.defineFlow(
     },
     async (history) => {
         
-        // Transform the history from the client to the format expected by `ai.generate`.
-        // The key 'parts' needs to be renamed to 'content'.
-        const formattedHistory = history.map(msg => ({
+        // Transform the history from the client to the Genkit Message[] format.
+        const messages: Message[] = history.map(msg => ({
             role: msg.role,
             content: msg.parts,
         }));
         
+        // The last message in the history is the user's current prompt.
+        // We separate it from the rest of the history.
+        const lastMessage = messages.pop();
+
+        if (!lastMessage) {
+            throw new Error('Chat history cannot be empty.');
+        }
+
+        // The 'generate' function takes the history and the current prompt separately.
         const response = await ai.generate({
             model: 'googleai/gemini-pro',
-            prompt: {
-                // Pass the entire formatted history. The last message is treated
-                // as the user's current prompt.
-                history: formattedHistory,
-            },
+            history: messages,
+            prompt: lastMessage.content,
         });
         
         const generatedText = response.text;
