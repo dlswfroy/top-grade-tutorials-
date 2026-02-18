@@ -33,7 +33,7 @@ service cloud.firestore {
     }
 
     match /marksheets/{marksheetId} {
-      allow read, write: if isAuth();
+      allow get, list, create, update, delete: if isAuth();
     }
 
     match /institution_settings/default {
@@ -55,5 +55,3 @@ service cloud.firestore {
     }
   }
 }
-
-    
