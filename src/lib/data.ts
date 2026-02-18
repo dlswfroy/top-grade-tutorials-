@@ -50,21 +50,6 @@ export type Attendance = {
     status: 'present' | 'absent';
 }
 
-export type Marksheet = {
-  id: string;
-  studentId: string;
-  studentName: string;
-  classGrade: string;
-  rollNumber: string;
-  examType: string;
-  year: string;
-  marks: { subject: string; marks: number }[];
-  totalMarks: number;
-  gpa: number;
-  grade: string;
-  dateCreated: string;
-};
-
 export type UserRole = {
   id: string;
   email: string;

@@ -176,7 +176,6 @@ export default function LoginPage() {
                         teachers: true,
                         accounting: true,
                         attendance: true,
-                        marksheet: true,
                         settings: false,
                     };
                 }
