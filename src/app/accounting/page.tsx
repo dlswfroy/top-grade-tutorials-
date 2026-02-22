@@ -1253,7 +1253,7 @@ function AccountingPage() {
       </div>
 
       <Tabs defaultValue="collection" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-2 gap-2 bg-transparent p-0 md:grid-cols-3 lg:grid-cols-6">
+        <TabsList className="flex h-auto w-full flex-wrap items-center justify-start gap-2 bg-transparent p-0">
             <TabsTrigger value="collection" className={tabTriggerClasses}>বেতন আদায়</TabsTrigger>
             <TabsTrigger value="payment-list" className={tabTriggerClasses}>আদায়ের তালিকা</TabsTrigger>
             <TabsTrigger value="cashbook" className={tabTriggerClasses}>ক্যাশবুক</TabsTrigger>
