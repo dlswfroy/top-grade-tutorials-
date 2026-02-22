@@ -1245,6 +1245,7 @@ function Report() {
 }
 
 function AccountingPage() {
+  const tabTriggerClasses = "font-semibold border-2 border-amber-600/30 text-amber-800 data-[state=active]:bg-amber-700 data-[state=active]:text-white data-[state=active]:border-amber-700 hover:bg-amber-200/50 dark:border-amber-400/50 dark:text-amber-200 dark:data-[state=active]:bg-amber-500 dark:data-[state=active]:text-black dark:hover:bg-amber-400/20";
   return (
     <div className="space-y-8 p-8 rounded-xl bg-amber-100 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800">
       <div>
@@ -1252,13 +1253,13 @@ function AccountingPage() {
       </div>
 
       <Tabs defaultValue="collection" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
-            <TabsTrigger value="collection">বেতন আদায়</TabsTrigger>
-            <TabsTrigger value="payment-list">আদায়ের তালিকা</TabsTrigger>
-            <TabsTrigger value="cashbook">ক্যাশবুক</TabsTrigger>
-            <TabsTrigger value="ledger">শিক্ষার্থী লেজার</TabsTrigger>
-            <TabsTrigger value="expenses">খরচের লেজার</TabsTrigger>
-            <TabsTrigger value="report">রিপোর্ট</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-2 gap-2 bg-transparent p-0 md:grid-cols-3 lg:grid-cols-6">
+            <TabsTrigger value="collection" className={tabTriggerClasses}>বেতন আদায়</TabsTrigger>
+            <TabsTrigger value="payment-list" className={tabTriggerClasses}>আদায়ের তালিকা</TabsTrigger>
+            <TabsTrigger value="cashbook" className={tabTriggerClasses}>ক্যাশবুক</TabsTrigger>
+            <TabsTrigger value="ledger" className={tabTriggerClasses}>শিক্ষার্থী লেজার</TabsTrigger>
+            <TabsTrigger value="expenses" className={tabTriggerClasses}>খরচের লেজার</TabsTrigger>
+            <TabsTrigger value="report" className={tabTriggerClasses}>রিপোর্ট</TabsTrigger>
         </TabsList>
         <TabsContent value="collection">
             <FeeCollection />
