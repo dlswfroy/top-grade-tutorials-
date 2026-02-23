@@ -55,9 +55,6 @@ const LoginForm = ({
   <Card>
     <CardHeader>
       <CardTitle className="text-gray-800 dark:text-gray-200">{role === 'teacher' ? 'শিক্ষক লগইন' : 'এডমিন লগইন'}</CardTitle>
-      <CardDescription className="text-gray-600 dark:text-gray-400">
-        আপনার একাউন্টে প্রবেশ করতে ইমেইল ও পাসওয়ার্ড দিন।
-      </CardDescription>
     </CardHeader>
     <CardContent className="space-y-4">
       <div className="space-y-2">
