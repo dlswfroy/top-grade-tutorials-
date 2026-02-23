@@ -1,3 +1,4 @@
+
 'use client';
 import { useState } from 'react';
 import {
@@ -322,9 +323,6 @@ export default function LoginPage() {
                 <Card>
                     <CardHeader>
                     <CardTitle className="text-gray-800 dark:text-gray-200">নতুন একাউন্ট তৈরি করুন</CardTitle>
-                    <CardDescription className="text-gray-600 dark:text-gray-400">
-                        শুধুমাত্র নিবন্ধিত শিক্ষকরাই সাইন আপ করতে পারবেন। প্রথম ব্যবহারকারী স্বয়ংক্রিয়ভাবে 'এডমিন' হবেন।
-                    </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
                     <div className="space-y-2">
