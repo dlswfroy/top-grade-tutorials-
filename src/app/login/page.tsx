@@ -1,10 +1,8 @@
-
 'use client';
 import { useState } from 'react';
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
@@ -55,15 +53,15 @@ const LoginForm = ({
 }) => (
   <Card>
     <CardHeader>
-      <CardTitle className="text-gray-800 dark:text-gray-200">{role === 'teacher' ? 'শিক্ষক লগইন' : 'এডমিন লগইন'}</CardTitle>
+      <CardTitle className="text-blue-800 dark:text-blue-200">{role === 'teacher' ? 'শিক্ষক লগইন' : 'এডমিন লগইন'}</CardTitle>
     </CardHeader>
     <CardContent className="space-y-4">
       <div className="space-y-2">
-        <Label htmlFor={`${role}-email`} className="text-gray-700 dark:text-gray-300">ইমেইল</Label>
+        <Label htmlFor={`${role}-email`} className="text-blue-700 dark:text-blue-300">ইমেইল</Label>
         <Input id={`${role}-email`} type="email" placeholder="আপনার ইমেইল" value={email} onChange={(e) => setEmail(e.target.value)} required />
       </div>
       <div className="space-y-2">
-        <Label htmlFor={`${role}-password`} className="text-gray-700 dark:text-gray-300">পাসওয়ার্ড</Label>
+        <Label htmlFor={`${role}-password`} className="text-blue-700 dark:text-blue-300">পাসওয়ার্ড</Label>
         <Input id={`${role}-password`} type="password" placeholder="আপনার পাসওয়ার্ড" value={password} onChange={(e) => setPassword(e.target.value)} required />
       </div>
       <Button onClick={() => onLogin(role)} disabled={isLoading} className="w-full">
@@ -272,7 +270,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background p-4">
+    <div className="flex min-h-screen items-center justify-center bg-blue-50 dark:bg-slate-950 p-4">
         <div className="flex w-full max-w-sm flex-col items-center gap-6">
             <div className="flex flex-col items-center gap-3 text-center">
                 {isLoadingSettings ? (
@@ -283,7 +281,7 @@ export default function LoginPage() {
                             <AvatarImage src={settings?.logoUrl || undefined} alt={settings?.institutionName} className="object-contain p-1" />
                             <AvatarFallback>{settings?.institutionName?.slice(0, 2) || 'TG'}</AvatarFallback>
                         </Avatar>
-                        <h1 className="text-2xl font-bold text-foreground">{settings?.institutionName || 'টপ গ্রেড টিউটোরিয়ালস'}</h1>
+                        <h1 className="text-2xl font-bold text-blue-900 dark:text-blue-100">{settings?.institutionName || 'টপ গ্রেড টিউটোরিয়ালস'}</h1>
                     </>
                 )}
             </div>
@@ -322,19 +320,19 @@ export default function LoginPage() {
                 <TabsContent value="signup">
                 <Card>
                     <CardHeader>
-                    <CardTitle className="text-gray-800 dark:text-gray-200">নতুন একাউন্ট তৈরি করুন</CardTitle>
+                    <CardTitle className="text-blue-800 dark:text-blue-200">নতুন একাউন্ট তৈরি করুন</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
                     <div className="space-y-2">
-                        <Label htmlFor="name" className="text-gray-700 dark:text-gray-300">নাম</Label>
+                        <Label htmlFor="name" className="text-blue-700 dark:text-blue-300">নাম</Label>
                         <Input id="name" placeholder="আপনার পুরো নাম" value={signupName} onChange={(e) => setSignupName(e.target.value)} required />
                     </div>
                     <div className="space-y-2">
-                        <Label htmlFor="signup-email" className="text-gray-700 dark:text-gray-300">ইমেইল</Label>
+                        <Label htmlFor="signup-email" className="text-blue-700 dark:text-blue-300">ইমেইল</Label>
                         <Input id="signup-email" type="email" placeholder="আপনার ইমেইল" value={signupEmail} onChange={(e) => setSignupEmail(e.target.value)} required />
                     </div>
                     <div className="space-y-2">
-                        <Label htmlFor="signup-password" className="text-gray-700 dark:text-gray-300">পাসওয়ার্ড</Label>
+                        <Label htmlFor="signup-password" className="text-blue-700 dark:text-blue-300">পাসওয়ার্ড</Label>
                         <Input id="signup-password" type="password" placeholder="একটি শক্তিশালী পাসওয়ার্ড দিন" value={signupPassword} onChange={(e) => setSignupPassword(e.target.value)} required />
                     </div>
                     <Button onClick={handleSignUp} disabled={isLoading} className="w-full">
