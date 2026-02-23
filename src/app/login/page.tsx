@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useAuth, useFirestore } from '@/firebase';
+import { useAuth, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
@@ -24,6 +24,12 @@ import { collection, doc, setDoc, runTransaction, getDoc, query, where, getDocs,
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+
+type InstitutionSettings = {
+    institutionName?: string;
+    logoUrl?: string;
+};
 
 const LoginForm = ({
   role,
@@ -88,6 +94,13 @@ export default function LoginPage() {
 
   const [isLoading, setIsLoading] = useState(false);
   const [isResettingPassword, setIsResettingPassword] = useState(false);
+
+  const settingsRef = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return doc(firestore, 'institution_settings', 'default');
+  }, [firestore]);
+  const { data: settings, isLoading: isLoadingSettings } = useDoc<InstitutionSettings>(settingsRef);
+
 
   const handleTabChange = () => {
     setLoginEmail('');
@@ -261,70 +274,83 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-background">
-      <Tabs defaultValue="teacher-login" className="w-[400px]" onValueChange={handleTabChange}>
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="teacher-login">শিক্ষক লগইন</TabsTrigger>
-          <TabsTrigger value="admin-login">এডমিন লগইন</TabsTrigger>
-          <TabsTrigger value="signup">সাইন আপ</TabsTrigger>
-        </TabsList>
-        <TabsContent value="teacher-login">
-          <LoginForm 
-            role="teacher" 
-            email={loginEmail}
-            setEmail={setLoginEmail}
-            password={loginPassword}
-            setPassword={setLoginPassword}
-            onLogin={handleLogin}
-            onPasswordReset={handlePasswordReset}
-            isLoading={isLoading}
-            isResettingPassword={isResettingPassword}
-          />
-        </TabsContent>
-        <TabsContent value="admin-login">
-          <LoginForm 
-            role="admin" 
-            email={loginEmail}
-            setEmail={setLoginEmail}
-            password={loginPassword}
-            setPassword={setLoginPassword}
-            onLogin={handleLogin}
-            onPasswordReset={handlePasswordReset}
-            isLoading={isLoading}
-            isResettingPassword={isResettingPassword}
-          />
-        </TabsContent>
-        <TabsContent value="signup">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-gray-800 dark:text-gray-200">নতুন একাউন্ট তৈরি করুন</CardTitle>
-              <CardDescription className="text-gray-600 dark:text-gray-400">
-                শুধুমাত্র নিবন্ধিত শিক্ষকরাই সাইন আপ করতে পারবেন। প্রথম ব্যবহারকারী স্বয়ংক্রিয়ভাবে 'এডমিন' হবেন।
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="name" className="text-gray-700 dark:text-gray-300">নাম</Label>
-                <Input id="name" placeholder="আপনার পুরো নাম" value={signupName} onChange={(e) => setSignupName(e.target.value)} required />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="signup-email" className="text-gray-700 dark:text-gray-300">ইমেইল</Label>
-                <Input id="signup-email" type="email" placeholder="আপনার ইমেইল" value={signupEmail} onChange={(e) => setSignupEmail(e.target.value)} required />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="signup-password" className="text-gray-700 dark:text-gray-300">পাসওয়ার্ড</Label>
-                <Input id="signup-password" type="password" placeholder="একটি শক্তিশালী পাসওয়ার্ড দিন" value={signupPassword} onChange={(e) => setSignupPassword(e.target.value)} required />
-              </div>
-              <Button onClick={handleSignUp} disabled={isLoading} className="w-full">
-                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                সাইন আপ করুন
-              </Button>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+    <div className="flex min-h-screen items-center justify-center bg-background p-4">
+        <div className="flex w-full max-w-sm flex-col items-center gap-6">
+            <div className="flex flex-col items-center gap-3 text-center">
+                {isLoadingSettings ? (
+                    <Loader2 className="h-12 w-12 animate-spin text-primary" />
+                ) : (
+                    <>
+                        <Avatar className="h-20 w-20 border bg-card">
+                            <AvatarImage src={settings?.logoUrl || undefined} alt={settings?.institutionName} className="object-contain p-1" />
+                            <AvatarFallback>{settings?.institutionName?.slice(0, 2) || 'TG'}</AvatarFallback>
+                        </Avatar>
+                        <h1 className="text-2xl font-bold text-foreground">{settings?.institutionName || 'টপ গ্রেড টিউটোরিয়ালস'}</h1>
+                    </>
+                )}
+            </div>
+            <Tabs defaultValue="teacher-login" className="w-full" onValueChange={handleTabChange}>
+                <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="teacher-login">শিক্ষক লগইন</TabsTrigger>
+                <TabsTrigger value="admin-login">এডমিন লগইন</TabsTrigger>
+                <TabsTrigger value="signup">সাইন আপ</TabsTrigger>
+                </TabsList>
+                <TabsContent value="teacher-login">
+                <LoginForm 
+                    role="teacher" 
+                    email={loginEmail}
+                    setEmail={setLoginEmail}
+                    password={loginPassword}
+                    setPassword={setLoginPassword}
+                    onLogin={handleLogin}
+                    onPasswordReset={handlePasswordReset}
+                    isLoading={isLoading}
+                    isResettingPassword={isResettingPassword}
+                />
+                </TabsContent>
+                <TabsContent value="admin-login">
+                <LoginForm 
+                    role="admin" 
+                    email={loginEmail}
+                    setEmail={setLoginEmail}
+                    password={loginPassword}
+                    setPassword={setLoginPassword}
+                    onLogin={handleLogin}
+                    onPasswordReset={handlePasswordReset}
+                    isLoading={isLoading}
+                    isResettingPassword={isResettingPassword}
+                />
+                </TabsContent>
+                <TabsContent value="signup">
+                <Card>
+                    <CardHeader>
+                    <CardTitle className="text-gray-800 dark:text-gray-200">নতুন একাউন্ট তৈরি করুন</CardTitle>
+                    <CardDescription className="text-gray-600 dark:text-gray-400">
+                        শুধুমাত্র নিবন্ধিত শিক্ষকরাই সাইন আপ করতে পারবেন। প্রথম ব্যবহারকারী স্বয়ংক্রিয়ভাবে 'এডমিন' হবেন।
+                    </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="name" className="text-gray-700 dark:text-gray-300">নাম</Label>
+                        <Input id="name" placeholder="আপনার পুরো নাম" value={signupName} onChange={(e) => setSignupName(e.target.value)} required />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="signup-email" className="text-gray-700 dark:text-gray-300">ইমেইল</Label>
+                        <Input id="signup-email" type="email" placeholder="আপনার ইমেইল" value={signupEmail} onChange={(e) => setSignupEmail(e.target.value)} required />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="signup-password" className="text-gray-700 dark:text-gray-300">পাসওয়ার্ড</Label>
+                        <Input id="signup-password" type="password" placeholder="একটি শক্তিশালী পাসওয়ার্ড দিন" value={signupPassword} onChange={(e) => setSignupPassword(e.target.value)} required />
+                    </div>
+                    <Button onClick={handleSignUp} disabled={isLoading} className="w-full">
+                        {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        সাইন আপ করুন
+                    </Button>
+                    </CardContent>
+                </Card>
+                </TabsContent>
+            </Tabs>
+        </div>
     </div>
   );
 }
-
-    
