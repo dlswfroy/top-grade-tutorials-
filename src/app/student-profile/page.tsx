@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -7,14 +6,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useFirestore, useMemoFirebase } from '@/firebase';
-import { collection, query, where, getDocs, getDoc, doc } from 'firebase/firestore';
+import { useFirestore } from '@/firebase';
+import { collection, query, where, getDocs } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Search, UserCircle, Calculator, CalendarCheck } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { classNames, type Student, type Attendance, type Payment } from '@/lib/data';
-import { format, parseISO } from 'date-fns';
+import { format } from 'date-fns';
 import { bn } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
@@ -60,7 +59,7 @@ export default function StudentProfilePage() {
     isPaid: false,
   });
 
-  const searchHero = PlaceHolderImages.find(img => img.id === 'student-search-hero');
+  const reportHero = PlaceHolderImages.find(img => img.id === 'student-search-hero');
 
   const handleSearch = async () => {
     if (!firestore || !selectedClass || !rollNumber) {
@@ -70,7 +69,6 @@ export default function StudentProfilePage() {
 
     setIsSearching(true);
     try {
-      // 1. Find Student
       const studentsRef = collection(firestore, 'students');
       const q = query(studentsRef, where('classGrade', '==', selectedClass), where('rollNumber', '==', rollNumber));
       const studentSnap = await getDocs(q);
@@ -84,11 +82,9 @@ export default function StudentProfilePage() {
       const student = { id: studentSnap.docs[0].id, ...studentSnap.docs[0].data() } as Student;
       setStudentData(student);
 
-      // 2. Fetch Attendance for the selected month
       const monthPrefix = `${selectedYear}-${selectedMonth}`;
       const attendanceRef = collection(firestore, 'attendance');
-      const attQuery = query(attendanceRef, where('studentId', '==', student.id));
-      const attSnap = await getDocs(attQuery);
+      const attSnap = await getDocs(query(attendanceRef, where('studentId', '==', student.id)));
       
       const filteredAtt = attSnap.docs
         .map(doc => doc.data() as Attendance)
@@ -101,7 +97,6 @@ export default function StudentProfilePage() {
 
       setAttendanceData({ present, absent, total, percentage });
 
-      // 3. Fetch Payment for the selected month
       const paymentMonthStr = `${selectedYear}-${selectedMonth}`;
       const paymentsRef = collection(firestore, 'payments');
       const payQuery = query(paymentsRef, where('studentId', '==', student.id), where('paymentMonth', '==', paymentMonthStr));
@@ -136,21 +131,11 @@ export default function StudentProfilePage() {
     <div className="space-y-8 p-4 sm:p-8 rounded-xl bg-pink-50 dark:bg-pink-900/10 border border-pink-200 dark:border-pink-800">
       <div className="flex items-center gap-3">
         <UserCircle className="h-8 w-8 text-pink-600" />
-        <h1 className="text-3xl font-bold font-headline text-pink-800 dark:text-pink-200">শিক্ষার্থী প্রোফাইল</h1>
+        <h1 className="text-3xl font-bold font-headline text-pink-800 dark:text-pink-200">শিক্ষার্থী প্রোফাইল অনুসন্ধান</h1>
       </div>
 
-      <Card className="border-pink-200 shadow-md">
-        <CardHeader className="flex flex-col items-center">
-           {searchHero && (
-             <img 
-               src={searchHero.imageUrl} 
-               alt={searchHero.description} 
-               className="w-full max-w-lg h-auto rounded-lg mb-2 shadow-sm" 
-               data-ai-hint={searchHero.imageHint}
-             />
-           )}
-        </CardHeader>
-        <CardContent>
+      <Card className="border-pink-200 shadow-sm">
+        <CardContent className="pt-6">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 items-end">
             <div className="space-y-2">
               <Label>শ্রেণি নির্বাচন করুন</Label>
@@ -211,9 +196,8 @@ export default function StudentProfilePage() {
         </CardContent>
       </Card>
 
-      {/* Report Popup Dialog */}
       <Dialog open={showReport} onOpenChange={setShowReport}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-2xl font-bold text-pink-700 flex items-center gap-2">
               <UserCircle className="h-6 w-6" />
@@ -227,7 +211,15 @@ export default function StudentProfilePage() {
           </DialogHeader>
 
           <div className="space-y-6">
-            {/* Attendance Section */}
+            {reportHero && (
+              <img 
+                src={reportHero.imageUrl} 
+                alt={reportHero.description} 
+                className="w-full h-40 object-cover rounded-lg shadow-sm" 
+                data-ai-hint={reportHero.imageHint}
+              />
+            )}
+
             <section className="space-y-3">
               <h3 className="text-lg font-bold flex items-center gap-2 text-cyan-700">
                 <CalendarCheck className="h-5 w-5" />
@@ -260,7 +252,6 @@ export default function StudentProfilePage() {
               </Table>
             </section>
 
-            {/* Payment Section */}
             <section className="space-y-3">
               <h3 className="text-lg font-bold flex items-center gap-2 text-amber-700">
                 <Calculator className="h-5 w-5" />
