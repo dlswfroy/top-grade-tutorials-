@@ -9,14 +9,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useFirestore } from '@/firebase';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Search, UserCircle, Calculator, CalendarCheck } from 'lucide-react';
+import { Loader2, Search, UserCircle, Calculator, CalendarCheck, User } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { classNames, type Student, type Attendance, type Payment } from '@/lib/data';
 import { format } from 'date-fns';
 import { bn } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 const months = [
   { value: '01', label: 'জানুয়ারি' },
@@ -58,8 +58,6 @@ export default function StudentProfilePage() {
     total: 0,
     isPaid: false,
   });
-
-  const reportHero = PlaceHolderImages.find(img => img.id === 'student-search-hero');
 
   const handleSearch = async () => {
     if (!firestore || !selectedClass || !rollNumber) {
@@ -198,28 +196,28 @@ export default function StudentProfilePage() {
 
       <Dialog open={showReport} onOpenChange={setShowReport}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-2xl font-bold text-pink-700 flex items-center gap-2">
-              <UserCircle className="h-6 w-6" />
-              শিক্ষার্থী মাসিক রিপোর্ট
-            </DialogTitle>
-            <DialogDescription>
-              {studentData?.name} | শ্রেণি: {studentData?.classGrade} | রোল: {studentData?.rollNumber}
-              <br />
-              রিপোর্ট মাস: {months.find(m => m.value === selectedMonth)?.label}, {selectedYear}
-            </DialogDescription>
+          <DialogHeader className="flex flex-row items-center gap-4 border-b pb-4">
+            <Avatar className="h-24 w-24 border-2 border-pink-200">
+                <AvatarImage src={studentData?.imageUrl} alt={studentData?.name} />
+                <AvatarFallback className="bg-pink-100 text-pink-600">
+                    <User className="h-12 w-12" />
+                </AvatarFallback>
+            </Avatar>
+            <div className="flex-1 text-left">
+                <DialogTitle className="text-2xl font-bold text-pink-700">
+                    {studentData?.name}
+                </DialogTitle>
+                <DialogDescription className="text-md mt-1">
+                    শ্রেণি: {studentData?.classGrade} | রোল: {studentData?.rollNumber}
+                    <br />
+                    পিতার নাম: {studentData?.fatherName}
+                    <br />
+                    রিপোর্ট মাস: {months.find(m => m.value === selectedMonth)?.label}, {selectedYear}
+                </DialogDescription>
+            </div>
           </DialogHeader>
 
-          <div className="space-y-6">
-            {reportHero && (
-              <img 
-                src={reportHero.imageUrl} 
-                alt={reportHero.description} 
-                className="w-full h-40 object-cover rounded-lg shadow-sm" 
-                data-ai-hint={reportHero.imageHint}
-              />
-            )}
-
+          <div className="space-y-6 pt-4">
             <section className="space-y-3">
               <h3 className="text-lg font-bold flex items-center gap-2 text-cyan-700">
                 <CalendarCheck className="h-5 w-5" />
