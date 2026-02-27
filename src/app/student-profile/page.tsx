@@ -15,6 +15,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { classNames, type Student, type Attendance, type Payment } from '@/lib/data';
 import { format, parseISO } from 'date-fns';
 import { bn } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
 
 const months = [
   { value: '01', label: 'জানুয়ারি' },
