@@ -13,6 +13,7 @@ import {
   Menu,
   GraduationCap,
   LogOut,
+  UserCircle,
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -36,6 +37,7 @@ import { PlaceHolderImages } from '@/lib/placeholder-images';
 const menuItems = [
   { href: '/', label: 'ড্যাসবোর্ড', icon: LayoutDashboard, key: 'dashboard' },
   { href: '/students', label: 'শিক্ষার্থী', icon: Users, key: 'students' },
+  { href: '/student-profile', label: 'শিক্ষার্থী প্রোফাইল', icon: UserCircle, key: 'studentProfile' },
   { href: '/teachers', label: 'শিক্ষক', icon: GraduationCap, key: 'teachers' },
   { href: '/accounting', label: 'হিসাব', icon: Calculator, key: 'accounting' },
   { href: '/attendance', label: 'হাজিরা', icon: CalendarCheck, key: 'attendance' },
@@ -45,6 +47,7 @@ const menuItems = [
 const menuItemStyles: { [key: string]: string } = {
     dashboard: 'border-yellow-300 text-yellow-300',
     students: 'border-orange-400 text-orange-400',
+    studentProfile: 'border-pink-400 text-pink-400',
     teachers: 'border-cyan-300 text-cyan-300',
     accounting: 'border-teal-300 text-teal-300',
     attendance: 'border-lime-300 text-lime-300',
@@ -131,7 +134,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     }
     if (userRole.role === 'teacher') {
       if (userRole.permissions) {
-        return menuItems.filter(item => userRole.permissions![item.key]);
+        return menuItems.filter(item => userRole.permissions![item.key] || item.key === 'studentProfile');
       }
       // Default permissions for teacher if not set
       return menuItems.filter(item => item.key !== 'settings');
