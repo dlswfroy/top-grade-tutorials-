@@ -71,6 +71,12 @@
       "description": "Top Grade Tutorials Logo",
       "imageUrl": "https://images.unsplash.com/photo-1646334886592-cf7a9b692c75?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxlZHVjYXRpb24lMjBsb2dvfGVufDB8fHx8MTc3MDg3ODg1OXww&ixlib=rb-4.1.0&q=80&w=1080",
       "imageHint": "education logo"
+    },
+    {
+      "id": "student-search-hero",
+      "description": "Student search illustration",
+      "imageUrl": "https://images.unsplash.com/photo-1434030216411-0b793f4b4173?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxzdHVkZW50JTIwd29ya2luZ3xlbnwwfHx8fDE3NzA5MTEyNDZ8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "student working"
     }
   ]
 }

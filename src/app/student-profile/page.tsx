@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -16,6 +17,7 @@ import { classNames, type Student, type Attendance, type Payment } from '@/lib/d
 import { format, parseISO } from 'date-fns';
 import { bn } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import { PlaceHolderImages } from '@/lib/placeholder-images';
 
 const months = [
   { value: '01', label: 'জানুয়ারি' },
@@ -57,6 +59,8 @@ export default function StudentProfilePage() {
     total: 0,
     isPaid: false,
   });
+
+  const searchHero = PlaceHolderImages.find(img => img.id === 'student-search-hero');
 
   const handleSearch = async () => {
     if (!firestore || !selectedClass || !rollNumber) {
@@ -136,9 +140,15 @@ export default function StudentProfilePage() {
       </div>
 
       <Card className="border-pink-200 shadow-md">
-        <CardHeader>
-          <CardTitle className="text-pink-700">শিক্ষার্থীর তথ্য অনুসন্ধান করুন</CardTitle>
-          <CardDescription>শ্রেণি এবং রোল নম্বর ব্যবহার করে বিস্তারিত রিপোর্ট দেখুন।</CardDescription>
+        <CardHeader className="flex flex-col items-center">
+           {searchHero && (
+             <img 
+               src={searchHero.imageUrl} 
+               alt={searchHero.description} 
+               className="w-full max-w-lg h-auto rounded-lg mb-2 shadow-sm" 
+               data-ai-hint={searchHero.imageHint}
+             />
+           )}
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 items-end">
