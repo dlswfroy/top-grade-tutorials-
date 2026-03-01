@@ -89,7 +89,7 @@ function Logo({ settings, isLoading }: { settings: InstitutionSettings | null, i
                     <AvatarFallback>{institutionName.slice(0, 2)}</AvatarFallback>
                 </Avatar>
             )}
-            <span className="text-xl sm:text-2xl font-headline font-bold text-white whitespace-nowrap overflow-visible drop-shadow-md">
+            <span className="text-2xl sm:text-[2.5rem] font-headline font-black text-white whitespace-nowrap overflow-visible drop-shadow-md inline-block transform scale-x-[1.15] origin-left">
                 {institutionName}
             </span>
         </Link>
@@ -167,7 +167,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                 const queryIsDigit = /^\d+$/.test(queryStr);
                 
                 if (queryIsDigit) {
-                    // Exact match for roll number (ignoring leading zeros)
+                    // Exact match for roll number (ignoring leading zeros for logical equality)
                     return parseInt(sRoll, 10) === parseInt(queryStr, 10);
                 }
                 
@@ -216,7 +216,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               <div className="flex h-20 items-center justify-between px-4 gap-4">
                   <Logo settings={settings} isLoading={isLoadingSettings} />
 
-                  <form onSubmit={handleGlobalSearch} className="flex-1 max-w-md relative hidden md:block">
+                  <form onSubmit={handleGlobalSearch} className="flex-1 max-w-md relative hidden md:block ml-8">
                       <Search className="absolute left-3 top-2.5 h-4 w-4 text-white/60" />
                       <Input 
                         placeholder="শিক্ষার্থীর নাম বা রোল দিয়ে খুঁজুন..." 
