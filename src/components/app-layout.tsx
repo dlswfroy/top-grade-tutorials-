@@ -111,7 +111,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const [searchResults, setSearchResults] = useState<Student[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [isSearchDialogOpen, setIsSearchDialogOpen] = useState(false);
-  const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -158,9 +157,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     setSearchResults([]);
     try {
         const studentsRef = collection(firestore, 'students');
-        // Simple search by name or roll
-        const q = query(studentsRef); // Fetching all for client side filtering as firestore lacks partial match search natively without extensions
-        const snap = await getDocs(q);
+        const snap = await getDocs(query(studentsRef));
         const results = snap.docs
             .map(d => ({ id: d.id, ...d.data() } as Student))
             .filter(s => 
@@ -349,17 +346,17 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                                       <div className="flex gap-1">
                                           <Button size="icon" variant="ghost" className="h-8 w-8 text-pink-600" title="প্রোফাইল" asChild onClick={() => setIsSearchDialogOpen(false)}>
                                               <Link href={`/student-profile?class=${student.classGrade}&roll=${student.rollNumber}`}>
-                                                  <User className="h-4 w-4" />
+                                                  <UserCircle className="h-4 w-4" />
                                               </Link>
                                           </Button>
-                                          <Button size="icon" variant="ghost" className="h-8 w-8 text-teal-600" title="হিসাব" asChild onClick={() => setIsSearchDialogOpen(false)}>
+                                          <Button size="icon" variant="ghost" className="h-8 w-8 text-teal-600" title="হিসাব/বেতন" asChild onClick={() => setIsSearchDialogOpen(false)}>
                                               <Link href="/accounting">
                                                   <CreditCard className="h-4 w-4" />
                                               </Link>
                                           </Button>
-                                          <Button size="icon" variant="ghost" className="h-8 w-8 text-purple-600" title="মেসেজ" asChild onClick={() => setIsSearchDialogOpen(false)}>
-                                              <Link href="/messaging">
-                                                  <MessageSquare className="h-4 w-4" />
+                                          <Button size="icon" variant="ghost" className="h-8 w-8 text-lime-600" title="হাজিরা রিপোর্ট" asChild onClick={() => setIsSearchDialogOpen(false)}>
+                                              <Link href="/attendance">
+                                                  <CalendarCheck className="h-4 w-4" />
                                               </Link>
                                           </Button>
                                       </div>

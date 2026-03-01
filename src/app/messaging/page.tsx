@@ -27,7 +27,7 @@ import {
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { classNames, type Student, type Attendance, type Message } from '@/lib/data';
-import { Loader2, Phone, MessageCircle, Users, Search, History, CheckCircle2, UserX } from 'lucide-react';
+import { Loader2, Phone, MessageCircle, MessageSquare, Users, Search, History, CheckCircle2, UserX } from 'lucide-react';
 import { useFirestore, useCollection, useMemoFirebase, errorEmitter, FirestorePermissionError } from '@/firebase';
 import { collection, query, where, addDoc, orderBy, limit } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
@@ -120,7 +120,6 @@ export default function MessagingPage() {
       const numbers = studentsToDisplay.map(s => s.mobileNumber).join(',');
       const body = `শ্রদ্ধেয় অভিভাবক, আপনার সন্তানের পড়াশোনার উন্নতির জন্য আমরা সর্বদা সচেষ্ট। কোনো জিজ্ঞাসা থাকলে আমাদের সাথে যোগাযোগ করুন। - টপ গ্রেড টিউটোরিয়ালস`;
       
-      // Bulk SMS might not work on all mobile OS via URL, but this is the standard way
       window.location.href = `sms:${numbers}?body=${encodeURIComponent(body)}`;
       toast({ title: 'এসএমএস প্রস্তুত', description: 'আপনার ফোনের মেসেজ অ্যাপে সকল নম্বর পাঠানো হয়েছে।' });
   };
@@ -258,7 +257,7 @@ export default function MessagingPage() {
                               <TableRow>
                                   <TableHead>তারিখ ও সময়</TableHead>
                                   <TableHead>টাইপ</TableHead>
-                                  <TableHead>শিক্ষার্থী</TableHead>
+                                  <TableHead>শিক্ষার্থী আইডি</TableHead>
                               </TableRow>
                           </TableHeader>
                           <TableBody>
@@ -275,8 +274,7 @@ export default function MessagingPage() {
                                           )}
                                       </TableCell>
                                       <TableCell>
-                                          {/* We would need a students lookup map here for full names, but studentId is stored */}
-                                          <span className="text-xs">{log.studentId.slice(0, 8)}...</span>
+                                          <span className="text-xs">{log.studentId}</span>
                                       </TableCell>
                                   </TableRow>
                               ))}
