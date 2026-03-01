@@ -80,16 +80,16 @@ function Logo({ settings, isLoading }: { settings: InstitutionSettings | null, i
     const logoUrl = settings?.logoUrl || logoFromPlaceholders?.imageUrl;
 
     return (
-        <Link href="/" className="flex items-center gap-2 sm:gap-3 shrink-0 max-w-[70%] sm:max-w-none">
+        <Link href="/" className="flex items-center gap-2 sm:gap-3 shrink-0 max-w-[65%] sm:max-w-none">
             {isLoading ? (
-                <Loader2 className="h-8 w-8 animate-spin text-white" />
+                <Loader2 className="h-6 w-6 sm:h-8 sm:w-8 animate-spin text-white" />
             ) : (
-                <Avatar className="h-8 w-8 sm:h-12 sm:w-12 bg-white border-2 border-white/20 shrink-0">
+                <Avatar className="h-7 w-7 sm:h-12 sm:w-12 bg-white border-2 border-white/20 shrink-0">
                     <AvatarImage src={logoUrl} alt={institutionName} className="object-contain p-1" />
                     <AvatarFallback>{institutionName.slice(0, 2)}</AvatarFallback>
                 </Avatar>
             )}
-            <span className="text-[1.35rem] sm:text-[2.375rem] font-headline font-black text-white whitespace-nowrap overflow-visible drop-shadow-md inline-block transform scale-x-[1.15] origin-left truncate sm:overflow-visible">
+            <span className="text-[1.28rem] sm:text-[2.25rem] font-headline font-black text-white whitespace-nowrap overflow-visible drop-shadow-md inline-block transform scale-x-[1.15] origin-left truncate sm:overflow-visible leading-none">
                 {institutionName}
             </span>
         </Link>
@@ -149,8 +149,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const handleGlobalSearch = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleGlobalSearch = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     const queryStr = searchQuery.trim().toLowerCase();
     if (!queryStr || !firestore) return;
 
@@ -166,17 +166,19 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                 const sRoll = s.rollNumber.toString().trim();
                 const queryIsDigit = /^\d+$/.test(queryStr);
                 
+                // Exact match for roll numbers
                 if (queryIsDigit) {
                     return parseInt(sRoll, 10) === parseInt(queryStr, 10);
                 }
                 
+                // Partial match for names
                 return s.name.toLowerCase().includes(queryStr);
             });
         
         setSearchResults(results);
         setIsSearchDialogOpen(true);
     } catch (err) {
-        toast({ variant: 'destructive', title: 'ত্রুটি', description: 'সার্চ করতে সমস্যা হয়েছে।' });
+        toast({ variant: 'destructive', title: 'ত্রুটি', description: 'সার্চ করতে সমস্যা হয়েছে। ' });
     } finally {
         setIsSearching(false);
     }
@@ -211,7 +213,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   return (
       <div className="min-h-screen flex flex-col bg-muted/40">
           <header className="sticky top-0 z-40 w-full bg-[#1A73E8] text-white shadow-lg border-b-2 border-black/30">
-              <div className="flex h-20 items-center justify-between px-4 gap-2 sm:gap-4">
+              <div className="flex h-16 sm:h-20 items-center justify-between px-3 sm:px-4 gap-2">
                   <Logo settings={settings} isLoading={isLoadingSettings} />
 
                   <form onSubmit={handleGlobalSearch} className="flex-1 max-w-md relative hidden md:block ml-8">
@@ -243,14 +245,16 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                     </nav>
 
                   <div className="flex items-center justify-end gap-1 sm:gap-2 shrink-0">
-                    <Button variant="ghost" size="icon" className="md:hidden text-white h-9 w-9" onClick={() => setIsSearchDialogOpen(true)}>
+                    {/* Search Icon for Mobile */}
+                    <Button variant="ghost" size="icon" className="md:hidden text-white h-8 w-8" onClick={() => setIsSearchDialogOpen(true)}>
                         <Search className="h-5 w-5" />
                     </Button>
+                    
                     {user && (
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" className="relative h-9 w-9 sm:h-12 sm:w-12 rounded-full p-0">
-                                    <Avatar className="h-9 w-9 sm:h-12 sm:w-12 border-2 border-white/50">
+                                <Button variant="ghost" className="relative h-8 w-8 sm:h-12 sm:w-12 rounded-full p-0">
+                                    <Avatar className="h-8 w-8 sm:h-12 sm:w-12 border-2 border-white/50">
                                         <AvatarImage src={userRole?.imageUrl || user.photoURL || `https://i.pravatar.cc/150?u=${user.uid}`} alt={user.displayName || 'User'} />
                                         <AvatarFallback>{user.displayName?.charAt(0) || user.email?.charAt(0)}</AvatarFallback>
                                     </Avatar>
@@ -273,7 +277,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                     )}
                     <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
                         <SheetTrigger asChild>
-                            <Button variant="ghost" size="icon" className="xl:hidden text-white h-9 w-9">
+                            <Button variant="ghost" size="icon" className="xl:hidden text-white h-8 w-8">
                                 <Menu className="h-6 w-6" />
                             </Button>
                         </SheetTrigger>
@@ -318,12 +322,12 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                   <div className="space-y-4">
                       <div className="flex gap-2">
                         <Input 
-                            placeholder="সার্চ করুন..." 
+                            placeholder="সার্চ করুন (যেমন: ১ বা নাম)..." 
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            onKeyDown={(e) => e.key === 'Enter' && handleGlobalSearch(e as any)}
+                            onKeyDown={(e) => e.key === 'Enter' && handleGlobalSearch()}
                         />
-                        <Button size="icon" onClick={(e) => handleGlobalSearch(e as any)} disabled={isSearching}>
+                        <Button size="icon" onClick={() => handleGlobalSearch()} disabled={isSearching}>
                             {isSearching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
                         </Button>
                       </div>
