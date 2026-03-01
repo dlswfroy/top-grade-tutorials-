@@ -7,17 +7,12 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    function isAdmin() {
-      return isAuth() && get(/databases/$(database)/documents/user_roles/$(request.auth.uid)).data.role == 'admin';
-    }
-
     match /students/{studentId} {
       allow read, write: if isAuth();
     }
 
     match /teachers/{teacherId} {
-        allow read: if isAuth();
-        allow write: if isAdmin();
+        allow read, write: if isAuth();
     }
 
     match /payments/{paymentId} {
@@ -38,19 +33,15 @@ service cloud.firestore {
 
     match /institution_settings/default {
         allow read: if true;
-        allow write: if isAdmin();
+        allow write: if isAuth();
     }
 
     match /user_roles/{userId} {
-        allow read: if isAdmin() || (isAuth() && request.auth.uid == userId);
-        allow create: if isAuth() && request.auth.uid == userId;
-        allow update: if isAdmin() || (isAuth() && request.auth.uid == userId);
-        allow delete: if isAdmin() && request.auth.uid != userId;
+        allow read, write: if isAuth();
     }
 
     match /user_roles_by_role/{role} {
-        allow read: if isAuth();
-        allow create: if isAuth();
+        allow read, write: if isAuth();
     }
   }
 }

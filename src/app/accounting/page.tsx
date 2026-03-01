@@ -21,7 +21,7 @@ import { classNames, type Student, type Payment, type Teacher } from '@/lib/data
 import { Search, Printer, Loader2, DollarSign, Save, MessageCircle } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useFirestore, useCollection, useDoc, useMemoFirebase, errorEmitter, FirestorePermissionError } from '@/firebase';
-import { collection, where, query, getDocs, doc, addDoc, orderBy } from 'firebase/firestore';
+import { collection, where, query, getDocs, doc, addDoc, orderBy, limit } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { format, parseISO } from 'date-fns';
 import { bn } from 'date-fns/locale';
@@ -90,10 +90,10 @@ function ReceiptDialog({ isOpen, setIsOpen, payment, student, settings }: { isOp
     };
 
     const handleSendSMS = () => {
-        const monthIndex = parseInt(payment.paymentMonth.split('-')[1], 10) - 1;
-        const monthName = months[monthIndex];
-        const year = payment.paymentMonth.split('-')[0];
-        const body = `শ্রদ্ধেয় অভিভাবক, আপনার সন্তান ${student.name}-এর ${monthName}, ${year} মাসের বেতন বাবদ ${payment.amount} টাকা সফলভাবে আদায় করা হয়েছে। রসিদ নং: ${payment.receiptNumber}। - টপ গ্রেড টিউটোরিয়ালস`;
+        const dateObj = parseISO(payment.paymentMonth);
+        const monthName = format(dateObj, 'MMMM', { locale: bn });
+        const year = format(dateObj, 'yyyy', { locale: bn });
+        const body = `শ্রদ্ধেয় অভিভাবক, আপনার সন্তান ${student.name}-এর ${monthName}, ${year} মাসের বেতন বাবদ ${payment.amount} টাকা সফলভাবে আদায় করা হয়েছে। রসিদ নং: ${payment.receiptNumber}। - ${settings?.institutionName || 'টপ গ্রেড টিউটোরিয়ালস'}`;
         window.location.href = `sms:${student.mobileNumber}?body=${encodeURIComponent(body)}`;
     };
 

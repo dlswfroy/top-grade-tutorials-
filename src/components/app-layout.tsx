@@ -162,7 +162,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             .map(d => ({ id: d.id, ...d.data() } as Student))
             .filter(s => 
                 s.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                s.rollNumber.includes(searchQuery)
+                s.rollNumber.toString().includes(searchQuery)
             );
         
         setSearchResults(results);
@@ -336,7 +336,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                                       </div>
                                       <div className="flex gap-1">
                                           <Button size="icon" variant="ghost" className="h-8 w-8 text-pink-600" title="প্রোফাইল" asChild onClick={() => setIsSearchDialogOpen(false)}>
-                                              <Link href={`/student-profile?class=${student.classGrade}&roll=${student.rollNumber}`}>
+                                              <Link href={`/student-profile?class=${encodeURIComponent(student.classGrade)}&roll=${student.rollNumber}`}>
                                                   <UserCircle className="h-4 w-4" />
                                               </Link>
                                           </Button>
