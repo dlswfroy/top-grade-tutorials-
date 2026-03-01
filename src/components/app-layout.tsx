@@ -80,16 +80,16 @@ function Logo({ settings, isLoading }: { settings: InstitutionSettings | null, i
     const logoUrl = settings?.logoUrl || logoFromPlaceholders?.imageUrl;
 
     return (
-        <Link href="/" className="flex items-center gap-3 shrink-0">
+        <Link href="/" className="flex items-center gap-2 sm:gap-3 shrink-0 max-w-[70%] sm:max-w-none">
             {isLoading ? (
                 <Loader2 className="h-8 w-8 animate-spin text-white" />
             ) : (
-                <Avatar className="h-10 w-10 sm:h-12 sm:w-12 bg-white border-2 border-white/20">
+                <Avatar className="h-8 w-8 sm:h-12 sm:w-12 bg-white border-2 border-white/20 shrink-0">
                     <AvatarImage src={logoUrl} alt={institutionName} className="object-contain p-1" />
                     <AvatarFallback>{institutionName.slice(0, 2)}</AvatarFallback>
                 </Avatar>
             )}
-            <span className="text-2xl sm:text-[2.5rem] font-headline font-black text-white whitespace-nowrap overflow-visible drop-shadow-md inline-block transform scale-x-[1.15] origin-left">
+            <span className="text-[1.35rem] sm:text-[2.375rem] font-headline font-black text-white whitespace-nowrap overflow-visible drop-shadow-md inline-block transform scale-x-[1.15] origin-left truncate sm:overflow-visible">
                 {institutionName}
             </span>
         </Link>
@@ -167,11 +167,9 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                 const queryIsDigit = /^\d+$/.test(queryStr);
                 
                 if (queryIsDigit) {
-                    // Exact match for roll number (ignoring leading zeros for logical equality)
                     return parseInt(sRoll, 10) === parseInt(queryStr, 10);
                 }
                 
-                // Name search
                 return s.name.toLowerCase().includes(queryStr);
             });
         
@@ -213,7 +211,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   return (
       <div className="min-h-screen flex flex-col bg-muted/40">
           <header className="sticky top-0 z-40 w-full bg-[#1A73E8] text-white shadow-lg border-b-2 border-black/30">
-              <div className="flex h-20 items-center justify-between px-4 gap-4">
+              <div className="flex h-20 items-center justify-between px-4 gap-2 sm:gap-4">
                   <Logo settings={settings} isLoading={isLoadingSettings} />
 
                   <form onSubmit={handleGlobalSearch} className="flex-1 max-w-md relative hidden md:block ml-8">
@@ -244,15 +242,15 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                         ))}
                     </nav>
 
-                  <div className="flex items-center justify-end gap-2">
-                    <Button variant="ghost" size="icon" className="md:hidden text-white" onClick={() => setIsSearchDialogOpen(true)}>
+                  <div className="flex items-center justify-end gap-1 sm:gap-2 shrink-0">
+                    <Button variant="ghost" size="icon" className="md:hidden text-white h-9 w-9" onClick={() => setIsSearchDialogOpen(true)}>
                         <Search className="h-5 w-5" />
                     </Button>
                     {user && (
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" className="relative h-10 w-10 sm:h-12 sm:w-12 rounded-full p-0">
-                                    <Avatar className="h-10 w-10 sm:h-12 sm:w-12 border-2 border-white/50">
+                                <Button variant="ghost" className="relative h-9 w-9 sm:h-12 sm:w-12 rounded-full p-0">
+                                    <Avatar className="h-9 w-9 sm:h-12 sm:w-12 border-2 border-white/50">
                                         <AvatarImage src={userRole?.imageUrl || user.photoURL || `https://i.pravatar.cc/150?u=${user.uid}`} alt={user.displayName || 'User'} />
                                         <AvatarFallback>{user.displayName?.charAt(0) || user.email?.charAt(0)}</AvatarFallback>
                                     </Avatar>
@@ -275,7 +273,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                     )}
                     <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
                         <SheetTrigger asChild>
-                            <Button variant="ghost" size="icon" className="xl:hidden text-white">
+                            <Button variant="ghost" size="icon" className="xl:hidden text-white h-9 w-9">
                                 <Menu className="h-6 w-6" />
                             </Button>
                         </SheetTrigger>
