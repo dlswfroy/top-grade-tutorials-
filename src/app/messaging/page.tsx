@@ -27,7 +27,14 @@ import {
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { classNames, type Student, type Attendance, type Message } from '@/lib/data';
-import { Loader2, Phone, MessageCircle, MessageSquare, Users, Search, History, CheckCircle2, UserX } from 'lucide-react';
+import { 
+  Loader2, 
+  Phone, 
+  MessageCircle, 
+  MessageSquare, 
+  Users, 
+  History, 
+} from 'lucide-react';
 import { useFirestore, useCollection, useMemoFirebase, errorEmitter, FirestorePermissionError } from '@/firebase';
 import { collection, query, where, addDoc, orderBy, limit } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
@@ -93,10 +100,8 @@ export default function MessagingPage() {
     };
 
     try {
-        // Log to Firestore
         await addDoc(collection(firestore, 'messages'), messageData);
         
-        // Trigger Mobile Protocol
         if (type === 'call') {
             window.location.href = `tel:${student.mobileNumber}`;
         } else {
@@ -118,7 +123,7 @@ export default function MessagingPage() {
       if (studentsToDisplay.length === 0) return;
       
       const numbers = studentsToDisplay.map(s => s.mobileNumber).join(',');
-      const body = `শ্রদ্ধেয় অভিভাবক, আপনার সন্তানের পড়াশোনার উন্নতির জন্য আমরা সর্বদা সচেষ্ট। কোনো জিজ্ঞাসা থাকলে আমাদের সাথে যোগাযোগ করুন। - টপ গ্রেড টিউটোরিয়ালস`;
+      const body = `শ্রদ্ধেয় অভিভাবক, টপ গ্রেড টিউটোরিয়ালস-এর পক্ষ থেকে শুভেচ্ছা। আপনার সন্তানের পড়াশোনার নিয়মিত খোঁজখবর নিতে আমাদের সাথে যোগাযোগ করুন। ধন্যবাদ।`;
       
       window.location.href = `sms:${numbers}?body=${encodeURIComponent(body)}`;
       toast({ title: 'এসএমএস প্রস্তুত', description: 'আপনার ফোনের মেসেজ অ্যাপে সকল নম্বর পাঠানো হয়েছে।' });
@@ -205,25 +210,25 @@ export default function MessagingPage() {
                                                           <AvatarImage src={student.imageUrl} />
                                                           <AvatarFallback>{student.name[0]}</AvatarFallback>
                                                       </Avatar>
-                                                      <span className="font-medium">{student.name}</span>
+                                                      <span className="font-medium text-sm">{student.name}</span>
                                                   </div>
                                               </TableCell>
                                               <TableCell className="text-xs">{student.mobileNumber}</TableCell>
                                               <TableCell className="text-center">
                                                   {att?.status === 'present' ? (
-                                                      <Badge variant="outline" className="text-green-600 border-green-200 bg-green-50">উপস্থিত</Badge>
+                                                      <Badge variant="outline" className="text-green-600 border-green-200 bg-green-50 text-[10px]">উপস্থিত</Badge>
                                                   ) : att?.status === 'absent' ? (
-                                                      <Badge variant="destructive" className="bg-red-500">অনুপস্থিত</Badge>
+                                                      <Badge variant="destructive" className="bg-red-500 text-[10px]">অনুপস্থিত</Badge>
                                                   ) : (
-                                                      <Badge variant="secondary">অজানা</Badge>
+                                                      <Badge variant="secondary" className="text-[10px]">N/A</Badge>
                                                   )}
                                               </TableCell>
-                                              <TableCell className="text-right flex justify-end gap-2">
-                                                  <Button size="icon" variant="outline" className="h-8 w-8 text-blue-600 border-blue-200" onClick={() => handleAction(student, 'call')} disabled={isSending[student.id]}>
-                                                      <Phone className="h-4 w-4" />
+                                              <TableCell className="text-right flex justify-end gap-1">
+                                                  <Button size="icon" variant="outline" className="h-7 w-7 text-blue-600 border-blue-200" onClick={() => handleAction(student, 'call')} disabled={isSending[student.id]}>
+                                                      <Phone className="h-3 w-3" />
                                                   </Button>
-                                                  <Button size="icon" variant="outline" className="h-8 w-8 text-green-600 border-green-200" onClick={() => handleAction(student, 'sms')} disabled={isSending[student.id]}>
-                                                      <MessageCircle className="h-4 w-4" />
+                                                  <Button size="icon" variant="outline" className="h-7 w-7 text-green-600 border-green-200" onClick={() => handleAction(student, 'sms')} disabled={isSending[student.id]}>
+                                                      <MessageCircle className="h-3 w-3" />
                                                   </Button>
                                               </TableCell>
                                           </TableRow>
@@ -278,7 +283,7 @@ export default function MessagingPage() {
                                       </TableCell>
                                   </TableRow>
                               ))}
-                              {!logs || logs.length === 0 && (
+                              {(!logs || logs.length === 0) && (
                                   <TableRow>
                                       <TableCell colSpan={3} className="text-center py-8 text-muted-foreground">এখনো কোনো যোগাযোগের ইতিহাস নেই।</TableCell>
                                   </TableRow>

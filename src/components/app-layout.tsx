@@ -17,14 +17,13 @@ import {
   UserCircle,
   Search,
   MessageSquare,
-  FileText,
   CreditCard,
   User,
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { useFirestore, useDoc, useMemoFirebase, useAuth, useCollection } from '@/firebase';
-import { doc, collection, query, where, getDocs } from 'firebase/firestore';
+import { useFirestore, useDoc, useMemoFirebase, useAuth } from '@/firebase';
+import { doc, collection, query, getDocs } from 'firebase/firestore';
 import { signOut, onAuthStateChanged, type User as FirebaseUser } from 'firebase/auth';
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
@@ -70,7 +69,6 @@ const menuItemStyles: { [key: string]: string } = {
     settings: 'border-green-400 text-green-400',
 };
 
-
 type InstitutionSettings = {
     institutionName?: string;
     logoUrl?: string;
@@ -82,16 +80,18 @@ function Logo({ settings, isLoading }: { settings: InstitutionSettings | null, i
     const logoUrl = settings?.logoUrl || logoFromPlaceholders?.imageUrl;
 
     return (
-        <Link href="/" className="flex items-center gap-2 sm:gap-3">
+        <Link href="/" className="flex items-center gap-2 sm:gap-3 shrink-0">
             {isLoading ? (
-                <Loader2 className="h-8 w-8 sm:h-12 sm:w-12 animate-spin text-white" />
+                <Loader2 className="h-6 w-6 sm:h-8 sm:w-8 animate-spin text-white" />
             ) : (
-                <Avatar className="h-8 w-8 sm:h-12 sm:w-12 bg-white">
+                <Avatar className="h-8 w-8 sm:h-10 sm:w-10 bg-white border-2 border-white/20">
                     <AvatarImage src={logoUrl} alt={institutionName} className="object-contain p-1" />
                     <AvatarFallback>{institutionName.slice(0, 2)}</AvatarFallback>
                 </Avatar>
             )}
-            <h1 className="hidden sm:block text-md sm:text-xl font-headline font-bold text-white">{institutionName}</h1>
+            <span className="text-sm sm:text-lg font-headline font-bold text-white whitespace-nowrap overflow-hidden text-ellipsis max-w-[120px] sm:max-w-[250px]">
+                {institutionName}
+            </span>
         </Link>
     );
 }
@@ -204,12 +204,10 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       <div className="min-h-screen flex flex-col bg-muted/40">
           <header className="sticky top-0 z-40 w-full bg-[#1A73E8] text-white shadow-lg border-b-2 border-black/30">
               <div className="flex h-20 items-center justify-between px-2 sm:px-4 gap-4">
-                  <div className="flex items-center gap-2">
-                    <Logo settings={settings} isLoading={isLoadingSettings} />
-                  </div>
+                  <Logo settings={settings} isLoading={isLoadingSettings} />
 
-                  <form onSubmit={handleGlobalSearch} className="flex-1 max-w-md relative hidden sm:block">
-                      <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                  <form onSubmit={handleGlobalSearch} className="flex-1 max-w-md relative hidden md:block">
+                      <Search className="absolute left-3 top-2.5 h-4 w-4 text-white/60" />
                       <Input 
                         placeholder="শিক্ষার্থীর নাম বা রোল দিয়ে খুঁজুন..." 
                         className="pl-10 bg-white/10 border-white/20 text-white placeholder:text-white/60 focus-visible:ring-white h-9 rounded-full"
@@ -218,32 +216,32 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                       />
                   </form>
                   
-                  <nav className="hidden xl:flex items-center space-x-2 overflow-x-auto">
+                  <nav className="hidden xl:flex items-center space-x-2">
                         {visibleMenuItems.map((item) => (
                             <Link
                                 key={item.href}
                                 href={item.href}
                                 className={cn(
-                                    "flex items-center gap-2 justify-center rounded-lg px-3 py-1.5 text-xs font-bold transition-colors border-2 whitespace-nowrap",
+                                    "flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-bold transition-colors border-2 whitespace-nowrap",
                                     pathname === item.href 
-                                        ? "border-red-500 text-red-500 bg-white/20" 
+                                        ? "border-white bg-white/20 text-white" 
                                         : `${menuItemStyles[item.key] || 'border-white/20 text-white'} hover:bg-white/10`
                                 )}
                             >
                                 <item.icon className="h-4 w-4" />
-                                <span className="hidden xl:inline">{item.label}</span>
+                                <span>{item.label}</span>
                             </Link>
                         ))}
                     </nav>
 
                   <div className="flex items-center justify-end gap-2">
-                    <Button variant="ghost" size="icon" className="sm:hidden text-white" onClick={() => setIsSearchDialogOpen(true)}>
+                    <Button variant="ghost" size="icon" className="md:hidden text-white" onClick={() => setIsSearchDialogOpen(true)}>
                         <Search className="h-5 w-5" />
                     </Button>
-                    {user ? (
+                    {user && (
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" className="relative h-10 w-10 sm:h-12 sm:w-12 rounded-full p-0 focus-visible:ring-white">
+                                <Button variant="ghost" className="relative h-10 w-10 sm:h-12 sm:w-12 rounded-full p-0">
                                     <Avatar className="h-10 w-10 sm:h-12 sm:w-12 border-2 border-white/50">
                                         <AvatarImage src={userRole?.imageUrl || user.photoURL || `https://i.pravatar.cc/150?u=${user.uid}`} alt={user.displayName || 'User'} />
                                         <AvatarFallback>{user.displayName?.charAt(0) || user.email?.charAt(0)}</AvatarFallback>
@@ -264,19 +262,14 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                                 </DropdownMenuItem>
                             </DropdownMenuContent>
                         </DropdownMenu>
-                    ) : (
-                        <Button asChild variant="secondary">
-                            <Link href="/login">লগইন করুন</Link>
-                        </Button>
                     )}
                     <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
                         <SheetTrigger asChild>
-                            <Button variant="ghost" size="icon" className="hover:bg-white/10 focus:bg-white/10 xl:hidden">
+                            <Button variant="ghost" size="icon" className="xl:hidden text-white">
                                 <Menu className="h-6 w-6" />
-                                <span className="sr-only">Open Menu</span>
                             </Button>
                         </SheetTrigger>
-                        <SheetContent side="left" className="w-[280px] sm:w-[320px] bg-[#1A73E8] text-white border-r-0 p-0">
+                        <SheetContent side="left" className="w-[280px] bg-[#1A73E8] text-white border-r-0 p-0">
                              <SheetTitle className="sr-only">Mobile Menu</SheetTitle>
                             <div className="p-4 border-b border-white/20">
                                 <Logo settings={settings} isLoading={isLoadingSettings} />
@@ -289,8 +282,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                                         onClick={() => setMobileMenuOpen(false)}
                                         className={cn(
                                             "flex items-center gap-3 rounded-md p-3 text-lg font-medium transition-colors",
-                                            pathname === item.href ? "bg-white/20 text-yellow-300" : "text-white",
-                                            "hover:bg-white/10"
+                                            pathname === item.href ? "bg-white/20 text-white" : "text-white/80 hover:text-white hover:bg-white/10"
                                         )}
                                     >
                                         <item.icon className="h-5 w-5" />
@@ -307,7 +299,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               {children}
           </main>
 
-          {/* Search Result Dialog */}
           <Dialog open={isSearchDialogOpen} onOpenChange={setIsSearchDialogOpen}>
               <DialogContent className="sm:max-w-md">
                   <DialogHeader>
@@ -349,12 +340,12 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                                                   <UserCircle className="h-4 w-4" />
                                               </Link>
                                           </Button>
-                                          <Button size="icon" variant="ghost" className="h-8 w-8 text-teal-600" title="হিসাব/বেতন" asChild onClick={() => setIsSearchDialogOpen(false)}>
+                                          <Button size="icon" variant="ghost" className="h-8 w-8 text-teal-600" title="বেতন আদায়" asChild onClick={() => setIsSearchDialogOpen(false)}>
                                               <Link href="/accounting">
                                                   <CreditCard className="h-4 w-4" />
                                               </Link>
                                           </Button>
-                                          <Button size="icon" variant="ghost" className="h-8 w-8 text-lime-600" title="হাজিরা রিপোর্ট" asChild onClick={() => setIsSearchDialogOpen(false)}>
+                                          <Button size="icon" variant="ghost" className="h-8 w-8 text-lime-600" title="হাজিরা" asChild onClick={() => setIsSearchDialogOpen(false)}>
                                               <Link href="/attendance">
                                                   <CalendarCheck className="h-4 w-4" />
                                               </Link>
