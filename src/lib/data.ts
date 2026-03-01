@@ -1,3 +1,4 @@
+
 import { z } from 'zod';
 
 export type Student = {
@@ -50,6 +51,14 @@ export type Attendance = {
     status: 'present' | 'absent';
 }
 
+export type Message = {
+  id: string;
+  studentId: string;
+  type: 'sms' | 'call';
+  timestamp: string;
+  status?: string;
+}
+
 export type UserRole = {
   id: string;
   email: string;
@@ -62,5 +71,3 @@ export type UserRole = {
 
 
 export const classNames = ["ষষ্ঠ", "সপ্তম", "অষ্টম", "নবম", "দশম"];
-
-    

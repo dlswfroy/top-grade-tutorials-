@@ -1,3 +1,4 @@
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -31,6 +32,10 @@ service cloud.firestore {
         allow read, write: if isAuth();
     }
 
+    match /messages/{messageId} {
+        allow read, write: if isAuth();
+    }
+
     match /institution_settings/default {
         allow read: if true;
         allow write: if isAdmin();
@@ -39,14 +44,13 @@ service cloud.firestore {
     match /user_roles/{userId} {
         allow read: if isAdmin() || (isAuth() && request.auth.uid == userId);
         allow create: if isAuth() && request.auth.uid == userId;
-        allow update: if isAdmin() || (isAuth() && request.auth.uid == userId && request.resource.data.role == resource.data.role && request.resource.data.permissions == resource.data.permissions);
+        allow update: if isAdmin() || (isAuth() && request.auth.uid == userId);
         allow delete: if isAdmin() && request.auth.uid != userId;
     }
 
-    match /user_roles_by_role/admin {
+    match /user_roles_by_role/{role} {
         allow read: if isAuth();
         allow create: if isAuth();
-        allow update, delete: if false;
     }
   }
 }

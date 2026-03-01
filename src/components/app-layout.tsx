@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -14,12 +15,17 @@ import {
   GraduationCap,
   LogOut,
   UserCircle,
+  Search,
+  MessageSquare,
+  FileText,
+  CreditCard,
+  User,
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { useFirestore, useDoc, useMemoFirebase, useAuth } from '@/firebase';
-import { doc } from 'firebase/firestore';
-import { signOut, onAuthStateChanged, type User } from 'firebase/auth';
+import { useFirestore, useDoc, useMemoFirebase, useAuth, useCollection } from '@/firebase';
+import { doc, collection, query, where, getDocs } from 'firebase/firestore';
+import { signOut, onAuthStateChanged, type User as FirebaseUser } from 'firebase/auth';
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
 import {
@@ -31,8 +37,16 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
-import type { UserRole } from '@/lib/data';
+import type { UserRole, Student } from '@/lib/data';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
+import { Input } from '@/components/ui/input';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 const menuItems = [
   { href: '/', label: 'ড্যাসবোর্ড', icon: LayoutDashboard, key: 'dashboard' },
@@ -41,6 +55,7 @@ const menuItems = [
   { href: '/teachers', label: 'শিক্ষক', icon: GraduationCap, key: 'teachers' },
   { href: '/accounting', label: 'হিসাব', icon: Calculator, key: 'accounting' },
   { href: '/attendance', label: 'হাজিরা', icon: CalendarCheck, key: 'attendance' },
+  { href: '/messaging', label: 'মেসেজ ও যোগাযোগ', icon: MessageSquare, key: 'messaging' },
   { href: '/settings', label: 'সেটিংস', icon: Settings, key: 'settings' },
 ];
 
@@ -51,6 +66,7 @@ const menuItemStyles: { [key: string]: string } = {
     teachers: 'border-cyan-300 text-cyan-300',
     accounting: 'border-teal-300 text-teal-300',
     attendance: 'border-lime-300 text-lime-300',
+    messaging: 'border-purple-300 text-purple-300',
     settings: 'border-green-400 text-green-400',
 };
 
@@ -75,7 +91,7 @@ function Logo({ settings, isLoading }: { settings: InstitutionSettings | null, i
                     <AvatarFallback>{institutionName.slice(0, 2)}</AvatarFallback>
                 </Avatar>
             )}
-            <h1 className="text-md sm:text-xl font-headline font-bold text-white">{institutionName}</h1>
+            <h1 className="hidden sm:block text-md sm:text-xl font-headline font-bold text-white">{institutionName}</h1>
         </Link>
     );
 }
@@ -86,9 +102,16 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const auth = useAuth();
   const router = useRouter();
   const { toast } = useToast();
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<FirebaseUser | null>(null);
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  // Search States
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<Student[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [isSearchDialogOpen, setIsSearchDialogOpen] = useState(false);
+  const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -127,6 +150,33 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const handleGlobalSearch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!searchQuery.trim() || !firestore) return;
+
+    setIsSearching(true);
+    setSearchResults([]);
+    try {
+        const studentsRef = collection(firestore, 'students');
+        // Simple search by name or roll
+        const q = query(studentsRef); // Fetching all for client side filtering as firestore lacks partial match search natively without extensions
+        const snap = await getDocs(q);
+        const results = snap.docs
+            .map(d => ({ id: d.id, ...d.data() } as Student))
+            .filter(s => 
+                s.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                s.rollNumber.includes(searchQuery)
+            );
+        
+        setSearchResults(results);
+        setIsSearchDialogOpen(true);
+    } catch (err) {
+        toast({ variant: 'destructive', title: 'ত্রুটি', description: 'সার্চ করতে সমস্যা হয়েছে।' });
+    } finally {
+        setIsSearching(false);
+    }
+  };
+
   const visibleMenuItems = useMemo(() => {
     if (!userRole) return [];
     if (userRole.role === 'admin') {
@@ -136,7 +186,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       if (userRole.permissions) {
         return menuItems.filter(item => userRole.permissions![item.key] || item.key === 'studentProfile');
       }
-      // Default permissions for teacher if not set
       return menuItems.filter(item => item.key !== 'settings');
     }
     return [];
@@ -157,35 +206,48 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   return (
       <div className="min-h-screen flex flex-col bg-muted/40">
           <header className="sticky top-0 z-40 w-full bg-[#1A73E8] text-white shadow-lg border-b-2 border-black/30">
-              <div className="flex h-20 items-center justify-between px-2 sm:px-4">
+              <div className="flex h-20 items-center justify-between px-2 sm:px-4 gap-4">
                   <div className="flex items-center gap-2">
                     <Logo settings={settings} isLoading={isLoadingSettings} />
                   </div>
+
+                  <form onSubmit={handleGlobalSearch} className="flex-1 max-w-md relative hidden sm:block">
+                      <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                      <Input 
+                        placeholder="শিক্ষার্থীর নাম বা রোল দিয়ে খুঁজুন..." 
+                        className="pl-10 bg-white/10 border-white/20 text-white placeholder:text-white/60 focus-visible:ring-white h-9 rounded-full"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                      />
+                  </form>
                   
-                  <nav className="hidden lg:flex items-center space-x-2">
+                  <nav className="hidden xl:flex items-center space-x-2 overflow-x-auto">
                         {visibleMenuItems.map((item) => (
                             <Link
                                 key={item.href}
                                 href={item.href}
                                 className={cn(
-                                    "flex items-center gap-2 justify-center rounded-lg px-3 py-1.5 text-sm font-bold transition-colors border-2",
+                                    "flex items-center gap-2 justify-center rounded-lg px-3 py-1.5 text-xs font-bold transition-colors border-2 whitespace-nowrap",
                                     pathname === item.href 
                                         ? "border-red-500 text-red-500 bg-white/20" 
-                                        : `${menuItemStyles[item.key]} hover:bg-white/10`
+                                        : `${menuItemStyles[item.key] || 'border-white/20 text-white'} hover:bg-white/10`
                                 )}
                             >
-                                <item.icon className="h-5 w-5" />
-                                <span>{item.label}</span>
+                                <item.icon className="h-4 w-4" />
+                                <span className="hidden xl:inline">{item.label}</span>
                             </Link>
                         ))}
                     </nav>
 
                   <div className="flex items-center justify-end gap-2">
+                    <Button variant="ghost" size="icon" className="sm:hidden text-white" onClick={() => setIsSearchDialogOpen(true)}>
+                        <Search className="h-5 w-5" />
+                    </Button>
                     {user ? (
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                                 <Button variant="ghost" className="relative h-10 w-10 sm:h-12 sm:w-12 rounded-full p-0 focus-visible:ring-white">
-                                    <Avatar className="h-10 w-10 sm:h-12 sm:w-12">
+                                    <Avatar className="h-10 w-10 sm:h-12 sm:w-12 border-2 border-white/50">
                                         <AvatarImage src={userRole?.imageUrl || user.photoURL || `https://i.pravatar.cc/150?u=${user.uid}`} alt={user.displayName || 'User'} />
                                         <AvatarFallback>{user.displayName?.charAt(0) || user.email?.charAt(0)}</AvatarFallback>
                                     </Avatar>
@@ -212,7 +274,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                     )}
                     <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
                         <SheetTrigger asChild>
-                            <Button variant="ghost" size="icon" className="hover:bg-white/10 focus:bg-white/10 lg:hidden">
+                            <Button variant="ghost" size="icon" className="hover:bg-white/10 focus:bg-white/10 xl:hidden">
                                 <Menu className="h-6 w-6" />
                                 <span className="sr-only">Open Menu</span>
                             </Button>
@@ -247,6 +309,69 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           <main className="flex-1 container py-8">
               {children}
           </main>
+
+          {/* Search Result Dialog */}
+          <Dialog open={isSearchDialogOpen} onOpenChange={setIsSearchDialogOpen}>
+              <DialogContent className="sm:max-w-md">
+                  <DialogHeader>
+                      <DialogTitle>শিক্ষার্থী অনুসন্ধান</DialogTitle>
+                      <DialogDescription>
+                          নাম বা রোল দিয়ে শিক্ষার্থী খুঁজে দ্রুত অপশনে যান।
+                      </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                      <div className="flex gap-2">
+                        <Input 
+                            placeholder="সার্চ করুন..." 
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && handleGlobalSearch(e as any)}
+                        />
+                        <Button size="icon" onClick={(e) => handleGlobalSearch(e as any)} disabled={isSearching}>
+                            {isSearching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                        </Button>
+                      </div>
+
+                      <div className="max-h-60 overflow-y-auto space-y-2">
+                          {searchResults.length > 0 ? (
+                              searchResults.map(student => (
+                                  <div key={student.id} className="p-3 border rounded-lg flex items-center justify-between group hover:bg-slate-50 transition-colors">
+                                      <div className="flex items-center gap-3">
+                                          <Avatar className="h-10 w-10">
+                                              <AvatarImage src={student.imageUrl} />
+                                              <AvatarFallback>{student.name[0]}</AvatarFallback>
+                                          </Avatar>
+                                          <div>
+                                              <p className="font-bold text-sm">{student.name}</p>
+                                              <p className="text-xs text-muted-foreground">রোল: {student.rollNumber} | শ্রেণি: {student.classGrade}</p>
+                                          </div>
+                                      </div>
+                                      <div className="flex gap-1">
+                                          <Button size="icon" variant="ghost" className="h-8 w-8 text-pink-600" title="প্রোফাইল" asChild onClick={() => setIsSearchDialogOpen(false)}>
+                                              <Link href={`/student-profile?class=${student.classGrade}&roll=${student.rollNumber}`}>
+                                                  <User className="h-4 w-4" />
+                                              </Link>
+                                          </Button>
+                                          <Button size="icon" variant="ghost" className="h-8 w-8 text-teal-600" title="হিসাব" asChild onClick={() => setIsSearchDialogOpen(false)}>
+                                              <Link href="/accounting">
+                                                  <CreditCard className="h-4 w-4" />
+                                              </Link>
+                                          </Button>
+                                          <Button size="icon" variant="ghost" className="h-8 w-8 text-purple-600" title="মেসেজ" asChild onClick={() => setIsSearchDialogOpen(false)}>
+                                              <Link href="/messaging">
+                                                  <MessageSquare className="h-4 w-4" />
+                                              </Link>
+                                          </Button>
+                                      </div>
+                                  </div>
+                              ))
+                          ) : searchQuery && !isSearching ? (
+                              <p className="text-center text-sm text-muted-foreground py-4">কোনো শিক্ষার্থী পাওয়া যায়নি।</p>
+                          ) : null}
+                      </div>
+                  </div>
+              </DialogContent>
+          </Dialog>
       </div>
   );
 }
