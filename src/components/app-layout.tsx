@@ -80,16 +80,16 @@ function Logo({ settings, isLoading }: { settings: InstitutionSettings | null, i
     const logoUrl = settings?.logoUrl || logoFromPlaceholders?.imageUrl;
 
     return (
-        <Link href="/" className="flex items-center gap-2 sm:gap-3 shrink-0">
+        <Link href="/" className="flex items-center gap-3 shrink-0">
             {isLoading ? (
-                <Loader2 className="h-6 w-6 sm:h-8 sm:w-8 animate-spin text-white" />
+                <Loader2 className="h-8 w-8 animate-spin text-white" />
             ) : (
-                <Avatar className="h-8 w-8 sm:h-10 sm:w-10 bg-white border-2 border-white/20">
+                <Avatar className="h-10 w-10 sm:h-12 sm:w-12 bg-white border-2 border-white/20">
                     <AvatarImage src={logoUrl} alt={institutionName} className="object-contain p-1" />
                     <AvatarFallback>{institutionName.slice(0, 2)}</AvatarFallback>
                 </Avatar>
             )}
-            <span className="text-sm sm:text-lg font-headline font-bold text-white whitespace-nowrap overflow-hidden text-ellipsis max-w-[120px] sm:max-w-[250px]">
+            <span className="text-xl sm:text-2xl font-headline font-bold text-white whitespace-nowrap overflow-visible drop-shadow-md">
                 {institutionName}
             </span>
         </Link>
@@ -151,19 +151,29 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
   const handleGlobalSearch = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!searchQuery.trim() || !firestore) return;
+    const queryStr = searchQuery.trim().toLowerCase();
+    if (!queryStr || !firestore) return;
 
     setIsSearching(true);
     setSearchResults([]);
     try {
         const studentsRef = collection(firestore, 'students');
         const snap = await getDocs(query(studentsRef));
+        
         const results = snap.docs
             .map(d => ({ id: d.id, ...d.data() } as Student))
-            .filter(s => 
-                s.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                s.rollNumber.toString().includes(searchQuery)
-            );
+            .filter(s => {
+                const sRoll = s.rollNumber.toString().trim();
+                const queryIsDigit = /^\d+$/.test(queryStr);
+                
+                if (queryIsDigit) {
+                    // Exact match for roll number (ignoring leading zeros)
+                    return parseInt(sRoll, 10) === parseInt(queryStr, 10);
+                }
+                
+                // Name search
+                return s.name.toLowerCase().includes(queryStr);
+            });
         
         setSearchResults(results);
         setIsSearchDialogOpen(true);
@@ -203,7 +213,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   return (
       <div className="min-h-screen flex flex-col bg-muted/40">
           <header className="sticky top-0 z-40 w-full bg-[#1A73E8] text-white shadow-lg border-b-2 border-black/30">
-              <div className="flex h-20 items-center justify-between px-2 sm:px-4 gap-4">
+              <div className="flex h-20 items-center justify-between px-4 gap-4">
                   <Logo settings={settings} isLoading={isLoadingSettings} />
 
                   <form onSubmit={handleGlobalSearch} className="flex-1 max-w-md relative hidden md:block">
@@ -269,7 +279,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                                 <Menu className="h-6 w-6" />
                             </Button>
                         </SheetTrigger>
-                        <SheetContent side="left" className="w-[280px] bg-[#1A73E8] text-white border-r-0 p-0">
+                        <SheetContent side="left" className="w-[300px] bg-[#1A73E8] text-white border-r-0 p-0">
                              <SheetTitle className="sr-only">Mobile Menu</SheetTitle>
                             <div className="p-4 border-b border-white/20">
                                 <Logo settings={settings} isLoading={isLoadingSettings} />
@@ -320,7 +330,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                         </Button>
                       </div>
 
-                      <div className="max-h-60 overflow-y-auto space-y-2">
+                      <div className="max-h-80 overflow-y-auto space-y-2">
                           {searchResults.length > 0 ? (
                               searchResults.map(student => (
                                   <div key={student.id} className="p-3 border rounded-lg flex items-center justify-between group hover:bg-slate-50 transition-colors">
