@@ -23,7 +23,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useFirestore, useCollection, useDoc, useMemoFirebase, errorEmitter, FirestorePermissionError } from '@/firebase';
 import { collection, where, query, getDocs, doc, addDoc, orderBy, limit, deleteDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
-import { format, parseISO, startOfMonth, endOfMonth } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { bn } from 'date-fns/locale';
 import {
   Dialog,
@@ -335,7 +335,7 @@ function PaymentHistory() {
 
     return (
         <Card>
-            <CardHeader><CardTitle>সাম্প্রতিক আদায়ের তালিকা</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="text-xl font-bold">সাম্প্রতিক আদায়ের তালিকা</CardTitle></CardHeader>
             <CardContent>
                 {isLoading ? <div className="flex justify-center py-12"><Loader2 className="h-8 w-8 animate-spin" /></div> : (
                     <Table>
@@ -435,8 +435,10 @@ function ExpenseManagement() {
     return (
         <Card>
             <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle>খরচের হিসাব (Expenses)</CardTitle>
-                <Button onClick={() => setIsDialogOpen(true)}><Plus className="mr-2 h-4 w-4" /> নতুন খরচ</Button>
+                <CardTitle className="text-xl font-bold">খরচের হিসাব (Expenses)</CardTitle>
+                <Button onClick={() => setIsDialogOpen(true)} className="flex items-center gap-2">
+                    <Plus className="h-4 w-4" /> নতুন খরচ
+                </Button>
             </CardHeader>
             <CardContent>
                 {isLoading ? <div className="flex justify-center py-12"><Loader2 className="h-8 w-8 animate-spin" /></div> : (
@@ -458,12 +460,22 @@ function ExpenseManagement() {
                                     <TableCell className="text-red-600 font-bold">৳{e.amount}</TableCell>
                                     <TableCell className="text-xs">{format(parseISO(e.expenseDate), 'PP', { locale: bn })}</TableCell>
                                     <TableCell className="text-right">
-                                        <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => handleDeleteExpense(e.id)}>
+                                        <Button 
+                                            size="icon" 
+                                            variant="ghost" 
+                                            className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10" 
+                                            onClick={() => handleDeleteExpense(e.id)}
+                                        >
                                             <Trash2 className="h-4 w-4" />
                                         </Button>
                                     </TableCell>
                                 </TableRow>
                             ))}
+                            {(!expenses || expenses.length === 0) && (
+                                <TableRow>
+                                    <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">কোনো খরচের রেকর্ড পাওয়া যায়নি।</TableCell>
+                                </TableRow>
+                            )}
                         </TableBody>
                     </Table>
                 )}
@@ -531,52 +543,52 @@ function CashbookView() {
     return (
         <div className="space-y-6">
             <div className="grid gap-4 md:grid-cols-3">
-                <Card className="bg-green-50 border-green-200">
+                <Card className="bg-green-50 border-green-200 shadow-sm">
                     <CardHeader className="flex flex-row items-center justify-between pb-2">
-                        <CardTitle className="text-sm font-bold text-green-700">সর্বমোট আয় (Income)</CardTitle>
-                        <ArrowUpCircle className="h-4 w-4 text-green-600" />
+                        <CardTitle className="text-sm font-bold text-green-700 uppercase tracking-wider">সর্বমোট আয় (Income)</CardTitle>
+                        <ArrowUpCircle className="h-5 w-5 text-green-600" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold text-green-800">৳{stats.totalIncome}</div>
-                        <p className="text-xs text-green-600">বেতন আদায় থেকে প্রাপ্ত</p>
+                        <div className="text-3xl font-black text-green-800">৳{stats.totalIncome}</div>
+                        <p className="text-xs text-green-600/80 mt-1 font-medium">বেতন আদায় থেকে প্রাপ্ত</p>
                     </CardContent>
                 </Card>
-                <Card className="bg-red-50 border-red-200">
+                <Card className="bg-red-50 border-red-200 shadow-sm">
                     <CardHeader className="flex flex-row items-center justify-between pb-2">
-                        <CardTitle className="text-sm font-bold text-red-700">সর্বমোট ব্যয় (Expense)</CardTitle>
-                        <ArrowDownCircle className="h-4 w-4 text-red-600" />
+                        <CardTitle className="text-sm font-bold text-red-700 uppercase tracking-wider">সর্বমোট ব্যয় (Expense)</CardTitle>
+                        <ArrowDownCircle className="h-5 w-5 text-red-600" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold text-red-800">৳{stats.totalExpense}</div>
-                        <p className="text-xs text-red-600">প্রতিষ্ঠান পরিচালনার ব্যয়</p>
+                        <div className="text-3xl font-black text-red-800">৳{stats.totalExpense}</div>
+                        <p className="text-xs text-red-600/80 mt-1 font-medium">প্রতিষ্ঠান পরিচালনার ব্যয়</p>
                     </CardContent>
                 </Card>
-                <Card className="bg-blue-50 border-blue-200">
+                <Card className="bg-blue-50 border-blue-200 shadow-sm">
                     <CardHeader className="flex flex-row items-center justify-between pb-2">
-                        <CardTitle className="text-sm font-bold text-blue-700">বর্তমান ক্যাশ (Balance)</CardTitle>
-                        <Wallet className="h-4 w-4 text-blue-600" />
+                        <CardTitle className="text-sm font-bold text-blue-700 uppercase tracking-wider">বর্তমান স্থিতি (Balance)</CardTitle>
+                        <Wallet className="h-5 w-5 text-blue-600" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold text-blue-800">৳{stats.balance}</div>
-                        <p className="text-xs text-blue-600">সব খরচ বাদে বর্তমান স্থিতি</p>
+                        <div className="text-3xl font-black text-blue-800">৳{stats.balance}</div>
+                        <p className="text-xs text-blue-600/80 mt-1 font-medium">সব খরচ বাদে বর্তমান ক্যাশ</p>
                     </CardContent>
                 </Card>
             </div>
 
             <Card>
-                <CardHeader><CardTitle>চলতি মাসের সারসংক্ষেপ ({format(new Date(), 'MMMM yyyy', { locale: bn })})</CardTitle></CardHeader>
-                <CardContent className="space-y-4">
-                    <div className="flex justify-between items-center p-3 border rounded-lg">
-                        <span className="font-medium">চলতি মাসের আয়</span>
-                        <span className="text-green-600 font-bold">৳{stats.currentMonthIncome}</span>
+                <CardHeader><CardTitle className="text-xl font-bold">চলতি মাসের সারসংক্ষেপ ({format(new Date(), 'MMMM yyyy', { locale: bn })})</CardTitle></CardHeader>
+                <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="flex flex-col justify-between p-4 border rounded-xl bg-white shadow-sm">
+                        <span className="text-sm font-medium text-muted-foreground">চলতি মাসের আয়</span>
+                        <span className="text-2xl font-black text-green-600">৳{stats.currentMonthIncome}</span>
                     </div>
-                    <div className="flex justify-between items-center p-3 border rounded-lg">
-                        <span className="font-medium">চলতি মাসের ব্যয়</span>
-                        <span className="text-red-600 font-bold">৳{stats.currentMonthExpense}</span>
+                    <div className="flex flex-col justify-between p-4 border rounded-xl bg-white shadow-sm">
+                        <span className="text-sm font-medium text-muted-foreground">চলতি মাসের ব্যয়</span>
+                        <span className="text-2xl font-black text-red-600">৳{stats.currentMonthExpense}</span>
                     </div>
-                    <div className="flex justify-between items-center p-3 bg-blue-50 border border-blue-100 rounded-lg">
-                        <span className="font-bold">চলতি মাসের নেট ব্যালেন্স</span>
-                        <span className="text-blue-700 font-bold text-lg">৳{stats.currentMonthBalance}</span>
+                    <div className="flex flex-col justify-between p-4 bg-blue-50 border border-blue-100 rounded-xl shadow-sm">
+                        <span className="text-sm font-bold text-blue-800">চলতি মাসের নিট ব্যালেন্স</span>
+                        <span className="text-2xl font-black text-blue-700">৳{stats.currentMonthBalance}</span>
                     </div>
                 </CardContent>
             </Card>
@@ -605,6 +617,7 @@ export default function AccountingPage() {
         if (snap.empty) {
           toast({ variant: 'destructive', title: 'পাওয়া যায়নি', description: 'এই রোল নম্বরের কোনো শিক্ষার্থী নেই।' });
         } else {
+          // Exact match logic for roll numbers
           const found = snap.docs.find(d => d.data().rollNumber.toString().trim() === searchRoll.trim());
           if (found) {
             setSelectedStudent({ id: found.id, ...found.data() } as Student);
@@ -624,7 +637,7 @@ export default function AccountingPage() {
             <h1 className="text-3xl font-bold font-headline text-amber-800 dark:text-amber-200">হিসাবরক্ষণ</h1>
             
             <Tabs defaultValue="collection" className="space-y-6">
-                <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4 max-w-2xl">
+                <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4 max-w-2xl bg-amber-100/50 p-1 border border-amber-200">
                     <TabsTrigger value="collection">বেতন আদায়</TabsTrigger>
                     <TabsTrigger value="history">আদায়ের তালিকা</TabsTrigger>
                     <TabsTrigger value="expenses">খরচের হিসাব</TabsTrigger>
@@ -633,8 +646,8 @@ export default function AccountingPage() {
 
                 <TabsContent value="collection">
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                        <Card className="lg:col-span-1">
-                            <CardHeader><CardTitle className="text-lg">শিক্ষার্থী খুঁজুন</CardTitle></CardHeader>
+                        <Card className="lg:col-span-1 shadow-md">
+                            <CardHeader><CardTitle className="text-lg font-bold">শিক্ষার্থী খুঁজুন</CardTitle></CardHeader>
                             <CardContent className="space-y-4">
                                 <div className="space-y-2">
                                     <Label>শ্রেণি</Label>
@@ -649,15 +662,15 @@ export default function AccountingPage() {
                                     <Label>রোল</Label>
                                     <Input placeholder="রোল নম্বর" value={searchRoll} onChange={(e) => setSearchRoll(e.target.value)} />
                                 </div>
-                                <Button onClick={handleSearch} className="w-full" disabled={isSearching}>
-                                    {isSearching ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Search className="mr-2 h-4 w-4" />}
+                                <Button onClick={handleSearch} className="w-full flex items-center justify-center gap-2" disabled={isSearching}>
+                                    {isSearching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
                                     খুঁজুন
                                 </Button>
                             </CardContent>
                         </Card>
                         <div className="lg:col-span-2">
                             {selectedStudent ? <PaymentRecord student={selectedStudent} /> : (
-                                <div className="flex flex-col items-center justify-center p-12 border-2 border-dashed rounded-lg text-muted-foreground h-full">
+                                <div className="flex flex-col items-center justify-center p-12 border-2 border-dashed border-amber-200 rounded-xl text-muted-foreground h-full bg-white/40">
                                     শিক্ষার্থী খুঁজে বেতন আদায় শুরু করুন।
                                 </div>
                             )}
