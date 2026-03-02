@@ -54,30 +54,41 @@ function ReceiptDialog({ isOpen, setIsOpen, payment, student, settings }: { isOp
     if (!payment || !student) return null;
 
     const handlePrintReceipt = () => {
+        const logoHtml = settings?.logoUrl ? `<img src="${settings.logoUrl}" style="height: 60px; margin-bottom: 10px; object-fit: contain;" />` : '';
         const printContent = `
             <html>
             <head>
-                <title>Money Receipt</title>
+                <title>Money Receipt - ${student.name}</title>
                 <style>
-                    body { font-family: 'sans-serif'; padding: 20px; width: 400px; }
-                    .header { text-align: center; border-bottom: 2px solid #000; margin-bottom: 20px; }
-                    .details { line-height: 1.8; }
-                    .total { font-weight: bold; font-size: 1.2em; border-top: 1px solid #ccc; padding-top: 10px; }
+                    body { font-family: 'Kalpurush', sans-serif; padding: 30px; width: 500px; border: 2px solid #1a73e8; margin: auto; border-radius: 10px; }
+                    .header { text-align: center; border-bottom: 3px solid #1a73e8; margin-bottom: 25px; padding-bottom: 15px; }
+                    .details { line-height: 2.2; font-size: 16px; color: #333; }
+                    .total { font-weight: bold; font-size: 1.5em; border-top: 2px solid #1a73e8; padding-top: 15px; margin-top: 20px; color: #1a73e8; display: flex; justify-content: space-between; }
+                    .footer { margin-top: 40px; display: flex; justify-content: space-between; font-size: 13px; border-top: 1px dashed #ccc; pt: 10px; }
                 </style>
             </head>
             <body>
                 <div class="header">
-                    <h2>${settings?.institutionName || 'Top Grade Tutorials'}</h2>
-                    <p>Money Receipt</p>
+                    ${logoHtml}
+                    <h2 style="margin: 0; color: #1a73e8; font-size: 24px;">${settings?.institutionName || 'Top Grade Tutorials'}</h2>
+                    <p style="margin: 5px 0; font-weight: bold;">বেতন আদায়ের রসিদ (Money Receipt)</p>
                 </div>
                 <div class="details">
-                    <p>Receipt No: ${payment.receiptNumber}</p>
-                    <p>Date: ${format(parseISO(payment.paymentDate), 'PP', { locale: bn })}</p>
-                    <p>Student: ${student.name}</p>
-                    <p>Class: ${student.classGrade} | Roll: ${student.rollNumber}</p>
-                    <p>Fee for Month: ${format(parseISO(payment.paymentMonth), 'MMMM, yyyy', { locale: bn })}</p>
-                    <p class="total">Amount Paid: BDT ${payment.amount}</p>
-                    <p>Collected By: ${payment.collectorName}</p>
+                    <table style="width: 100%;">
+                        <tr><td><strong>রসিদ নম্বর:</strong></td><td style="text-align: right;">${payment.receiptNumber}</td></tr>
+                        <tr><td><strong>তারিখ:</strong></td><td style="text-align: right;">${format(parseISO(payment.paymentDate), 'PP', { locale: bn })}</td></tr>
+                        <tr><td><strong>শিক্ষার্থীর নাম:</strong></td><td style="text-align: right; font-weight: bold;">${student.name}</td></tr>
+                        <tr><td><strong>শ্রেণি ও রোল:</strong></td><td style="text-align: right;">${student.classGrade} (রোল: ${student.rollNumber})</td></tr>
+                        <tr><td><strong>মাসের নাম:</strong></td><td style="text-align: right;">${format(parseISO(payment.paymentMonth), 'MMMM, yyyy', { locale: bn })}</td></tr>
+                    </table>
+                    <div class="total">
+                        <span>মোট আদায়:</span>
+                        <span>৳${payment.amount}</span>
+                    </div>
+                </div>
+                <div class="footer">
+                    <div>আদায়কারী: ${payment.collectorName}</div>
+                    <div style="text-align: right;">স্বাক্ষর ও সিল</div>
                 </div>
             </body>
             </html>
@@ -85,7 +96,10 @@ function ReceiptDialog({ isOpen, setIsOpen, payment, student, settings }: { isOp
         const win = window.open('', '_blank');
         win?.document.write(printContent);
         win?.document.close();
-        win?.print();
+        win?.focus();
+        setTimeout(() => {
+            win?.print();
+        }, 500);
     };
 
     const handleSendSMS = () => {
@@ -102,9 +116,10 @@ function ReceiptDialog({ isOpen, setIsOpen, payment, student, settings }: { isOp
                 <DialogHeader>
                     <DialogTitle className="font-bold">আদায় রসিদ</DialogTitle>
                 </DialogHeader>
-                <div className="p-4 border rounded-md space-y-3">
+                <div className="p-4 border rounded-md space-y-3 bg-white">
                      <div className="text-center pb-2 border-b">
-                        <h3 className="font-bold text-lg">{settings?.institutionName}</h3>
+                        {settings?.logoUrl && <img src={settings.logoUrl} className="h-12 mx-auto mb-2 object-contain" alt="Logo" />}
+                        <h3 className="font-bold text-lg text-blue-800">{settings?.institutionName}</h3>
                         <p className="text-xs text-muted-foreground">বেতন আদায়ের রসিদ</p>
                      </div>
                      <div className="grid grid-cols-2 text-sm gap-y-1">
@@ -113,7 +128,10 @@ function ReceiptDialog({ isOpen, setIsOpen, payment, student, settings }: { isOp
                         <span className="text-muted-foreground">শিক্ষার্থী:</span> <span className="text-right font-bold">{student.name}</span>
                         <span className="text-muted-foreground">শ্রেণি:</span> <span className="text-right">{student.classGrade} (রোল: {student.rollNumber})</span>
                         <span className="text-muted-foreground">মাসের নাম:</span> <span className="text-right">{format(parseISO(payment.paymentMonth), 'MMMM yyyy', { locale: bn })}</span>
-                        <span className="text-lg font-bold pt-2">মোট আদায়:</span> <span className="text-right text-lg font-bold pt-2 text-green-600">৳{payment.amount}</span>
+                        <div className="col-span-2 border-t mt-2 pt-2 flex justify-between items-center">
+                            <span className="text-lg font-bold">মোট আদায়:</span> 
+                            <span className="text-right text-xl font-bold text-green-600">৳{payment.amount}</span>
+                        </div>
                      </div>
                 </div>
                 <DialogFooter className="flex flex-col sm:flex-row gap-2">
@@ -121,7 +139,7 @@ function ReceiptDialog({ isOpen, setIsOpen, payment, student, settings }: { isOp
                         <MessageCircle className="mr-2 h-4 w-4" /> SMS দিন
                     </Button>
                     <Button variant="secondary" onClick={() => setIsOpen(false)}>বন্ধ করুন</Button>
-                    <Button onClick={handlePrintReceipt}><Printer className="mr-2 h-4 w-4" /> প্রিন্ট</Button>
+                    <Button onClick={handlePrintReceipt} className="bg-blue-600 hover:bg-blue-700"><Printer className="mr-2 h-4 w-4" /> প্রিন্ট</Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>
@@ -244,7 +262,7 @@ function PaymentRecord({ student }: { student: Student }) {
                                                 {payment ? (
                                                     <Badge className="bg-green-100 text-green-700 hover:bg-green-100 border-green-200">পরিশোধিত</Badge>
                                                 ) : (
-                                                    <Button size="sm" variant="outline" onClick={() => handleOpenPaymentDialog(month)}>
+                                                    <Button size="sm" variant="outline" onClick={() => handleOpenPaymentDialog(month)} className="border-blue-200 text-blue-600 hover:bg-blue-50">
                                                         <DollarSign className="mr-1 h-3 w-3" /> আদায়
                                                     </Button>
                                                 )}
@@ -281,7 +299,7 @@ function PaymentRecord({ student }: { student: Student }) {
                         </div>
                     </div>
                     <DialogFooter>
-                        <Button onClick={handleCollectPayment} disabled={isSaving} className="w-full">
+                        <Button onClick={handleCollectPayment} disabled={isSaving} className="w-full bg-blue-600 hover:bg-blue-700 text-white">
                             {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
                             নিশ্চিত করুন
                         </Button>
@@ -356,7 +374,7 @@ function PaymentHistory() {
                                         <TableCell className="font-medium">{s?.name || 'Unknown'} (রোল: {s?.rollNumber})</TableCell>
                                         <TableCell>{format(parseISO(p.paymentMonth), 'MMMM yyyy', { locale: bn })}</TableCell>
                                         <TableCell>৳{p.amount}</TableCell>
-                                        <TableCell className="text-xs">{format(parseISO(p.paymentDate), 'PP', { locale: bn })}</TableCell>
+                                        <TableCell className="text-xs text-muted-foreground">{format(parseISO(p.paymentDate), 'PP', { locale: bn })}</TableCell>
                                         <TableCell className="text-right">
                                             <Button 
                                                 size="icon" 
@@ -436,7 +454,7 @@ function ExpenseManagement() {
         <Card>
             <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle className="text-xl font-bold">খরচের হিসাব (Expenses)</CardTitle>
-                <Button onClick={() => setIsDialogOpen(true)} className="flex items-center gap-2">
+                <Button onClick={() => setIsDialogOpen(true)} className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700">
                     <Plus className="h-4 w-4" /> নতুন খরচ
                 </Button>
             </CardHeader>
@@ -458,7 +476,7 @@ function ExpenseManagement() {
                                     <TableCell className="font-medium">{e.description}</TableCell>
                                     <TableCell>{e.spentByName}</TableCell>
                                     <TableCell className="text-red-600 font-bold">৳{e.amount}</TableCell>
-                                    <TableCell className="text-xs">{format(parseISO(e.expenseDate), 'PP', { locale: bn })}</TableCell>
+                                    <TableCell className="text-xs text-muted-foreground">{format(parseISO(e.expenseDate), 'PP', { locale: bn })}</TableCell>
                                     <TableCell className="text-right">
                                         <Button 
                                             size="icon" 
@@ -499,7 +517,7 @@ function ExpenseManagement() {
                         </div>
                     </div>
                     <DialogFooter>
-                        <Button onClick={handleAddExpense} disabled={isSaving} className="w-full">
+                        <Button onClick={handleAddExpense} disabled={isSaving} className="w-full bg-blue-600 hover:bg-blue-700">
                             {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
                             সেভ করুন
                         </Button>
@@ -637,11 +655,31 @@ export default function AccountingPage() {
             <h1 className="text-3xl font-bold font-headline text-amber-800 dark:text-amber-200">হিসাবরক্ষণ</h1>
             
             <Tabs defaultValue="collection" className="space-y-6">
-                <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4 max-w-2xl bg-amber-100/50 p-1 border border-amber-200">
-                    <TabsTrigger value="collection">বেতন আদায়</TabsTrigger>
-                    <TabsTrigger value="history">আদায়ের তালিকা</TabsTrigger>
-                    <TabsTrigger value="expenses">খরচের হিসাব</TabsTrigger>
-                    <TabsTrigger value="cashbook">ক্যাশ বুক</TabsTrigger>
+                <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4 h-auto p-1.5 bg-amber-100 border-2 border-amber-200 rounded-xl shadow-sm">
+                    <TabsTrigger 
+                        value="collection" 
+                        className="py-3 font-bold text-sm data-[state=active]:bg-white data-[state=active]:text-amber-900 data-[state=active]:shadow-md transition-all"
+                    >
+                        বেতন আদায়
+                    </TabsTrigger>
+                    <TabsTrigger 
+                        value="history" 
+                        className="py-3 font-bold text-sm data-[state=active]:bg-white data-[state=active]:text-amber-900 data-[state=active]:shadow-md transition-all"
+                    >
+                        আদায়ের তালিকা
+                    </TabsTrigger>
+                    <TabsTrigger 
+                        value="expenses" 
+                        className="py-3 font-bold text-sm data-[state=active]:bg-white data-[state=active]:text-amber-900 data-[state=active]:shadow-md transition-all"
+                    >
+                        খরচের হিসাব
+                    </TabsTrigger>
+                    <TabsTrigger 
+                        value="cashbook" 
+                        className="py-3 font-bold text-sm data-[state=active]:bg-white data-[state=active]:text-amber-900 data-[state=active]:shadow-md transition-all"
+                    >
+                        ক্যাশ বুক
+                    </TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="collection">
@@ -662,7 +700,7 @@ export default function AccountingPage() {
                                     <Label>রোল</Label>
                                     <Input placeholder="রোল নম্বর" value={searchRoll} onChange={(e) => setSearchRoll(e.target.value)} />
                                 </div>
-                                <Button onClick={handleSearch} className="w-full flex items-center justify-center gap-2" disabled={isSearching}>
+                                <Button onClick={handleSearch} className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700" disabled={isSearching}>
                                     {isSearching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
                                     খুঁজুন
                                 </Button>
