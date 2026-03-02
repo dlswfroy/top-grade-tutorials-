@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -105,7 +104,7 @@ export default function MessagingPage() {
         if (type === 'call') {
             window.location.href = `tel:${student.mobileNumber}`;
         } else {
-            const body = `শ্রদ্ধেয় অভিভাবক, আপনার সন্তান ${student.name} আজ কোচিং-এ উপস্থিত হয়নি। বিস্তারিত জানতে কল করুন। - টপ গ্রেড টিউটোরিয়ালস`;
+            const body = `শ্রদ্ধেয় অভিভাবক, টপ গ্রেড টিউটোরিয়ালস-এর পক্ষ থেকে শুভেচ্ছা। আপনার সন্তান আজ কোচিংএ অনুপস্থিত আছে। ধন্যবাদ।`;
             window.location.href = `sms:${student.mobileNumber}?body=${encodeURIComponent(body)}`;
         }
     } catch (err) {
