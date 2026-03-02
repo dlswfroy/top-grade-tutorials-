@@ -12,19 +12,17 @@ import {
   Loader2,
   CalendarCheck,
   Menu,
-  GraduationCap,
   LogOut,
   UserCircle,
   Search,
   MessageSquare,
   CreditCard,
-  User,
   ArrowLeft,
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { useFirestore, useDoc, useMemoFirebase, useAuth } from '@/firebase';
-import { doc, collection, query, getDocs } from 'firebase/firestore';
+import { doc, collection, getDocs } from 'firebase/firestore';
 import { signOut, onAuthStateChanged, type User as FirebaseUser } from 'firebase/auth';
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
@@ -52,11 +50,11 @@ const menuItems = [
   { href: '/', label: 'ড্যাসবোর্ড', icon: LayoutDashboard, key: 'dashboard' },
   { href: '/students', label: 'শিক্ষার্থী', icon: Users, key: 'students' },
   { href: '/student-profile', label: 'শিক্ষার্থী প্রোফাইল', icon: UserCircle, key: 'studentProfile' },
-  { href: '/teachers', label: 'শিক্ষক', icon: GraduationCap, key: 'teachers' },
+  { href: '/teachers', label: 'শিক্ষক', icon: UserCircle, key: 'teachers' },
   { href: '/accounting', label: 'হিসাব', icon: Calculator, key: 'accounting' },
   { href: '/attendance', label: 'হাজিরা', icon: CalendarCheck, key: 'attendance' },
   { href: '/messaging', label: 'মেসেজ ও যোগাযোগ', icon: MessageSquare, key: 'messaging' },
-  { href: '/settings', label: 'সেটিিংস', icon: Settings, key: 'settings' },
+  { href: '/settings', label: 'সেটিংস', icon: Settings, key: 'settings' },
 ];
 
 const menuItemStyles: { [key: string]: string } = {
@@ -65,7 +63,7 @@ const menuItemStyles: { [key: string]: string } = {
     studentProfile: 'border-pink-400 text-pink-400',
     teachers: 'border-cyan-300 text-cyan-300',
     accounting: 'border-teal-300 text-teal-300',
-    attendance: 'border-lime-300 text-lime-300',
+    attendance: 'border-lime-300 text-teal-200',
     messaging: 'border-purple-300 text-purple-300',
     settings: 'border-green-400 text-green-400',
 };
@@ -90,7 +88,7 @@ function Logo({ settings, isLoading }: { settings: InstitutionSettings | null, i
                     <AvatarFallback>{institutionName.slice(0, 2)}</AvatarFallback>
                 </Avatar>
             )}
-            <span className="text-[1.28rem] sm:text-[3.65rem] font-headline font-black text-white whitespace-nowrap overflow-visible drop-shadow-md inline-block transform scale-x-[1.15] origin-left leading-[0.8] pt-1.5 truncate sm:overflow-visible">
+            <span className="text-[1.35rem] sm:text-[3.8rem] font-headline font-black text-white whitespace-nowrap overflow-visible drop-shadow-md inline-block transform scale-x-[1.15] origin-left leading-[0.75] pt-1.5 truncate sm:overflow-visible">
                 {institutionName}
             </span>
         </Link>
@@ -163,7 +161,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             .map(d => ({ id: d.id, ...d.data() } as Student))
             .filter(s => {
                 const sRoll = s.rollNumber.toString().trim();
-                // Clean leading zeros for exact comparison
                 const queryClean = queryStr.replace(/^0+/, '') || '0';
                 const sRollClean = sRoll.replace(/^0+/, '') || '0';
                 
@@ -212,7 +209,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   return (
       <div className="min-h-screen flex flex-col bg-muted/40">
           <header className="sticky top-0 z-40 w-full bg-[#1A73E8] text-white shadow-lg border-b-2 border-black/30">
-              {/* Primary Bar */}
+              {/* Primary Bar Only */}
               <div className="flex h-14 sm:h-20 items-center justify-between px-3 sm:px-4 gap-2 border-b border-white/10">
                   <Logo settings={settings} isLoading={isLoadingSettings} />
                   
@@ -273,55 +270,54 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                     </Sheet>
                   </div>
               </div>
-              
-              {/* Secondary Permanent Bar */}
-              <div className="bg-[#1A73E8] border-t border-black/10 py-1.5 sm:py-2 shadow-inner">
-                  <div className="container px-3 sm:px-4 flex items-center justify-between gap-4">
-                      <nav className="flex items-center space-x-2 sm:space-x-3 overflow-x-auto scrollbar-hide flex-1">
-                        {/* Back Button Integrated into Nav Bar */}
-                        <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            className="bg-white/10 border border-white/20 text-white hover:bg-white/20 h-7 sm:h-8 px-2 sm:px-3 text-[10px] sm:text-xs font-bold shrink-0"
-                            onClick={() => router.back()}
-                        >
-                            <ArrowLeft className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
-                            ফিরে যান
-                        </Button>
-
-                        {visibleMenuItems.map((item) => (
-                            <Link
-                                key={item.href}
-                                href={item.href}
-                                className={cn(
-                                    "flex items-center gap-1.5 sm:gap-2 rounded-lg px-2 sm:px-3 py-1 text-[10px] sm:text-xs font-bold transition-colors border-2 whitespace-nowrap",
-                                    pathname === item.href 
-                                        ? "border-white bg-white/20 text-white" 
-                                        : `${menuItemStyles[item.key] || 'border-white/20 text-white'} hover:bg-white/10`
-                                )}
-                            >
-                                <item.icon className="h-3 w-3 sm:h-4 sm:w-4" />
-                                <span>{item.label}</span>
-                            </Link>
-                        ))}
-                      </nav>
-
-                      {/* Integrated Search Bar */}
-                      <form onSubmit={handleGlobalSearch} className="relative w-32 sm:w-48 md:w-64 shrink-0">
-                          <Search className="absolute left-2.5 top-2 h-3 w-3 text-white/60" />
-                          <Input 
-                            placeholder="খুঁজুন..." 
-                            className="pl-8 bg-white/10 border-white/20 text-white placeholder:text-white/60 focus-visible:ring-white h-7 text-[10px] sm:text-xs rounded-full w-full"
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                          />
-                      </form>
-                  </div>
-              </div>
           </header>
-          <main className="flex-1 container py-8 relative">
+
+          <main className="flex-1 container py-8 pb-24 relative">
               {children}
           </main>
+
+          {/* New Permanent Bar at the Bottom */}
+          <div className="fixed bottom-0 left-0 right-0 z-40 bg-[#1A73E8] text-white border-t-2 border-black/30 py-1.5 sm:py-2 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
+              <div className="container px-3 sm:px-4 flex items-center justify-between gap-4">
+                  <nav className="flex items-center space-x-2 sm:space-x-3 overflow-x-auto scrollbar-hide flex-1">
+                    <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="bg-white/10 border border-white/20 text-white hover:bg-white/20 h-7 sm:h-8 px-2 sm:px-3 text-[10px] sm:text-xs font-bold shrink-0"
+                        onClick={() => router.back()}
+                    >
+                        <ArrowLeft className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+                        ফিরে যান
+                    </Button>
+
+                    {visibleMenuItems.map((item) => (
+                        <Link
+                            key={item.href}
+                            href={item.href}
+                            className={cn(
+                                "flex items-center gap-1.5 sm:gap-2 rounded-lg px-2 sm:px-3 py-1 text-[10px] sm:text-xs font-bold transition-colors border-2 whitespace-nowrap",
+                                pathname === item.href 
+                                    ? "border-white bg-white/20 text-white" 
+                                    : `${menuItemStyles[item.key] || 'border-white/20 text-white'} hover:bg-white/10`
+                            )}
+                        >
+                            <item.icon className="h-3 w-3 sm:h-4 sm:w-4" />
+                            <span>{item.label}</span>
+                        </Link>
+                    ))}
+                  </nav>
+
+                  <form onSubmit={handleGlobalSearch} className="relative w-32 sm:w-48 md:w-64 shrink-0">
+                      <Search className="absolute left-2.5 top-2 h-3 w-3 text-white/60" />
+                      <Input 
+                        placeholder="খুঁজুন..." 
+                        className="pl-8 bg-white/10 border-white/20 text-white placeholder:text-white/60 focus-visible:ring-white h-7 text-[10px] sm:text-xs rounded-full w-full"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                      />
+                  </form>
+              </div>
+          </div>
 
           <Dialog open={isSearchDialogOpen} onOpenChange={setIsSearchDialogOpen}>
               <DialogContent className="sm:max-w-md">
