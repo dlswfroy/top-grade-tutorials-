@@ -76,7 +76,7 @@ function ReceiptDialog({ isOpen, setIsOpen, payment, student, settings }: { isOp
                     <p>Date: ${format(parseISO(payment.paymentDate), 'PP', { locale: bn })}</p>
                     <p>Student: ${student.name}</p>
                     <p>Class: ${student.classGrade} | Roll: ${student.rollNumber}</p>
-                    <p>Fee for Month: ${format(parseISO(payment.paymentMonth), 'MMMM, yyyy')}</p>
+                    <p>Fee for Month: ${format(parseISO(payment.paymentMonth), 'MMMM, yyyy', { locale: bn })}</p>
                     <p class="total">Amount Paid: BDT ${payment.amount}</p>
                     <p>Collected By: ${payment.collectorName}</p>
                 </div>
@@ -113,7 +113,7 @@ function ReceiptDialog({ isOpen, setIsOpen, payment, student, settings }: { isOp
                         <span className="text-muted-foreground">তারিখ:</span> <span className="text-right">{format(parseISO(payment.paymentDate), 'PP', { locale: bn })}</span>
                         <span className="text-muted-foreground">শিক্ষার্থী:</span> <span className="text-right font-bold">{student.name}</span>
                         <span className="text-muted-foreground">শ্রেণি:</span> <span className="text-right">{student.classGrade} (রোল: {student.rollNumber})</span>
-                        <span className="text-muted-foreground">মাসের নাম:</span> <span className="text-right">{format(parseISO(payment.paymentMonth), 'MMMM yyyy')}</span>
+                        <span className="text-muted-foreground">মাসের নাম:</span> <span className="text-right">{format(parseISO(payment.paymentMonth), 'MMMM yyyy', { locale: bn })}</span>
                         <span className="text-lg font-bold pt-2">মোট আদায়:</span> <span className="text-right text-lg font-bold pt-2 text-green-600">৳{payment.amount}</span>
                      </div>
                 </div>
@@ -301,6 +301,89 @@ function PaymentRecord({ student }: { student: Student }) {
     );
 }
 
+function PaymentHistory() {
+    const firestore = useFirestore();
+    const { toast } = useToast();
+    const paymentsQuery = useMemoFirebase(() => {
+        if (!firestore) return null;
+        return query(collection(firestore, 'payments'), orderBy('paymentDate', 'desc'), limit(50));
+    }, [firestore]);
+    const { data: payments, isLoading } = useCollection<Payment>(paymentsQuery);
+
+    const studentsQuery = useMemoFirebase(() => {
+        if (!firestore) return null;
+        return collection(firestore, 'students');
+    }, [firestore]);
+    const { data: students } = useCollection<Student>(studentsQuery);
+    const studentsMap = useMemo(() => new Map(students?.map(s => [s.id, s])), [students]);
+
+    const handleDeletePayment = (paymentId: string) => {
+        if (!firestore) return;
+        if (!window.confirm('আপনি কি এই পেমেন্ট রেকর্ডটি মুছে ফেলতে চান?')) return;
+
+        const paymentRef = doc(firestore, 'payments', paymentId);
+        deleteDoc(paymentRef)
+            .then(() => {
+                toast({ title: 'সফল', description: 'পেমেন্ট রেকর্ডটি মুছে ফেলা হয়েছে।' });
+            })
+            .catch((error) => {
+                errorEmitter.emit('permission-error', new FirestorePermissionError({
+                    path: paymentRef.path,
+                    operation: 'delete',
+                }));
+            });
+    };
+
+    return (
+        <Card>
+            <CardHeader><CardTitle>সাম্প্রতিক আদায়ের তালিকা</CardTitle></CardHeader>
+            <CardContent>
+                {isLoading ? <div className="flex justify-center py-12"><Loader2 className="h-8 w-8 animate-spin" /></div> : (
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>শিক্ষার্থী</TableHead>
+                                <TableHead>মাস</TableHead>
+                                <TableHead>পরিমাণ</TableHead>
+                                <TableHead>তারিখ</TableHead>
+                                <TableHead className="text-right">একশন</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {payments?.map(p => {
+                                const s = studentsMap.get(p.studentId);
+                                return (
+                                    <TableRow key={p.id}>
+                                        <TableCell className="font-medium">{s?.name || 'Unknown'} (রোল: {s?.rollNumber})</TableCell>
+                                        <TableCell>{format(parseISO(p.paymentMonth), 'MMMM yyyy', { locale: bn })}</TableCell>
+                                        <TableCell>৳{p.amount}</TableCell>
+                                        <TableCell className="text-xs">{format(parseISO(p.paymentDate), 'PP', { locale: bn })}</TableCell>
+                                        <TableCell className="text-right">
+                                            <Button 
+                                                size="icon" 
+                                                variant="ghost" 
+                                                className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                                onClick={() => handleDeletePayment(p.id)}
+                                            >
+                                                <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                        </TableCell>
+                                    </TableRow>
+                                );
+                            })}
+                            {(!payments || payments.length === 0) && (
+                                <TableRow>
+                                    <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">কোনো পেমেন্ট রেকর্ড পাওয়া যায়নি।</TableCell>
+                                </TableRow>
+                            )}
+                        </TableBody>
+                    </Table>
+                )}
+            </CardContent>
+        </Card>
+    );
+}
+
 export default function AccountingPage() {
     const firestore = useFirestore();
     const { toast } = useToast();
@@ -322,10 +405,16 @@ export default function AccountingPage() {
         if (snap.empty) {
           toast({ variant: 'destructive', title: 'পাওয়া যায়নি', description: 'এই রোল নম্বরের কোনো শিক্ষার্থী নেই।' });
         } else {
-          setSelectedStudent({ id: snap.docs[0].id, ...snap.docs[0].data() } as Student);
+          // Extra exact match check for the roll number
+          const found = snap.docs.find(d => d.data().rollNumber.toString().trim() === searchRoll.trim());
+          if (found) {
+            setSelectedStudent({ id: found.id, ...found.data() } as Student);
+          } else {
+            toast({ variant: 'destructive', title: 'পাওয়া যায়নি', description: 'এই রোল নম্বরের কোনো শিক্ষার্থী নেই।' });
+          }
         }
       } catch (error) {
-        toast({ variant: 'destructive', title: 'ত্রুটি', description: 'শিক্ষার্থী খুঁজতে সমস্যা হয়েছে।' });
+        toast({ variant: 'destructive', title: 'ত্রুটি', description: 'শিক্ষার্থী খুঁজতে সমস্যা হয়েছে। ' });
       } finally {
         setIsSearching(false);
       }
@@ -382,87 +471,3 @@ export default function AccountingPage() {
         </div>
     );
 }
-
-function PaymentHistory() {
-    const firestore = useFirestore();
-    const { toast } = useToast();
-    const paymentsQuery = useMemoFirebase(() => {
-        if (!firestore) return null;
-        return query(collection(firestore, 'payments'), orderBy('paymentDate', 'desc'), limit(50));
-    }, [firestore]);
-    const { data: payments, isLoading } = useCollection<Payment>(paymentsQuery);
-
-    const studentsQuery = useMemoFirebase(() => {
-        if (!firestore) return null;
-        return collection(firestore, 'students');
-    }, [firestore]);
-    const { data: students } = useCollection<Student>(studentsQuery);
-    const studentsMap = useMemo(() => new Map(students?.map(s => [s.id, s])), [students]);
-
-    const handleDeletePayment = (paymentId: string) => {
-        if (!firestore) return;
-        if (!window.confirm('আপনি কি এই পেমেন্ট রেকর্ডটি মুছে ফেলতে চান?')) return;
-
-        const paymentRef = doc(firestore, 'payments', paymentId);
-        deleteDoc(paymentRef)
-            .then(() => {
-                toast({ title: 'সফল', description: 'পেমেন্ট রেকর্ডটি মুছে ফেলা হয়েছে।' });
-            })
-            .catch((error) => {
-                errorEmitter.emit('permission-error', new FirestorePermissionError({
-                    path: paymentRef.path,
-                    operation: 'delete',
-                }));
-            });
-    };
-
-    return (
-        <Card>
-            <CardHeader><CardTitle>সাম্প্রতিক আদায়ের তালিকা</CardTitle></CardHeader>
-            <CardContent>
-                {isLoading ? <div className="flex justify-center py-12"><Loader2 className="h-8 w-8 animate-spin" /></div> : (
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>শিক্ষার্থী</TableHead>
-                                <TableHead>মাস</TableHead>
-                                <TableHead>পরিমাণ</TableHead>
-                                <TableHead>তারিখ</TableHead>
-                                <TableHead className="text-right">একশন</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {payments?.map(p => {
-                                const s = studentsMap.get(p.studentId);
-                                return (
-                                    <TableRow key={p.id}>
-                                        <TableCell className="font-medium">{s?.name || 'Unknown'} (রোল: {s?.rollNumber})</TableCell>
-                                        <TableCell>{format(parseISO(p.paymentMonth), 'MMMM yyyy')}</TableCell>
-                                        <TableCell>৳{p.amount}</TableCell>
-                                        <TableCell className="text-xs">{format(parseISO(p.paymentDate), 'PP')}</TableCell>
-                                        <TableCell className="text-right">
-                                            <Button 
-                                                size="icon" 
-                                                variant="ghost" 
-                                                className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
-                                                onClick={() => handleDeletePayment(p.id)}
-                                            >
-                                                <Trash2 className="h-4 w-4" />
-                                            </Button>
-                                        </TableCell>
-                                    </TableRow>
-                                );
-                            })}
-                            {(!payments || payments.length === 0) && (
-                                <TableRow>
-                                    <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">কোনো পেমেন্ট রেকর্ড পাওয়া যায়নি।</TableCell>
-                                </TableRow>
-                            )}
-                        </TableBody>
-                    </Table>
-                )}
-            </CardContent>
-        </Card>
-    );
-}
-

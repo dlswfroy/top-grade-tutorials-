@@ -64,7 +64,7 @@ const menuItemStyles: { [key: string]: string } = {
     studentProfile: 'border-pink-400 text-pink-400',
     teachers: 'border-cyan-300 text-cyan-300',
     accounting: 'border-teal-300 text-teal-300',
-    attendance: 'border-lime-300 text-lime-300',
+    attendance: 'border-lime-300 text-teal-300',
     messaging: 'border-purple-300 text-purple-300',
     settings: 'border-green-400 text-green-400',
 };
@@ -89,7 +89,7 @@ function Logo({ settings, isLoading }: { settings: InstitutionSettings | null, i
                     <AvatarFallback>{institutionName.slice(0, 2)}</AvatarFallback>
                 </Avatar>
             )}
-            <span className="text-[1.28rem] sm:text-[2.25rem] font-headline font-black text-white whitespace-nowrap overflow-visible drop-shadow-md inline-block transform scale-x-[1.15] origin-left truncate sm:overflow-visible leading-none">
+            <span className="text-[1.28rem] sm:text-[2.25rem] font-headline font-black text-white whitespace-nowrap overflow-visible drop-shadow-md inline-block transform scale-x-[1.15] origin-left truncate sm:overflow-visible leading-[0.95]">
                 {institutionName}
             </span>
         </Link>
@@ -166,7 +166,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                 const sRoll = s.rollNumber.toString().trim();
                 const queryIsDigit = /^\d+$/.test(queryStr);
                 
-                // Exact match for roll numbers
+                // Exact match for roll numbers (1 or 01 should be the same)
                 if (queryIsDigit) {
                     return parseInt(sRoll, 10) === parseInt(queryStr, 10);
                 }
