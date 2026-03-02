@@ -166,7 +166,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                 
                 const queryIsDigit = /^\d+$/.test(queryStr);
                 if (queryIsDigit) {
-                    return sRollClean === queryClean;
+                    return sRollClean === queryClean; // Exact match for numbers
                 }
                 return s.name.toLowerCase().includes(queryStr);
             });
@@ -209,7 +209,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   return (
       <div className="min-h-screen flex flex-col bg-muted/40">
           <header className="sticky top-0 z-40 w-full bg-[#1A73E8] text-white shadow-lg border-b-2 border-black/30">
-              {/* Primary Bar Only */}
               <div className="flex h-14 sm:h-20 items-center justify-between px-3 sm:px-4 gap-2 border-b border-white/10">
                   <Logo settings={settings} isLoading={isLoadingSettings} />
                   
@@ -276,26 +275,27 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               {children}
           </main>
 
-          {/* New Permanent Bar at the Bottom */}
           <div className="fixed bottom-0 left-0 right-0 z-40 bg-[#1A73E8] text-white border-t-2 border-black/30 py-1.5 sm:py-2 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
-              <div className="container px-3 sm:px-4 flex items-center justify-between gap-4">
-                  <nav className="flex items-center space-x-2 sm:space-x-3 overflow-x-auto scrollbar-hide flex-1">
-                    <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className="bg-white/10 border border-white/20 text-white hover:bg-white/20 h-7 sm:h-8 px-2 sm:px-3 text-[10px] sm:text-xs font-bold shrink-0"
-                        onClick={() => router.back()}
-                    >
-                        <ArrowLeft className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
-                        ফিরে যান
-                    </Button>
+              <div className="container px-3 sm:px-4 flex items-center gap-2 sm:gap-4">
+                  {/* Permanent Back Button */}
+                  <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="bg-white/10 border border-white/20 text-white hover:bg-white/20 h-8 sm:h-9 px-2 sm:px-4 text-[10px] sm:text-xs font-bold shrink-0 shadow-sm"
+                      onClick={() => router.back()}
+                  >
+                      <ArrowLeft className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+                      ফিরে যান
+                  </Button>
 
+                  {/* Scrolling Menu Links */}
+                  <nav className="flex items-center space-x-2 sm:space-x-3 overflow-x-auto scrollbar-hide flex-1 py-1">
                     {visibleMenuItems.map((item) => (
                         <Link
                             key={item.href}
                             href={item.href}
                             className={cn(
-                                "flex items-center gap-1.5 sm:gap-2 rounded-lg px-2 sm:px-3 py-1 text-[10px] sm:text-xs font-bold transition-colors border-2 whitespace-nowrap",
+                                "flex items-center gap-1.5 sm:gap-2 rounded-lg px-2 sm:px-3 py-1.5 text-[10px] sm:text-xs font-bold transition-colors border-2 whitespace-nowrap",
                                 pathname === item.href 
                                     ? "border-white bg-white/20 text-white" 
                                     : `${menuItemStyles[item.key] || 'border-white/20 text-white'} hover:bg-white/10`
@@ -307,7 +307,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                     ))}
                   </nav>
 
-                  <form onSubmit={handleGlobalSearch} className="relative w-32 sm:w-48 md:w-64 shrink-0">
+                  {/* Search Bar */}
+                  <form onSubmit={handleGlobalSearch} className="relative w-28 sm:w-48 md:w-64 shrink-0">
                       <Search className="absolute left-2.5 top-2 h-3 w-3 text-white/60" />
                       <Input 
                         placeholder="খুঁজুন..." 
