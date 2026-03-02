@@ -65,7 +65,7 @@ const menuItemStyles: { [key: string]: string } = {
     studentProfile: 'border-pink-400 text-pink-400',
     teachers: 'border-cyan-300 text-cyan-300',
     accounting: 'border-teal-300 text-teal-300',
-    attendance: 'border-lime-300 text-teal-300',
+    attendance: 'border-lime-300 text-lime-300',
     messaging: 'border-purple-300 text-purple-300',
     settings: 'border-green-400 text-green-400',
 };
@@ -90,7 +90,7 @@ function Logo({ settings, isLoading }: { settings: InstitutionSettings | null, i
                     <AvatarFallback>{institutionName.slice(0, 2)}</AvatarFallback>
                 </Avatar>
             )}
-            <span className="text-[1.35rem] sm:text-[3.85rem] font-headline font-black text-white whitespace-nowrap overflow-visible drop-shadow-md inline-block transform scale-x-[1.15] origin-left truncate sm:overflow-visible leading-[0.85] pt-1">
+            <span className="text-[1.28rem] sm:text-[3.65rem] font-headline font-black text-white whitespace-nowrap overflow-visible drop-shadow-md inline-block transform scale-x-[1.15] origin-left truncate sm:overflow-visible leading-[0.85] pt-1">
                 {institutionName}
             </span>
         </Link>
@@ -107,7 +107,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  // Search States
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Student[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -158,7 +157,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     setIsSearching(true);
     setSearchResults([]);
     try {
-        const studentsRef = collection(firestore, 'students');
         const snap = await getDocs(collection(firestore, 'students'));
         
         const results = snap.docs
@@ -167,12 +165,9 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                 const sRoll = s.rollNumber.toString().trim();
                 const queryIsDigit = /^\d+$/.test(queryStr);
                 
-                // Exact match for roll numbers (1 or 01 should be the same)
                 if (queryIsDigit) {
                     return parseInt(sRoll, 10) === parseInt(queryStr, 10);
                 }
-                
-                // Partial match for names
                 return s.name.toLowerCase().includes(queryStr);
             });
         
@@ -214,7 +209,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   return (
       <div className="min-h-screen flex flex-col bg-muted/40">
           <header className="sticky top-0 z-40 w-full bg-[#1A73E8] text-white shadow-lg border-b-2 border-black/30">
-              <div className="flex h-16 sm:h-20 items-center justify-between px-3 sm:px-4 gap-2">
+              {/* Primary Bar */}
+              <div className="flex h-16 sm:h-20 items-center justify-between px-3 sm:px-4 gap-2 border-b border-white/10">
                   <Logo settings={settings} isLoading={isLoadingSettings} />
 
                   <form onSubmit={handleGlobalSearch} className="flex-1 max-w-md relative hidden md:block ml-8">
@@ -227,24 +223,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                       />
                   </form>
                   
-                  <nav className="hidden xl:flex items-center space-x-2">
-                        {visibleMenuItems.map((item) => (
-                            <Link
-                                key={item.href}
-                                href={item.href}
-                                className={cn(
-                                    "flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-bold transition-colors border-2 whitespace-nowrap",
-                                    pathname === item.href 
-                                        ? "border-white bg-white/20 text-white" 
-                                        : `${menuItemStyles[item.key] || 'border-white/20 text-white'} hover:bg-white/10`
-                                )}
-                            >
-                                <item.icon className="h-4 w-4" />
-                                <span>{item.label}</span>
-                            </Link>
-                        ))}
-                    </nav>
-
                   <div className="flex items-center justify-end gap-1 sm:gap-2 shrink-0">
                     <Button variant="ghost" size="icon" className="md:hidden text-white h-8 w-8" onClick={() => setIsSearchDialogOpen(true)}>
                         <Search className="h-5 w-5" />
@@ -306,12 +284,34 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                     </Sheet>
                   </div>
               </div>
+              
+              {/* Secondary Permanent Bar */}
+              <div className="bg-[#1A73E8] border-t border-black/10 py-1.5 sm:py-2 shadow-inner overflow-x-auto">
+                  <div className="container px-3 sm:px-4">
+                      <nav className="flex items-center space-x-2 sm:space-x-3 overflow-x-auto scrollbar-hide">
+                        {visibleMenuItems.map((item) => (
+                            <Link
+                                key={item.href}
+                                href={item.href}
+                                className={cn(
+                                    "flex items-center gap-1.5 sm:gap-2 rounded-lg px-2 sm:px-3 py-1 text-[10px] sm:text-xs font-bold transition-colors border-2 whitespace-nowrap",
+                                    pathname === item.href 
+                                        ? "border-white bg-white/20 text-white" 
+                                        : `${menuItemStyles[item.key] || 'border-white/20 text-white'} hover:bg-white/10`
+                                )}
+                            >
+                                <item.icon className="h-3 w-3 sm:h-4 sm:w-4" />
+                                <span>{item.label}</span>
+                            </Link>
+                        ))}
+                      </nav>
+                  </div>
+              </div>
           </header>
           <main className="flex-1 container py-8 relative">
               {children}
           </main>
 
-          {/* Fixed Back Button in bottom left corner */}
           <Button
             variant="secondary"
             size="icon"
