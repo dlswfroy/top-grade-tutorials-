@@ -19,6 +19,7 @@ import {
   MessageSquare,
   CreditCard,
   User,
+  ArrowLeft,
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -89,7 +90,7 @@ function Logo({ settings, isLoading }: { settings: InstitutionSettings | null, i
                     <AvatarFallback>{institutionName.slice(0, 2)}</AvatarFallback>
                 </Avatar>
             )}
-            <span className="text-[1.45rem] sm:text-[2.45rem] font-headline font-black text-white whitespace-nowrap overflow-visible drop-shadow-md inline-block transform scale-x-[1.15] origin-left truncate sm:overflow-visible leading-[0.9] pt-1">
+            <span className="text-[1.35rem] sm:text-[3.85rem] font-headline font-black text-white whitespace-nowrap overflow-visible drop-shadow-md inline-block transform scale-x-[1.15] origin-left truncate sm:overflow-visible leading-[0.85] pt-1">
                 {institutionName}
             </span>
         </Link>
@@ -158,7 +159,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     setSearchResults([]);
     try {
         const studentsRef = collection(firestore, 'students');
-        const snap = await getDocs(query(studentsRef));
+        const snap = await getDocs(collection(firestore, 'students'));
         
         const results = snap.docs
             .map(d => ({ id: d.id, ...d.data() } as Student))
@@ -306,9 +307,20 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                   </div>
               </div>
           </header>
-          <main className="flex-1 container py-8">
+          <main className="flex-1 container py-8 relative">
               {children}
           </main>
+
+          {/* Fixed Back Button in bottom left corner */}
+          <Button
+            variant="secondary"
+            size="icon"
+            className="fixed bottom-4 left-4 z-50 rounded-full shadow-lg border-2 border-primary/20 bg-white hover:bg-slate-100 transition-all active:scale-95 h-12 w-12"
+            onClick={() => router.back()}
+            title="ফিরে যান"
+          >
+            <ArrowLeft className="h-6 w-6 text-primary" />
+          </Button>
 
           <Dialog open={isSearchDialogOpen} onOpenChange={setIsSearchDialogOpen}>
               <DialogContent className="sm:max-w-md">
