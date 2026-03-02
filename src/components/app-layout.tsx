@@ -81,7 +81,7 @@ function Logo({ settings, isLoading }: { settings: InstitutionSettings | null, i
     const logoUrl = settings?.logoUrl || logoFromPlaceholders?.imageUrl;
 
     return (
-        <Link href="/" className="flex items-center gap-2 sm:gap-3 shrink-0 max-w-[65%] sm:max-w-none">
+        <Link href="/" className="flex items-center gap-2 sm:gap-3 shrink-0 max-w-[75%] sm:max-w-none">
             {isLoading ? (
                 <Loader2 className="h-6 w-6 sm:h-8 sm:w-8 animate-spin text-white" />
             ) : (
@@ -90,7 +90,7 @@ function Logo({ settings, isLoading }: { settings: InstitutionSettings | null, i
                     <AvatarFallback>{institutionName.slice(0, 2)}</AvatarFallback>
                 </Avatar>
             )}
-            <span className="text-[1.28rem] sm:text-[3.65rem] font-headline font-black text-white whitespace-nowrap overflow-visible drop-shadow-md inline-block transform scale-x-[1.15] origin-left truncate sm:overflow-visible leading-[0.85] pt-1">
+            <span className="text-[1.28rem] sm:text-[3.65rem] font-headline font-black text-white whitespace-nowrap overflow-visible drop-shadow-md inline-block transform scale-x-[1.15] origin-left leading-[0.8] pt-1.5 truncate sm:overflow-visible">
                 {institutionName}
             </span>
         </Link>
@@ -145,7 +145,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         router.push('/login');
         toast({ title: 'লগ আউট', description: 'আপনি সফলভাবে লগ আউট করেছেন।' });
     } catch (error) {
-        toast({ variant: 'destructive', title: 'ত্রুটি', description: 'লগ আউট করতে সমস্যা হয়েছে।' });
+        toast({ variant: 'destructive', title: 'ত্রুটি', description: 'লগ আউট করতে সমস্যা হয়েছে। ' });
     }
   };
 
@@ -163,10 +163,13 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             .map(d => ({ id: d.id, ...d.data() } as Student))
             .filter(s => {
                 const sRoll = s.rollNumber.toString().trim();
-                const queryIsDigit = /^\d+$/.test(queryStr);
+                // Clean leading zeros for exact comparison
+                const queryClean = queryStr.replace(/^0+/, '') || '0';
+                const sRollClean = sRoll.replace(/^0+/, '') || '0';
                 
+                const queryIsDigit = /^\d+$/.test(queryStr);
                 if (queryIsDigit) {
-                    return parseInt(sRoll, 10) === parseInt(queryStr, 10);
+                    return sRollClean === queryClean;
                 }
                 return s.name.toLowerCase().includes(queryStr);
             });
@@ -210,24 +213,10 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       <div className="min-h-screen flex flex-col bg-muted/40">
           <header className="sticky top-0 z-40 w-full bg-[#1A73E8] text-white shadow-lg border-b-2 border-black/30">
               {/* Primary Bar */}
-              <div className="flex h-16 sm:h-20 items-center justify-between px-3 sm:px-4 gap-2 border-b border-white/10">
+              <div className="flex h-14 sm:h-20 items-center justify-between px-3 sm:px-4 gap-2 border-b border-white/10">
                   <Logo settings={settings} isLoading={isLoadingSettings} />
-
-                  <form onSubmit={handleGlobalSearch} className="flex-1 max-w-md relative hidden md:block ml-8">
-                      <Search className="absolute left-3 top-2.5 h-4 w-4 text-white/60" />
-                      <Input 
-                        placeholder="শিক্ষার্থীর নাম বা রোল দিয়ে খুঁজুন..." 
-                        className="pl-10 bg-white/10 border-white/20 text-white placeholder:text-white/60 focus-visible:ring-white h-9 rounded-full"
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                      />
-                  </form>
                   
-                  <div className="flex items-center justify-end gap-1 sm:gap-2 shrink-0">
-                    <Button variant="ghost" size="icon" className="md:hidden text-white h-8 w-8" onClick={() => setIsSearchDialogOpen(true)}>
-                        <Search className="h-5 w-5" />
-                    </Button>
-                    
+                  <div className="flex items-center justify-end gap-2 shrink-0">
                     {user && (
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
@@ -286,9 +275,20 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               </div>
               
               {/* Secondary Permanent Bar */}
-              <div className="bg-[#1A73E8] border-t border-black/10 py-1.5 sm:py-2 shadow-inner overflow-x-auto">
-                  <div className="container px-3 sm:px-4">
-                      <nav className="flex items-center space-x-2 sm:space-x-3 overflow-x-auto scrollbar-hide">
+              <div className="bg-[#1A73E8] border-t border-black/10 py-1.5 sm:py-2 shadow-inner">
+                  <div className="container px-3 sm:px-4 flex items-center justify-between gap-4">
+                      <nav className="flex items-center space-x-2 sm:space-x-3 overflow-x-auto scrollbar-hide flex-1">
+                        {/* Back Button Integrated into Nav Bar */}
+                        <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="bg-white/10 border border-white/20 text-white hover:bg-white/20 h-7 sm:h-8 px-2 sm:px-3 text-[10px] sm:text-xs font-bold shrink-0"
+                            onClick={() => router.back()}
+                        >
+                            <ArrowLeft className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+                            ফিরে যান
+                        </Button>
+
                         {visibleMenuItems.map((item) => (
                             <Link
                                 key={item.href}
@@ -305,22 +305,23 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                             </Link>
                         ))}
                       </nav>
+
+                      {/* Integrated Search Bar */}
+                      <form onSubmit={handleGlobalSearch} className="relative w-32 sm:w-48 md:w-64 shrink-0">
+                          <Search className="absolute left-2.5 top-2 h-3 w-3 text-white/60" />
+                          <Input 
+                            placeholder="খুঁজুন..." 
+                            className="pl-8 bg-white/10 border-white/20 text-white placeholder:text-white/60 focus-visible:ring-white h-7 text-[10px] sm:text-xs rounded-full w-full"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                          />
+                      </form>
                   </div>
               </div>
           </header>
           <main className="flex-1 container py-8 relative">
               {children}
           </main>
-
-          <Button
-            variant="secondary"
-            size="icon"
-            className="fixed bottom-4 left-4 z-50 rounded-full shadow-lg border-2 border-primary/20 bg-white hover:bg-slate-100 transition-all active:scale-95 h-12 w-12"
-            onClick={() => router.back()}
-            title="ফিরে যান"
-          >
-            <ArrowLeft className="h-6 w-6 text-primary" />
-          </Button>
 
           <Dialog open={isSearchDialogOpen} onOpenChange={setIsSearchDialogOpen}>
               <DialogContent className="sm:max-w-md">
