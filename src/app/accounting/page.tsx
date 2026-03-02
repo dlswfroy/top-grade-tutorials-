@@ -106,7 +106,8 @@ function ReceiptDialog({ isOpen, setIsOpen, payment, student, settings }: { isOp
         const dateObj = parseISO(payment.paymentMonth);
         const monthName = format(dateObj, 'MMMM', { locale: bn });
         const year = format(dateObj, 'yyyy', { locale: bn });
-        const body = `শ্রদ্ধেয় অভিভাবক, আপনার সন্তান ${student.name}-এর ${monthName}, ${year} মাসের বেতন বাবদ ${payment.amount} টাকা সফলভাবে আদায় করা হয়েছে। রসিদ নং: ${payment.receiptNumber}। - ${settings?.institutionName || 'টপ গ্রেড টিউটোরিয়ালস'}`;
+        const instName = settings?.institutionName || 'টপ গ্রেড টিউটোরিয়ালস';
+        const body = `সম্মানিত অভিভাবক, ${student.name} -এর ${monthName}, ${year} মাসের বেতন বাবদ ${payment.amount} টাকা সফলভাবে আদায় করা হয়েছে। "${instName}"`;
         window.location.href = `sms:${student.mobileNumber}?body=${encodeURIComponent(body)}`;
     };
 
@@ -119,7 +120,7 @@ function ReceiptDialog({ isOpen, setIsOpen, payment, student, settings }: { isOp
                 <div className="p-4 border rounded-md space-y-3 bg-white">
                      <div className="text-center pb-2 border-b">
                         {settings?.logoUrl && <img src={settings.logoUrl} className="h-12 mx-auto mb-2 object-contain" alt="Logo" />}
-                        <h3 className="font-bold text-lg text-blue-800">{settings?.institutionName}</h3>
+                        <h3 className="font-bold text-lg text-blue-800">{settings?.institutionName || 'টপ গ্রেড টিউটোরিয়ালস'}</h3>
                         <p className="text-xs text-muted-foreground">বেতন আদায়ের রসিদ</p>
                      </div>
                      <div className="grid grid-cols-2 text-sm gap-y-1">
@@ -199,7 +200,7 @@ function PaymentRecord({ student }: { student: Student }) {
 
     const handleCollectPayment = () => {
         if (!firestore || !selectedMonth || !paymentAmount || !collectorName) {
-            toast({ variant: 'destructive', title: 'ত্রুটি', description: 'অনুগ্রহ করে সকল তথ্য পূরণ করুন।।' });
+            toast({ variant: 'destructive', title: 'ত্রুটি', description: 'অনুগ্রহ করে সকল তথ্য পূরণ করুন।' });
             return;
         }
         
@@ -731,3 +732,4 @@ export default function AccountingPage() {
         </div>
     );
 }
+

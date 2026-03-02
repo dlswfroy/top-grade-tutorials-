@@ -55,7 +55,7 @@ const menuItems = [
   { href: '/accounting', label: 'হিসাব', icon: Calculator, key: 'accounting' },
   { href: '/attendance', label: 'হাজিরা', icon: CalendarCheck, key: 'attendance' },
   { href: '/messaging', label: 'মেসেজ ও যোগাযোগ', icon: MessageSquare, key: 'messaging' },
-  { href: '/settings', label: 'সেটিংস', icon: Settings, key: 'settings' },
+  { href: '/settings', label: 'সেটিিংস', icon: Settings, key: 'settings' },
 ];
 
 const menuItemStyles: { [key: string]: string } = {
@@ -89,7 +89,7 @@ function Logo({ settings, isLoading }: { settings: InstitutionSettings | null, i
                     <AvatarFallback>{institutionName.slice(0, 2)}</AvatarFallback>
                 </Avatar>
             )}
-            <span className="text-[1.28rem] sm:text-[2.25rem] font-headline font-black text-white whitespace-nowrap overflow-visible drop-shadow-md inline-block transform scale-x-[1.15] origin-left truncate sm:overflow-visible leading-[0.95]">
+            <span className="text-[1.45rem] sm:text-[2.45rem] font-headline font-black text-white whitespace-nowrap overflow-visible drop-shadow-md inline-block transform scale-x-[1.15] origin-left truncate sm:overflow-visible leading-[0.9] pt-1">
                 {institutionName}
             </span>
         </Link>
@@ -245,7 +245,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                     </nav>
 
                   <div className="flex items-center justify-end gap-1 sm:gap-2 shrink-0">
-                    {/* Search Icon for Mobile */}
                     <Button variant="ghost" size="icon" className="md:hidden text-white h-8 w-8" onClick={() => setIsSearchDialogOpen(true)}>
                         <Search className="h-5 w-5" />
                     </Button>
