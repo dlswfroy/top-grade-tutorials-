@@ -17,13 +17,13 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
-import { classNames, type Student, type Payment, type Teacher } from '@/lib/data';
-import { Search, Printer, Loader2, DollarSign, Save, MessageCircle, Trash2 } from 'lucide-react';
+import { classNames, type Student, type Payment, type Teacher, type Expense } from '@/lib/data';
+import { Search, Printer, Loader2, DollarSign, Save, MessageCircle, Trash2, Plus, Wallet, ArrowDownCircle, ArrowUpCircle } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useFirestore, useCollection, useDoc, useMemoFirebase, errorEmitter, FirestorePermissionError } from '@/firebase';
 import { collection, where, query, getDocs, doc, addDoc, orderBy, limit, deleteDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, startOfMonth, endOfMonth } from 'date-fns';
 import { bn } from 'date-fns/locale';
 import {
   Dialog,
@@ -41,7 +41,6 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 
 const monthsList = ['জানুয়ারি', 'ফেব্রুয়ারি', 'মার্চ', 'এপ্রিল', 'মে', 'জুন', 'জুলাই', 'আগস্ট', 'সেপ্টেম্বর', 'অক্টোবর', 'নভেম্বর', 'ডিসেম্বর'];
@@ -384,6 +383,207 @@ function PaymentHistory() {
     );
 }
 
+function ExpenseManagement() {
+    const firestore = useFirestore();
+    const { toast } = useToast();
+    const [isDialogOpen, setIsDialogOpen] = useState(false);
+    const [description, setDescription] = useState('');
+    const [amount, setAmount] = useState<number | string>('');
+    const [spentByName, setSpentByName] = useState('');
+    const [isSaving, setIsSaving] = useState(false);
+
+    const expensesQuery = useMemoFirebase(() => {
+        if (!firestore) return null;
+        return query(collection(firestore, 'expenses'), orderBy('expenseDate', 'desc'), limit(50));
+    }, [firestore]);
+    const { data: expenses, isLoading } = useCollection<Expense>(expensesQuery);
+
+    const handleAddExpense = () => {
+        if (!firestore || !description || !amount || !spentByName) {
+            toast({ variant: 'destructive', title: 'ত্রুটি', description: 'অনুগ্রহ করে সকল তথ্য পূরণ করুন।' });
+            return;
+        }
+
+        setIsSaving(true);
+        const expenseData: Omit<Expense, 'id'> = {
+            description,
+            amount: Number(amount),
+            spentByName,
+            expenseDate: new Date().toISOString()
+        };
+
+        addDoc(collection(firestore, 'expenses'), expenseData)
+            .then(() => {
+                toast({ title: 'সফল', description: 'খরচের হিসাব যোগ করা হয়েছে।' });
+                setIsDialogOpen(false);
+                setDescription('');
+                setAmount('');
+                setSpentByName('');
+            })
+            .catch(() => {
+                toast({ variant: 'destructive', title: 'ত্রুটি', description: 'খরচ সেভ করতে সমস্যা হয়েছে।' });
+            })
+            .finally(() => setIsSaving(false));
+    };
+
+    const handleDeleteExpense = (id: string) => {
+        if (!firestore || !window.confirm('আপনি কি এই খরচের এন্ট্রিটি মুছে ফেলতে চান?')) return;
+        deleteDoc(doc(firestore, 'expenses', id))
+            .then(() => toast({ title: 'সফল', description: 'খরচের এন্ট্রি মুছে ফেলা হয়েছে।' }));
+    };
+
+    return (
+        <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle>খরচের হিসাব (Expenses)</CardTitle>
+                <Button onClick={() => setIsDialogOpen(true)}><Plus className="mr-2 h-4 w-4" /> নতুন খরচ</Button>
+            </CardHeader>
+            <CardContent>
+                {isLoading ? <div className="flex justify-center py-12"><Loader2 className="h-8 w-8 animate-spin" /></div> : (
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>বিবরণ</TableHead>
+                                <TableHead>ব্যয়কারী</TableHead>
+                                <TableHead>পরিমাণ</TableHead>
+                                <TableHead>তারিখ</TableHead>
+                                <TableHead className="text-right">একশন</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {expenses?.map(e => (
+                                <TableRow key={e.id}>
+                                    <TableCell className="font-medium">{e.description}</TableCell>
+                                    <TableCell>{e.spentByName}</TableCell>
+                                    <TableCell className="text-red-600 font-bold">৳{e.amount}</TableCell>
+                                    <TableCell className="text-xs">{format(parseISO(e.expenseDate), 'PP', { locale: bn })}</TableCell>
+                                    <TableCell className="text-right">
+                                        <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => handleDeleteExpense(e.id)}>
+                                            <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                )}
+            </CardContent>
+
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                <DialogContent>
+                    <DialogHeader><DialogTitle>নতুন খরচ যোগ করুন</DialogTitle></DialogHeader>
+                    <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                            <Label>খরচের বিবরণ</Label>
+                            <Input value={description} onChange={e => setDescription(e.target.value)} placeholder="যেমন: কারেন্ট বিল" />
+                        </div>
+                        <div className="space-y-2">
+                            <Label>টাকার পরিমাণ</Label>
+                            <Input type="number" value={amount} onChange={e => setAmount(e.target.value)} />
+                        </div>
+                        <div className="space-y-2">
+                            <Label>ব্যয়কারী</Label>
+                            <Input value={spentByName} onChange={e => setSpentByName(e.target.value)} placeholder="নাম লিখুন" />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button onClick={handleAddExpense} disabled={isSaving} className="w-full">
+                            {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                            সেভ করুন
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+        </Card>
+    );
+}
+
+function CashbookView() {
+    const firestore = useFirestore();
+    const paymentsQuery = useMemoFirebase(() => {
+        if (!firestore) return null;
+        return collection(firestore, 'payments');
+    }, [firestore]);
+    const { data: payments } = useCollection<Payment>(paymentsQuery);
+
+    const expensesQuery = useMemoFirebase(() => {
+        if (!firestore) return null;
+        return collection(firestore, 'expenses');
+    }, [firestore]);
+    const { data: expenses } = useCollection<Expense>(expensesQuery);
+
+    const stats = useMemo(() => {
+        const totalIncome = payments?.reduce((acc, p) => acc + p.amount, 0) || 0;
+        const totalExpense = expenses?.reduce((acc, e) => acc + e.amount, 0) || 0;
+        const currentMonthIncome = payments?.filter(p => format(parseISO(p.paymentDate), 'yyyy-MM') === format(new Date(), 'yyyy-MM')).reduce((acc, p) => acc + p.amount, 0) || 0;
+        const currentMonthExpense = expenses?.filter(e => format(parseISO(e.expenseDate), 'yyyy-MM') === format(new Date(), 'yyyy-MM')).reduce((acc, e) => acc + e.amount, 0) || 0;
+
+        return {
+            totalIncome,
+            totalExpense,
+            balance: totalIncome - totalExpense,
+            currentMonthIncome,
+            currentMonthExpense,
+            currentMonthBalance: currentMonthIncome - currentMonthExpense
+        };
+    }, [payments, expenses]);
+
+    return (
+        <div className="space-y-6">
+            <div className="grid gap-4 md:grid-cols-3">
+                <Card className="bg-green-50 border-green-200">
+                    <CardHeader className="flex flex-row items-center justify-between pb-2">
+                        <CardTitle className="text-sm font-bold text-green-700">সর্বমোট আয় (Income)</CardTitle>
+                        <ArrowUpCircle className="h-4 w-4 text-green-600" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold text-green-800">৳{stats.totalIncome}</div>
+                        <p className="text-xs text-green-600">বেতন আদায় থেকে প্রাপ্ত</p>
+                    </CardContent>
+                </Card>
+                <Card className="bg-red-50 border-red-200">
+                    <CardHeader className="flex flex-row items-center justify-between pb-2">
+                        <CardTitle className="text-sm font-bold text-red-700">সর্বমোট ব্যয় (Expense)</CardTitle>
+                        <ArrowDownCircle className="h-4 w-4 text-red-600" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold text-red-800">৳{stats.totalExpense}</div>
+                        <p className="text-xs text-red-600">প্রতিষ্ঠান পরিচালনার ব্যয়</p>
+                    </CardContent>
+                </Card>
+                <Card className="bg-blue-50 border-blue-200">
+                    <CardHeader className="flex flex-row items-center justify-between pb-2">
+                        <CardTitle className="text-sm font-bold text-blue-700">বর্তমান ক্যাশ (Balance)</CardTitle>
+                        <Wallet className="h-4 w-4 text-blue-600" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold text-blue-800">৳{stats.balance}</div>
+                        <p className="text-xs text-blue-600">সব খরচ বাদে বর্তমান স্থিতি</p>
+                    </CardContent>
+                </Card>
+            </div>
+
+            <Card>
+                <CardHeader><CardTitle>চলতি মাসের সারসংক্ষেপ ({format(new Date(), 'MMMM yyyy', { locale: bn })})</CardTitle></CardHeader>
+                <CardContent className="space-y-4">
+                    <div className="flex justify-between items-center p-3 border rounded-lg">
+                        <span className="font-medium">চলতি মাসের আয়</span>
+                        <span className="text-green-600 font-bold">৳{stats.currentMonthIncome}</span>
+                    </div>
+                    <div className="flex justify-between items-center p-3 border rounded-lg">
+                        <span className="font-medium">চলতি মাসের ব্যয়</span>
+                        <span className="text-red-600 font-bold">৳{stats.currentMonthExpense}</span>
+                    </div>
+                    <div className="flex justify-between items-center p-3 bg-blue-50 border border-blue-100 rounded-lg">
+                        <span className="font-bold">চলতি মাসের নেট ব্যালেন্স</span>
+                        <span className="text-blue-700 font-bold text-lg">৳{stats.currentMonthBalance}</span>
+                    </div>
+                </CardContent>
+            </Card>
+        </div>
+    );
+}
+
 export default function AccountingPage() {
     const firestore = useFirestore();
     const { toast } = useToast();
@@ -405,7 +605,6 @@ export default function AccountingPage() {
         if (snap.empty) {
           toast({ variant: 'destructive', title: 'পাওয়া যায়নি', description: 'এই রোল নম্বরের কোনো শিক্ষার্থী নেই।' });
         } else {
-          // Extra exact match check for the roll number
           const found = snap.docs.find(d => d.data().rollNumber.toString().trim() === searchRoll.trim());
           if (found) {
             setSelectedStudent({ id: found.id, ...found.data() } as Student);
@@ -425,9 +624,11 @@ export default function AccountingPage() {
             <h1 className="text-3xl font-bold font-headline text-amber-800 dark:text-amber-200">হিসাবরক্ষণ</h1>
             
             <Tabs defaultValue="collection" className="space-y-6">
-                <TabsList className="grid w-full grid-cols-2 max-w-md">
+                <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4 max-w-2xl">
                     <TabsTrigger value="collection">বেতন আদায়</TabsTrigger>
                     <TabsTrigger value="history">আদায়ের তালিকা</TabsTrigger>
+                    <TabsTrigger value="expenses">খরচের হিসাব</TabsTrigger>
+                    <TabsTrigger value="cashbook">ক্যাশ বুক</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="collection">
@@ -466,6 +667,14 @@ export default function AccountingPage() {
                 
                 <TabsContent value="history">
                     <PaymentHistory />
+                </TabsContent>
+
+                <TabsContent value="expenses">
+                    <ExpenseManagement />
+                </TabsContent>
+
+                <TabsContent value="cashbook">
+                    <CashbookView />
                 </TabsContent>
             </Tabs>
         </div>
