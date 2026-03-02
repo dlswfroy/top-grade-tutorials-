@@ -18,10 +18,10 @@ import {
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { classNames, type Student, type Payment, type Teacher } from '@/lib/data';
-import { Search, Printer, Loader2, DollarSign, Save, MessageCircle } from 'lucide-react';
+import { Search, Printer, Loader2, DollarSign, Save, MessageCircle, Trash2 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useFirestore, useCollection, useDoc, useMemoFirebase, errorEmitter, FirestorePermissionError } from '@/firebase';
-import { collection, where, query, getDocs, doc, addDoc, orderBy, limit } from 'firebase/firestore';
+import { collection, where, query, getDocs, doc, addDoc, orderBy, limit, deleteDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { format, parseISO } from 'date-fns';
 import { bn } from 'date-fns/locale';
@@ -44,7 +44,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 
-const months = ['জানুয়ারি', 'ফেব্রুয়ারি', 'মার্চ', 'এপ্রিল', 'মে', 'জুন', 'জুলাই', 'আগস্ট', 'সেপ্টেম্বর', 'অক্টোবর', 'নভেম্বর', 'ডিসেম্বর'];
+const monthsList = ['জানুয়ারি', 'ফেব্রুয়ারি', 'মার্চ', 'এপ্রিল', 'মে', 'জুন', 'জুলাই', 'আগস্ট', 'সেপ্টেম্বর', 'অক্টোবর', 'নভেম্বর', 'ডিসেম্বর'];
 
 type InstitutionSettings = {
     institutionName?: string;
@@ -164,7 +164,7 @@ function PaymentRecord({ student }: { student: Student }) {
         return payments.reduce((acc, payment) => {
             const [year, month] = payment.paymentMonth.split('-');
             if (year === currentYear) {
-                const monthName = months[parseInt(month, 10) - 1];
+                const monthName = monthsList[parseInt(month, 10) - 1];
                 if(monthName) acc[monthName] = payment;
             }
             return acc;
@@ -172,7 +172,7 @@ function PaymentRecord({ student }: { student: Student }) {
     }, [payments]);
 
     const handleOpenPaymentDialog = (month: string) => {
-        const monthIndex = months.indexOf(month) + 1;
+        const monthIndex = monthsList.indexOf(month) + 1;
         const year = new Date().getFullYear();
         setSelectedMonth(`${year}-${monthIndex.toString().padStart(2, '0')}`);
         setPaymentAmount(student.monthlyFee);
@@ -235,7 +235,7 @@ function PaymentRecord({ student }: { student: Student }) {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {months.map(month => {
+                                {monthsList.map(month => {
                                     const payment = paymentsByMonth[month];
                                     return (
                                         <TableRow key={month}>
@@ -385,6 +385,7 @@ export default function AccountingPage() {
 
 function PaymentHistory() {
     const firestore = useFirestore();
+    const { toast } = useToast();
     const paymentsQuery = useMemoFirebase(() => {
         if (!firestore) return null;
         return query(collection(firestore, 'payments'), orderBy('paymentDate', 'desc'), limit(50));
@@ -398,6 +399,23 @@ function PaymentHistory() {
     const { data: students } = useCollection<Student>(studentsQuery);
     const studentsMap = useMemo(() => new Map(students?.map(s => [s.id, s])), [students]);
 
+    const handleDeletePayment = (paymentId: string) => {
+        if (!firestore) return;
+        if (!window.confirm('আপনি কি এই পেমেন্ট রেকর্ডটি মুছে ফেলতে চান?')) return;
+
+        const paymentRef = doc(firestore, 'payments', paymentId);
+        deleteDoc(paymentRef)
+            .then(() => {
+                toast({ title: 'সফল', description: 'পেমেন্ট রেকর্ডটি মুছে ফেলা হয়েছে।' });
+            })
+            .catch((error) => {
+                errorEmitter.emit('permission-error', new FirestorePermissionError({
+                    path: paymentRef.path,
+                    operation: 'delete',
+                }));
+            });
+    };
+
     return (
         <Card>
             <CardHeader><CardTitle>সাম্প্রতিক আদায়ের তালিকা</CardTitle></CardHeader>
@@ -410,6 +428,7 @@ function PaymentHistory() {
                                 <TableHead>মাস</TableHead>
                                 <TableHead>পরিমাণ</TableHead>
                                 <TableHead>তারিখ</TableHead>
+                                <TableHead className="text-right">একশন</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -421,9 +440,24 @@ function PaymentHistory() {
                                         <TableCell>{format(parseISO(p.paymentMonth), 'MMMM yyyy')}</TableCell>
                                         <TableCell>৳{p.amount}</TableCell>
                                         <TableCell className="text-xs">{format(parseISO(p.paymentDate), 'PP')}</TableCell>
+                                        <TableCell className="text-right">
+                                            <Button 
+                                                size="icon" 
+                                                variant="ghost" 
+                                                className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                                onClick={() => handleDeletePayment(p.id)}
+                                            >
+                                                <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                        </TableCell>
                                     </TableRow>
                                 );
                             })}
+                            {(!payments || payments.length === 0) && (
+                                <TableRow>
+                                    <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">কোনো পেমেন্ট রেকর্ড পাওয়া যায়নি।</TableCell>
+                                </TableRow>
+                            )}
                         </TableBody>
                     </Table>
                 )}
@@ -431,3 +465,4 @@ function PaymentHistory() {
         </Card>
     );
 }
+
