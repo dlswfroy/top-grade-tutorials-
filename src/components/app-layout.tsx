@@ -88,7 +88,7 @@ function Logo({ settings, isLoading }: { settings: InstitutionSettings | null, i
                     <AvatarFallback>{institutionName.slice(0, 2)}</AvatarFallback>
                 </Avatar>
             )}
-            <span className="text-[1.35rem] sm:text-[3.8rem] font-headline font-black text-white whitespace-nowrap overflow-visible drop-shadow-md inline-block transform scale-x-[1.15] origin-left leading-[0.75] pt-1.5 truncate sm:overflow-visible">
+            <span className="text-[1.35rem] sm:text-[3.8rem] font-headline font-black text-white whitespace-nowrap overflow-visible drop-shadow-[2px_2px_2px_rgba(0,0,0,1)] inline-block transform scale-x-[1.15] origin-left leading-[0.75] pt-1.5 truncate sm:overflow-visible">
                 {institutionName}
             </span>
         </Link>
