@@ -208,7 +208,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
       <div className="min-h-screen flex flex-col bg-muted/40">
-          <header className="sticky top-0 z-40 w-full bg-[#1A73E8] text-white shadow-lg border-b-2 border-black/30">
+          <header className="sticky top-0 z-40 w-full bg-[#2979FF] text-white shadow-lg border-b-2 border-black/30">
               <div className="flex h-14 sm:h-20 items-center justify-between px-3 sm:px-4 gap-2 border-b border-white/10">
                   <Logo settings={settings} isLoading={isLoadingSettings} />
                   
@@ -244,7 +244,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                                 <Menu className="h-6 w-6" />
                             </Button>
                         </SheetTrigger>
-                        <SheetContent side="left" className="w-[300px] bg-[#1A73E8] text-white border-r-0 p-0">
+                        <SheetContent side="left" className="w-[300px] bg-[#2979FF] text-white border-r-0 p-0">
                              <SheetTitle className="sr-only">Mobile Menu</SheetTitle>
                             <div className="p-4 border-b border-white/20">
                                 <Logo settings={settings} isLoading={isLoadingSettings} />
@@ -275,7 +275,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               {children}
           </main>
 
-          <div className="fixed bottom-0 left-0 right-0 z-40 bg-[#1A73E8] text-white border-t-2 border-black/30 py-1.5 sm:py-2 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
+          <div className="fixed bottom-0 left-0 right-0 z-40 bg-[#2979FF] text-white border-t-2 border-black/30 py-1.5 sm:py-2 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
               <div className="container px-3 sm:px-4 flex items-center gap-2 sm:gap-4">
                   {/* Permanent Back Button */}
                   <Button 
